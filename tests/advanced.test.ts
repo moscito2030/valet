@@ -133,23 +133,23 @@ test('a selected played contract starts with the opening leader; passes and canc
   assert.equal(playFromResult(board), null);
 });
 
-test('128 boards remain directly addressable by round and within-round number', () => {
+test('160 boards remain directly addressable by round and within-round number', () => {
   const e = createEvent({
     name: 'World-size QA',
     kind: 'pairs',
     date: '2026-10-13',
     venue: '',
     names: ['A', 'B', 'C', 'D', 'E', 'F'],
-    rounds: 4,
-    boardsPerRound: 32,
+    rounds: 10,
+    boardsPerRound: 16,
   });
   const choices = boardRounds(e);
-  assert.equal(choices.length, 4);
+  assert.equal(choices.length, 10);
   assert.deepEqual(
     choices.map((r) => r.boards.length),
-    [32, 32, 32, 32],
+    Array(10).fill(16),
   );
-  assert.equal(choices[3].boards[31], 128);
+  assert.equal(choices[9].boards[15], 160);
 });
 test('HCP and LoTT use the whole deal and the corresponding trump strain', () => {
   const board = makeBoard(1);

@@ -23,7 +23,7 @@ r1tA1,2,0,NT,1,N,0,,played
 | 欄位 | 必填 | 格式 |
 | --- | --- | --- |
 | assignmentId | 是 | 賽程安排的識別碼；須與既有賽程完全一致，並非桌號 |
-| board | 是 | 整數 1–128，且屬於該 assignmentId 的牌號 |
+| board | 是 | 正整數，且屬於該 assignmentId 的牌號（可大於 128） |
 | level | 是 | 1–7；全 Pass 使用 0 |
 | strain | 是 | `C`、`D`、`H`、`S`、`NT` |
 | doubled | 是 | 1＝未加倍、2＝加倍、4＝再加倍 |

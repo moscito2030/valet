@@ -37,7 +37,7 @@ test('generate honours predeal and constraints, supports metadata, round trips P
 });
 
 test('invalid, unsupported and impossible source fails explicitly; work can be cancelled', async () => {
-  for (const source of ['condition tricks(north,spades)>8', 'action average hcp(north)', 'condition unknown > 5', 'predeal north SA predeal south SA', 'produce 129', 'generate 1000001', 'condition globalThis.fetch("x")']) {
+  for (const source of ['condition tricks(north,spades)>8', 'action average hcp(north)', 'condition unknown > 5', 'predeal north SA predeal south SA', 'produce 0', 'generate 1000001', 'condition globalThis.fetch("x")']) {
     assert.throws(() => compileDealerSource(source, 1), source);
   }
   await assert.rejects(generateDealerBoards([makeBoard(1)], 'generate 5 condition hcp(north) > 40'), /上限/);

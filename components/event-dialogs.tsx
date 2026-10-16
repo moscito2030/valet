@@ -258,7 +258,7 @@ export function CreateDialog({
               name="boardsPerRound"
               type="number"
               min={1}
-              max={32}
+              max={16}
               defaultValue={kind === 'teams' ? 8 : 2}
               key={kind}
             />
@@ -270,7 +270,7 @@ export function CreateDialog({
             <option value="double-mitchell">Double Winner Mitchell／Skip Mitchell</option>
             <option value="double-mitchell-relay">Double Winner Mitchell（偶數桌共牌／中繼）</option>
           </select>
-          <span className="footnote">雙冠軍支援 3–19 桌。奇數桌最多桌數圈；Skip Mitchell 最多桌數減一圈；共牌／中繼最多桌數圈。總牌數最多 128 副。</span>
+          <span className="footnote">雙冠軍支援 3–19 桌。奇數桌最多桌數圈；Skip Mitchell 最多桌數減一圈；共牌／中繼最多桌數圈。每圈最多 16 副，總牌數依編排計算。</span>
         </label>}
         {kind === 'pairs' && movementPlan ? <div className="form-grid">
           {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–19 組）

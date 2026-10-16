@@ -334,7 +334,6 @@ export function AdminPanel({
                   name="maxBoardNumber"
                   type="number"
                   min="0"
-                  max="128"
                   required
                   defaultValue={event.maxBoardNumber ?? (event.kind === 'pairs' ? 0 : 32)}
                 />

@@ -5,8 +5,7 @@ import { interleavedAssignments, teamByes, type InterleavedGroups, type Interlea
 export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string; interleavedSize?: InterleavedSize };
 type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
 export function movementOptions(event: Input): MovementPlan[] {
-  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 31 : 19) ||
-      !Number.isInteger(event.boardsPerRound) || event.boardsPerRound < 1 || event.boardsPerRound > 32) return [];
+  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 31 : 19)) return [];
   if (event.kind === 'teams') {
     const n = event.participants.length;
     if (n < 3 || n > 32) return [];
@@ -18,7 +17,7 @@ export function movementOptions(event: Input): MovementPlan[] {
         label: (size === 3 ? '三' : '五') + '隊交錯循環（全員打牌）', groups: size * cycles,
         note: n + ' 張實體桌，每循環 ' + (n / size) + ' 組、每組 ' + size + ' 隊，共 ' + cycles + ' 個循環。各循環可重新分組；循環內固定南北／東西搭檔，依預覽移動。每兩圈完成一批比較，每場按每圈牌數換算 20–0 VP；全賽每隊 ' + event.rounds + ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開／閉為比較方向，非固定房間。' });
     }
-    return options.filter(option => option.groups * event.boardsPerRound <= 128);
+    return options;
   }
   const tables = Math.ceil(event.participants.length / 2), rounds = event.rounds;
   const options: MovementPlan[] = [{ id: 'barometer', label: '全場同牌輪轉', groups: rounds, note: '每圈各桌打相同牌組，須準備多份複製牌。' }];
@@ -35,7 +34,13 @@ export function movementOptions(event: Input): MovementPlan[] {
     for (const option of [...options].filter(o => o.id.startsWith('mitchell')))
       options.push({ ...option, id: `double-${option.id}`, label: `Double Winner ${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
   }
-  return options.filter(option => option.groups * event.boardsPerRound <= 128);
+  return options;
+}
+
+export function movementBoardError(boardsPerRound: number): string | null {
+  if (!Number.isInteger(boardsPerRound) || boardsPerRound < 1 || boardsPerRound > 16)
+    return '每圈牌數須為 1–16 的整數。';
+  return null;
 }
 
 export function buildMovement(event: Input, id: string, groups?: InterleavedGroups) {
@@ -43,6 +48,8 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   if (id === 'team-interleaved' && [3, 5].includes(event.participants.length)) id += '-' + event.participants.length;
   const option = movementOptions(event).find(option => option.id === id);
   if (!option) throw new Error('此桌數與圈數不適用所選賽程編排');
+  const boardError = movementBoardError(event.boardsPerRound);
+  if (boardError) throw new Error(boardError);
   if (groups && !option.interleavedSize) throw new Error('僅交錯循環可設定分組');
   const doubleWinner = id.startsWith('double-');
   if (doubleWinner) id = id.slice(7);

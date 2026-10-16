@@ -163,7 +163,7 @@ export default function Scoreboard() {
         const view = params.get('view');
         if (['standings', 'rounds', 'boards', 'players'].includes(view ?? '')) setTab(view as Tab);
         const b = Number(params.get('board'));
-        if (b > 0 && b <= 128) setBoard(b);
+        if (Number.isSafeInteger(b) && b > 0) setBoard(b);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));

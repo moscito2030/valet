@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import { defaultInterleavedGroups, roundLabel, type InterleavedGroups } from '@/lib/team-movement';
-import { buildMovement, movementOptions } from '@/lib/movement-plans';
+import { buildMovement, movementOptions, movementBoardError } from '@/lib/movement-plans';
 
 export function MovementPanel({
   event,
@@ -36,14 +36,16 @@ export function MovementPanel({
   } | null>(null);
   const draft = { ...event, rounds, boardsPerRound, byeVp };
   const options = movementOptions(draft);
-  const size = options.find((p) => p.id === choice)?.interleavedSize;
+  const selectedOption = options.find((p) => p.id === choice);
+  const size = selectedOption?.interleavedSize;
+  const boardError = selectedOption ? movementBoardError(boardsPerRound) : null;
   const groupKey = choice + ':' + rounds + ':' + event.participants.map((p) => p.id).join(',');
   const groups = size
     ? customGroups?.key === groupKey
       ? customGroups.groups
       : defaultInterleavedGroups(draft, size)
     : undefined;
-  const plan = options.some((p) => p.id === choice) ? buildMovement(draft, choice, groups) : null;
+  const plan = selectedOption && !boardError ? buildMovement(draft, choice, groups) : null;
   const previewEvent = {
     assignments: plan?.assignments ?? [],
     teamMovement: size ? ('interleaved' as const) : undefined,
@@ -86,7 +88,7 @@ export function MovementPanel({
           <input
             type="number"
             min={1}
-            max={32}
+            max={16}
             value={boardsPerRound || ''}
             disabled={locked}
             onChange={(e) => {
@@ -125,6 +127,7 @@ export function MovementPanel({
         {event.kind === 'pairs' &&
           '3/4 Howell 的圈數依編排表而定，並非固定為完整 Howell 的四分之三。'}
       </p>
+      {boardError && <p role="alert">{boardError}</p>}
       {plan && (
         <>
           <p>{plan.option.note}</p>

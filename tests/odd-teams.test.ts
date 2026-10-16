@@ -95,7 +95,7 @@ test('every odd team size 3–31 has one bye per round, one bye per team, and al
   }
   assert.throws(() => fixture(2));
   assert.throws(() => fixture(33));
-  assert.throws(() => fixture(31, 31, 5), /128/);
+  assert.equal(fixture(31, 31, 5).boards.length, 155);
 });
 
 for (const n of [3, 5])
@@ -243,7 +243,7 @@ test('malformed interleaved imports are rejected without changing state', () => 
     !movementOptions({ ...event, rounds: 3 }).some((o) => o.id.startsWith('team-interleaved')),
   );
   assert.ok(
-    !movementOptions({ ...event, boardsPerRound: 26 }).some((o) => o.id === 'team-interleaved'),
+    movementOptions({ ...event, boardsPerRound: 26 }).some((o) => o.id === 'team-interleaved-5'),
   );
 });
 
@@ -389,7 +389,8 @@ test('mode selection and round labels distinguish 3- and 5-team groups and retai
   );
   assert.ok(!movementOptions(fixture(6, 3, 1)).some((p) => p.interleavedSize));
   assert.ok(!movementOptions(fixture(7, 4, 1)).some((p) => p.interleavedSize));
-  assert.ok(!movementOptions(fixture(5, 8, 13)).some((p) => p.interleavedSize));
+  assert.ok(movementOptions(fixture(5, 8, 13)).some((p) => p.interleavedSize));
+  assert.equal(buildMovement(fixture(5, 8, 13), 'team-interleaved-5').boardCount, 130);
   assert.equal(roundLabel(draft, 4), '4');
   const e = apply(store(fixture(10, 8, 1)), {
     action: 'movement-plan',

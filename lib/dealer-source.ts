@@ -158,7 +158,7 @@ export function compileDealerSource(source: string, defaultCount: number) {
     else { pos--; condition = expression(); }
   }
   for (const name of references) if (!variables.has(name)) throw new Error(`未定義變數：${name}`);
-  if (!Number.isInteger(count) || count < 1 || count > 128) throw new Error('produce 需為 1–128 副');
+  if (!Number.isSafeInteger(count) || count < 1) throw new Error('produce 需為正整數');
   if (!Number.isInteger(limit) || limit < 1 || limit > 1000000) throw new Error('generate 需為 1–1,000,000 次');
   const fixed = Object.values(predeal).flat();
   if (new Set(fixed).size !== fixed.length || Object.values(predeal).some(h => h.length > 13)) throw new Error('predeal 有重複牌或單家超過 13 張');

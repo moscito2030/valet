@@ -5,7 +5,7 @@ import { createEvent, applyMutation } from '../lib/events';
 import { project, imps } from '../lib/scoring';
 import { exportMovement, parseMovement } from '../lib/imports';
 import { audienceEvent, clubView } from '../lib/club-view';
-import { movementOptions } from '../lib/movement-plans';
+import { movementOptions, buildMovement } from '../lib/movement-plans';
 import type { Mutation, StoredEvent } from '../lib/model';
 
 function make(tables: number, relay = tables % 2 === 0) {
@@ -40,7 +40,8 @@ test('double winner rejects invalid sizes, rounds, board limits and direction-ch
   assert.throws(() => make(20));
   const e = make(4);
   assert.ok(!movementOptions({ ...e, rounds: 4 }).some(p => p.id === 'double-mitchell'));
-  assert.ok(!movementOptions({ ...e, boardsPerRound: 33 }).some(p => p.id.startsWith('double-')));
+  assert.ok(movementOptions({ ...e, boardsPerRound: 17 }).some(p => p.id.startsWith('double-')));
+  assert.throws(() => buildMovement({ ...e, boardsPerRound: 17 }, 'double-mitchell-relay'), /1–16/);
   const reversed = { ...e, assignments: e.assignments.map(a => ({ ...a, ns: a.ew, ew: a.ns })) };
   assert.throws(() => parseMovement(exportMovement(reversed), e), /分組/);
 });
