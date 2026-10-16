@@ -44,11 +44,11 @@ test('lineup CSV round-trips, supports partial updates and atomic room swaps', (
   assert.deepEqual(cleared.event.assignments[0].playerNames, { N: '', E: '', S: '', W: '' });
   assert.match(cleared.event.audit.at(-1)!.detail!, /→/);
 });
-test('lineup CSV rejects foreign names, duplicate seats, missing headers and conflicting retained tables', () => {
+test('lineup CSV rejects invalid names, duplicate seats, missing headers and conflicting retained tables', () => {
   const stored = fixture();
   const [a, b] = stored.event.assignments;
   for (const csv of [
-    `assignmentId,N,E,S,W\n${a.id},不存在,,,`,
+    `assignmentId,N,E,S,W\n${a.id},甲、乙,,,`,
     `assignmentId,N,E,S,W\n${a.id},${a.playerNames!.N},,${a.playerNames!.N},`,
     `assignmentId,N,E,S,W\n${a.id},${b.playerNames!.E},,,`,
     `assignmentId,N\n${a.id},`,
@@ -112,4 +112,28 @@ test('clear results resets all score state with name and revision protection whi
   assert.equal(cleared.projection.received, 0);
   assert.deepEqual(applyMutation(cleared, cmd), cleared);
   assert.equal(Object.keys(e.results).length, 4);
+});
+
+test('lineup import adds new names to the correct roster atomically without duplicates', () => {
+  const stored = fixture();
+  const [a] = stored.event.assignments;
+  const csv = `assignmentId,N,E,S,W\n${a.id}, 新北家 ,新東家,,`;
+  const before = structuredClone(stored);
+  parseLineups(csv, stored.event);
+  assert.deepEqual(stored, before);
+  const imported = applyMutation(stored, command('lineups-import', { csv }));
+  assert.ok(imported.event.participants.find((p) => p.id === a.ns)!.players.endsWith('、新北家'));
+  assert.ok(imported.event.participants.find((p) => p.id === a.ew)!.players.endsWith('、新東家'));
+  assert.match(imported.event.audit.at(-1)!.detail!, /新增隊員/);
+  const again = applyMutation(imported, command('lineups-import', { csv }, 2));
+  assert.deepEqual(again.event.participants, imported.event.participants);
+  assert.deepEqual(stored, before);
+  const invalid = csv + `\n${stored.event.assignments[1].id},,新北家,,`;
+  assert.throws(() => applyMutation(stored, command('lineups-import', { csv: invalid })), /重複/);
+  assert.deepEqual(stored, before);
+  stored.event.participants.find((p) => p.id === a.ns)!.players = Array.from(
+    { length: 30 },
+    (_, i) => `賽員${i}`,
+  ).join('、');
+  assert.throws(() => parseLineups(csv, stored.event), /30/);
 });

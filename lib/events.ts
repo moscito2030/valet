@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { roundProgress } from './round-progress';
 import { buildMovement } from './movement-plans';
 import { parseRoundTimes } from './round-times-import';
-import { parseLineups } from './lineup-import';
+import { parseLineups, lineupRosterAdditions } from './lineup-import';
 import { z } from 'zod';
 import {
   Board,
@@ -173,12 +173,18 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   } else if (command.action === 'lineups-import') {
     try {
       const updates = parseLineups(command.csv, e);
+      const additions = lineupRosterAdditions(updates, e);
+      for (const addition of additions) {
+        const team = e.participants.find(p => p.id === addition.teamId)!;
+        team.players = [...team.players.split('、').filter(Boolean), ...addition.names].join('、');
+      }
       detail = updates.map(u => {
         const a = e.assignments.find(a => a.id === u.assignmentId)!;
         const change = `${a.id}: ${JSON.stringify(a.playerNames ?? {})} → ${JSON.stringify(u.playerNames)}`;
         a.playerNames = u.playerNames;
         return change;
       }).join('；');
+      if (additions.length) detail += '；新增隊員：' + additions.map(a => `${a.teamName}：${a.names.join('、')}`).join('；');
     } catch (error) { throw new DomainError((error as Error).message); }
   } else if (command.action === 'team-roster') {
     const p = e.participants.find(p => p.id === command.participantId);

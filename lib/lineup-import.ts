@@ -3,6 +3,29 @@ import { seats } from './model';
 import { parseCsv } from './imports';
 
 type Source = Pick<BridgeEvent, 'kind' | 'assignments' | 'participants'>;
+type LineupUpdate = { assignmentId: string; playerNames: Record<Seat, string> };
+export function lineupRosterAdditions(updates: LineupUpdate[], event: Source) {
+  return event.participants.flatMap((team) => {
+    const existing = new Set(
+      team.players
+        .split('、')
+        .map((n) => n.trim())
+        .filter(Boolean),
+    );
+    const names = new Set<string>();
+    for (const update of updates) {
+      const a = event.assignments.find((a) => a.id === update.assignmentId)!;
+      for (const seat of seats) {
+        const name = update.playerNames[seat];
+        if ((seat === 'N' || seat === 'S' ? a.ns : a.ew) === team.id && name && !existing.has(name))
+          names.add(name);
+      }
+    }
+    if (names.size && existing.size + names.size > 30)
+      throw new Error(`${team.name} 賽員名單最多 30 人`);
+    return names.size ? [{ teamId: team.id, teamName: team.name, names: [...names] }] : [];
+  });
+}
 export function exportLineups(event: Source) {
   return (
     'assignmentId,N,E,S,W\n' +
@@ -30,6 +53,8 @@ export function parseLineups(csv: string, event: Source) {
       string
     >;
     if (Object.values(playerNames).some((n) => n.length > 80)) throw new Error('姓名最多 80 字元');
+    if (Object.values(playerNames).some((n) => /[、\r\n]/.test(n)))
+      throw new Error('每個座位只能填一個姓名，不可包含頓號或換行');
     return { assignmentId: r.assignmentId, playerNames };
   });
   // Validate the final state, allowing atomic swaps between rooms in the same batch.
@@ -45,11 +70,11 @@ export function parseLineups(csv: string, event: Source) {
       const team = event.participants.find(
         (p) => p.id === (seat === 'N' || seat === 'S' ? a.ns : a.ew),
       );
-      if (!team?.players.split('、').includes(name))
-        throw new Error(`${a.id} ${seat} 姓名不在該隊名單`);
+      if (!team) throw new Error(`${a.id} ${seat} 找不到所屬隊伍`);
       const key = JSON.stringify([a.round, team.id, name]);
       if (occupied.has(key)) throw new Error(`第 ${a.round} 圈 ${name} 重複入座`);
       occupied.add(key);
     }
+  lineupRosterAdditions(updates, event);
   return updates;
 }

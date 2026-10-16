@@ -1,7 +1,7 @@
 'use client';
 import { Breadcrumbs } from './breadcrumbs';
 import { ClearResults } from './clear-results';
-import { parseLineups, exportLineups } from '@/lib/lineup-import';
+import { parseLineups, exportLineups, lineupRosterAdditions } from '@/lib/lineup-import';
 import { TeamButlerPopover } from './team-butler-popover';
 import { SplitContractEditor } from './split-contract-editor';
 import { EditorPopover } from './editor-popover';
@@ -2376,7 +2376,8 @@ function AdminPanel({
         );
       } else if (importType === 'lineups') {
         const rows = parseLineups(text, event);
-        setPreview(`共 ${rows.length} 組入座名單；僅更新所列桌次。\n${rows.map(r => `${r.assignmentId}：${(['N', 'E', 'S', 'W'] as const).map(s => `${s} ${r.playerNames[s] || '未指定'}`).join(' ／ ')}`).join('\n')}`);
+        const additions = lineupRosterAdditions(rows, event);
+        setPreview(`共 ${rows.length} 組入座名單；僅更新所列桌次。\n${rows.map(r => `${r.assignmentId}：${(['N', 'E', 'S', 'W'] as const).map(s => `${s} ${r.playerNames[s] || '未指定'}`).join(' ／ ')}`).join('\n')}${additions.length ? '\n將新增隊員：\n' + additions.map(a => `${a.teamName}：${a.names.join('、')}`).join('\n') : ''}`);
       } else if (importType === 'round-times') {
         const rows = parseRoundTimes(text, event);
         const local = (value: string) => new Date(Date.parse(value) + 8 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
@@ -2859,7 +2860,7 @@ function AdminPanel({
                 {importType === 'results'
                   ? '可下載成績 CSV 修改後匯入；保留 assignmentId 與 board。status 可填 played 或 cancelled；取消牌不計分，合約欄可全部留空。匯入 played 會恢復該筆取消成績，請先核對預覽。'
                   : importType === 'lineups'
-                    ? '欄位：assignmentId,N,E,S,W。先匯出現有入座名單再修改；姓名須在所屬隊伍名單內。空白座位表示清除，未列出的桌次保持不變。'
+                    ? '欄位：assignmentId,N,E,S,W。新姓名會自動加入該座位所屬隊伍，預覽會列出新增隊員。空白座位表示清除，未列出的桌次保持不變。'
                   : importType === 'pbn'
                     ? '牌型僅能在尚未收分時替換。'
                     : importType === 'round-times'
