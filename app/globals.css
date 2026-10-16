@@ -4000,11 +4000,11 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
   line-height: 1;
 }
 .rack-card.played-card:disabled {
-  color: #929995;
-  background: #e9ece8;
-  border-color: #cdd3cd;
-  box-shadow: none;
   opacity: 1;
+}
+.rack-card.played-card:disabled > span,
+.rack-card.played-card:disabled > b {
+  opacity: 0.45;
 }
 
 .team-result-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: 100%; }
