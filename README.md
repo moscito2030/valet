@@ -114,4 +114,6 @@ npm run build
 
 ## 共用牌局檢視器
 
-Valet 與 Valet Review 使用 `@valet/deal-viewer`。唯一實作來源位於 `packages/deal-viewer/`，涵蓋牌桌、試打與分析 worker。維護與升版方式見該目錄的 README；更新 Review 使用 `npm run viewer:sync -- ../valet-review`，兩個倉庫仍可獨立部署。
+本專案使用獨立 Valet Viewer 倉庫維護的 `@valet/deal-viewer`，透過 vendor/ 內固定版本打包檔安裝。沒有指向其他倉庫的本機連結，因此可獨立 npm ci、建置與部署。
+
+修改檢視器請到 Valet Viewer，升版並執行 `npm run sync -- ../alternative_online_bridge ../valet-review`。三個專案都需驗證並各自 commit，未經使用者指定不 push。
