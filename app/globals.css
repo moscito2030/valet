@@ -4062,3 +4062,5 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
   background: transparent;
   text-shadow: none;
 }
+
+.topbar .home-navigation { gap: 18px; }

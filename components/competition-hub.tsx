@@ -57,7 +57,10 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       <div className="sidebar-bottom"><ManualLink /><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>每一場比賽，從這裡開始。</p></div></div>
     </aside>
     <div className="main-shell">
-      <header className="topbar"><Breadcrumbs items={[{ label: competition?.name ?? (competitionId ? '賽事主頁' : '瀏覽賽事') }]} />
+      <header className="topbar">{competitionId ? <Breadcrumbs items={[{ label: competition?.name ?? '賽事主頁' }]} /> : <nav className="breadcrumb home-navigation" aria-label="主要導覽">
+          <a className="breadcrumb-root" href="/manual/index.html">使用手冊</a>
+          <span aria-current="page">瀏覽賽事</span>
+        </nav>}
         {session.admin ? <div ref={account} className="hub-account" onKeyDown={e => { if (e.key === 'Escape') setSessionExpanded(false); }}>
           <SessionControl director={session.director} menuDanger={session.director} menuLabel={session.director ? competitionId ? '刪除賽段' : '刪除比賽' : '功能表'} onMenu={() => {
             if (session.director) { setDeleting(true); setNotice(''); }
