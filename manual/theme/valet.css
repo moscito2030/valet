@@ -61,5 +61,5 @@ html, body { font-family: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif; }
 .nav-wrapper .mobile-nav-chapters.next::before { content: '下一章'; }
 .nav-wrapper .mobile-nav-chapters:hover { background: #f2f2f2; color: #333; }
 .nav-wrapper .mobile-nav-chapters:focus-visible { outline: 2px solid #777; outline-offset: 3px; }
-.nav-wrapper .mobile-nav-chapters:visited, .nav-wrapper .mobile-nav-chapters .fa-svg { color: #36594b; }
+.content .nav-wrapper .mobile-nav-chapters:any-link, .content .nav-wrapper .mobile-nav-chapters .fa-svg { color: #555; }
 @media print { .nav-wrapper { display: none; } }
