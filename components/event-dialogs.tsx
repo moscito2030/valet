@@ -289,7 +289,7 @@ export function CreateDialog({
             }
           />
         </label>}
-        <p className="footnote">圈數留空時僅建立名單，請至裁判「匯入／匯出」設定 Movement 後再開始收分。</p>
+        <p className="footnote">圈數留空時僅建立名單，請至裁判「匯入／匯出」設定賽程編排後再開始收分。</p>
         <p className="footnote">
           {kind === 'pairs' && movementPlan ? 'NS 固定、EW 依編排移動，各組獨立排名、同分並列。請在圈次與對戰中確認牌組流向；偶數桌共牌／中繼需安排共牌或複製牌。' : '預設建立固定循環對戰，各桌每圈打相同牌組。雙人賽需備妥重複牌組，或在收分前匯入自己的賽程編排。排名同分並列。'}
         </p>

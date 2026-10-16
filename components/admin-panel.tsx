@@ -389,7 +389,7 @@ export function AdminPanel({
             </button>
           </div>
         )}
-        {!event.rounds && <p className="footnote">待設定賽程：請至「匯入／匯出」選擇 Movement，設定圈數與每圈牌數後再開始收分。</p>}
+        {!event.rounds && <p className="footnote">待設定賽程：請至「匯入／匯出」選擇賽程編排，設定圈數與每圈牌數後再開始收分。</p>}
         {section === 'score' && event.rounds > 0 && (
           <>
             <form

@@ -170,7 +170,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     at = new Date().toISOString();
   e.results = normalizeResults(e.results);
   if (!e.rounds && (['results', 'results-import', 'club-play', 'club-finalize', 'round-control', 'movement', 'pbn', 'ruling', 'split-contract'].includes(command.action) || (command.action === 'settings' && command.status === 'finished')))
-    throw new DomainError('待設定賽程，請先選擇 Movement 並設定圈數與每圈牌數');
+    throw new DomainError('待設定賽程，請先選擇賽程編排並設定圈數與每圈牌數');
   const changes: { key: string; before: Result | null; after: Result | null }[] = [];
   let detail: string | undefined;
   if (command.action === 'clear-results') {
