@@ -20,7 +20,7 @@ export function parseRosters(csv: string, event: Source) {
     if (seen.has(id)) throw new Error(`隊伍 ${id} 不可重複`);
     seen.add(id);
     const captain = row.captain.trim();
-    const players = row.players.split(/[、\r\n]+/).map(n => n.trim()).filter(Boolean);
+    const players = row.players.split(/[、;；\r\n]+/).map(n => n.trim()).filter(Boolean);
     if (captain.length > 80 || /[\r\n]/.test(captain)) throw new Error('隊長最多 80 字元，不可包含換行');
     if (players.length > 30 || players.some(n => n.length > 80)) throw new Error('每隊最多 30 人，姓名最多 80 字元');
     if (new Set(players).size !== players.length) throw new Error(`${team.name} 賽員不可重複`);

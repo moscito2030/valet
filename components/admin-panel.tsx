@@ -774,7 +774,7 @@ export function AdminPanel({
                     importType === 'results'
                       ? 'assignmentId,board,level,strain,doubled,declarer,tricks,lead\nr1m1o,1,3,NT,1,N,9,SA'
                       : importType === 'rosters'
-                        ? 'teamId,teamName,captain,players\np1,隊伍名稱,隊長姓名,賽員甲、賽員乙'
+                        ? `teamId,teamName,captain,players\n${event.participants[0]?.id ?? 't1'},隊伍名稱,隊長姓名,賽員甲;賽員乙`
                         : importType === 'lineups'
                           ? 'assignmentId,N,E,S,W\nr1m1o,北家姓名,東家姓名,南家姓名,西家姓名'
                           : importType === 'movement'
@@ -834,7 +834,7 @@ export function AdminPanel({
                 {importType === 'results'
                   ? '可下載成績 CSV 修改後匯入；保留 assignmentId 與 board。status 可填 played 或 cancelled；取消牌不計分，合約欄可全部留空。匯入 played 會恢復該筆取消成績，請先核對預覽。'
                   : importType === 'rosters'
-                    ? '每隊一列，以 teamId 對應現有隊伍，teamName 僅供辨識。賽員以頓號分隔；取代所列隊伍的完整名單與隊長，留白表示清空。未列出的隊伍保持不變；仍在入座名單中的賽員不可移除。'
+                    ? '每隊一列，以 teamId 對應現有隊伍，teamName 僅供辨識。賽員以頓號或分號（;／；）分隔；取代所列隊伍的完整名單與隊長，留白表示清空。未列出的隊伍保持不變；仍在入座名單中的賽員不可移除。'
                     : importType === 'lineups'
                       ? '欄位：assignmentId,N,E,S,W。新姓名會自動加入該座位所屬隊伍，預覽會列出新增隊員。空白座位表示清除，未列出的桌次保持不變。'
                       : importType === 'pbn'

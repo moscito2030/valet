@@ -68,3 +68,16 @@ test('roster export escapes spreadsheet formulas and round trips names and empty
   assert.equal(rows[0].captain,'=1+1');
   assert.deepEqual(rows[0].players,["'甲",'乙']);
 });
+
+test('semicolon-separated rosters normalize names and retain duplicate and seated-player checks', () => {
+  const stored = setup(), id = stored.event.participants[0].id;
+  const csv = `teamId,captain,players\n${id},隊長," 甲; 乙；丙、丁\n戊;; "`;
+  const next = applyMutation(stored, mutationSchema.parse({ action: 'rosters-import', revision: 1, requestId: randomUUID(), csv }));
+  assert.equal(next.event.participants[0].players, '甲、乙、丙、丁、戊');
+  assert.deepEqual(parseRosters(exportRosters(next.event), next.event)[0].players, ['甲', '乙', '丙', '丁', '戊']);
+  assert.throws(() => parseRosters(`teamId,captain,players\n${id},,甲;乙；甲`, stored.event), /重複/);
+  const table = stored.event.assignments.find(a => a.ns === id)!;
+  table.playerNames = { N: '甲' };
+  assert.doesNotThrow(() => parseRosters(csv, stored.event));
+  assert.throws(() => parseRosters(`teamId,captain,players\n${id},,乙;丙`, stored.event), /入座名單/);
+});
