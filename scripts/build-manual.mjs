@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -33,3 +33,15 @@ function run(file, args) {
 }
 run('tar', ['-xf', archive, '-C', cache]);
 run(path.join(cache, process.platform === 'win32' ? 'mdbook.exe' : 'mdbook'), ['build', 'manual']);
+
+// Keep the standard mdBook template while making the book title a native home link.
+const output = path.resolve('public/manual');
+for (const file of await readdir(output)) {
+  if (!file.endsWith('.html')) continue;
+  const location = path.join(output, file);
+  const html = await readFile(location, 'utf8');
+  if (!html.includes('<h1 class="menu-title">')) continue;
+  await writeFile(location, html
+    .replace('<body', '<body id="manual-top"')
+    .replace(/<h1 class="menu-title">([^<]+)<\/h1>/, '<h1 class="menu-title"><a href="index.html#manual-top" aria-label="回到手冊首頁最上方">$1</a></h1>'));
+}
