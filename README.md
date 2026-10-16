@@ -117,3 +117,5 @@ npm run build
 本專案使用獨立 Valet Viewer 倉庫維護的 `@valet/deal-viewer`，透過 vendor/ 內固定版本打包檔安裝。沒有指向其他倉庫的本機連結，因此可獨立 npm ci、建置與部署。
 
 修改檢視器請到 Valet Viewer，升版並執行 `npm run sync -- ../alternative_online_bridge ../valet-review`。三個專案都需驗證並各自 commit，未經使用者指定不 push。
+
+「輸出至 Valet Review」會透過分享連結傳入目前單副牌型（不含各桌成績）。正式部署請在建置前設定 `NEXT_PUBLIC_VALET_REVIEW_URL` 為 Review 網址；本機 localhost／127.0.0.1 預設使用同主機的 3001 埠。

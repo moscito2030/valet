@@ -17,7 +17,7 @@ import { ClubAdmin } from './club-admin';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { boardGroups, boardRange } from '@/lib/board-groups';
 import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
-import { handviewerUrl } from '@/lib/handviewer';
+import { ReviewExport } from './review-export';
 import {
   Activity,
   ArrowDownToLine,
@@ -1283,10 +1283,7 @@ export default function Scoreboard() {
                               <ArrowDownToLine size={15} />
                               下載此副 PBN
                             </button>
-                            <a className="button subtle" href={handviewerUrl(selectedBoard)} target="_blank" rel="noopener noreferrer">
-                              <ArrowRight size={15} />
-                              輸出至 Handviewer
-                            </a>
+                            <ReviewExport board={selectedBoard} />
                             </div>
                           )}
                         </section>
