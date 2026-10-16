@@ -115,6 +115,9 @@ small {
   color: #d6aaa0;
   font-size: 39px;
 }
+.brand > span:last-child {
+  text-align: center;
+}
 .brand small {
   display: block;
   font-weight: 400;
@@ -3940,7 +3943,7 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
 
 .valet-brand-icon { width: 28px; height: 28px; flex-shrink: 0; object-fit: contain; }
 
-.sidebar-wordmark { font-size: 30px; line-height: 1.2; }
+.sidebar-wordmark { font-size: 30px; line-height: 1.2; transform-origin: center; margin-right: 0; }
 
 .competition-home main { padding-top: 16px; }
 .competition-hub .page-heading h1 { line-height: 1.25; }
