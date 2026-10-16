@@ -33,7 +33,7 @@ Howell 使用內建編排表：完整 Howell 為 3–8 桌，Reduced（3/4）How
 語法依 https://www.bridgebase.com/tools/dealer/Manual/input.html 的常用發牌條件實作，非完整 Dealer 執行檔。
 支援條件、變數、註解、predeal、generate、produce、dealer、vulnerable、pointcount；支援 hcp、花色長度、shape、hascard、controls、losers、大牌張數與一般數值／邏輯運算。
 尚未支援 tricks、cccc、quality、altcount、ptN、score、imps 及統計 action；不支援內容會報錯，不會忽略。
-輸出固定 PBN，接受 printpbn、printall、printoneline 作為輸出指令。
+輸出固定 PBN，`action printpbn` 可以省略；也接受 `action printall`、`action printoneline`，輸出格式仍為 PBN。
 採 Web Crypto 均勻洗牌，predeal 先固定指定牌，再洗剩餘牌；條件以拒絕抽樣篩選。未達指定副數時不回傳部分結果。
 最多產生本賽段的牌數，搜尋限制為 100 萬次嘗試、30 秒；可取消。Source 不作 JavaScript 執行，也不傳至外部網站。
 produce 預設本賽段牌數，可減少以供下載；套用需要全部牌號，沿用既有 PBN 匯入的裁判權限、版本與未收分檢查。
