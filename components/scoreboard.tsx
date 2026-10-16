@@ -520,9 +520,9 @@ export default function Scoreboard() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <button className={`nav-item ${tab === 'admin' ? 'active' : ''}`} onClick={openAdmin}>
-            <Settings2 size={19} />
-            {admin && !director ? '賽務功能表' : '裁判功能表'}
+          <button className="workspace-button" aria-label={admin && !director ? '賽務功能表' : '裁判功能表'} aria-expanded={tab === 'admin'} onClick={openAdmin}>
+            <Settings2 size={18} />
+            <span>{admin && !director ? '賽務功能表' : '裁判功能表'}</span>
             <ChevronRight size={15} />
           </button>
           <div className="sidebar-note">

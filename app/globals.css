@@ -180,13 +180,10 @@ small {
   margin-top: auto;
   padding-top: 40px;
 }
-.sidebar-bottom > .nav-item {
+.sidebar-bottom > .workspace-button {
   margin-bottom: 32px;
-  border-top: 1px solid #446050;
-  border-radius: 0;
-  padding-top: 23px;
 }
-.sidebar-bottom > .nav-item svg:last-child {
+.sidebar-bottom > .workspace-button svg:last-child {
   margin-left: auto;
 }
 .sidebar-note {
@@ -1507,7 +1504,13 @@ select {
   .nav-item .active-dot {
     display: none;
   }
-  .sidebar-bottom > .nav-item svg:last-child {
+  .sidebar-bottom > .workspace-button {
+    display: flex;
+    justify-content: center;
+    padding: 13px 0;
+  }
+  .sidebar-bottom > .workspace-button span,
+  .sidebar-bottom > .workspace-button svg:last-child {
     display: none;
   }
   .main-shell {
