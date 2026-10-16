@@ -1,4 +1,6 @@
 'use client';
+import { boardRange } from '@/lib/board-groups';
+
 import { roundLabel } from '@/lib/team-movement';
 import { InterleavedRound } from './interleaved-round';
 import { displayedBoardNumber,boardRounds as getBoardRounds } from '@/lib/board-navigation';
@@ -1064,12 +1066,7 @@ export default function Scoreboard() {
                                           setTab('boards');
                                         }}
                                       >
-                                        {a.boards.length >= 3 &&
-                                        a.boards.every(
-                                          (b, i) => i === 0 || b === a.boards[i - 1] + 1,
-                                        )
-                                          ? `${a.boards[0]}-${a.boards[a.boards.length - 1]}`
-                                          : a.boards.join(', ')}
+                                        {boardRange(a.boards)}
                                       </button>
                                     </td>
                                     <td>

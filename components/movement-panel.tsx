@@ -1,4 +1,6 @@
 'use client';
+import { boardRange } from '@/lib/board-groups';
+
 import { useState } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import { defaultInterleavedGroups, roundLabel, type InterleavedGroups } from '@/lib/team-movement';
@@ -248,7 +250,7 @@ export function MovementPanel({
                         </td>
                         <td>{name(a.ns)}</td>
                         <td>{name(a.ew)}</td>
-                        <td>{a.boards.join(', ')}</td>
+                        <td>{boardRange(a.boards)}</td>
                       </tr>
                     ))}
                   </tbody>

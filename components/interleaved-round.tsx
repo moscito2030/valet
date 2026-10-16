@@ -1,3 +1,4 @@
+import { boardRange } from '@/lib/board-groups';
 import { roundLabel } from '@/lib/team-movement';
 import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
@@ -43,7 +44,7 @@ export function InterleavedRound({
                 <td>{a.table}</td>
                 <td>{name(a.ns)}</td>
                 <td>{name(a.ew)}</td>
-                <td>{a.boards.join(', ')}</td>
+                <td>{boardRange(a.boards)}</td>
               </tr>
             ))}
           </tbody>

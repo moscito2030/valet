@@ -168,7 +168,7 @@ test('explicit PBN groups can span nonconsecutive boards and stay separate from 
     publicBoards(s.stored.event).map((b) => 'deal' in b),
     [true, false, false, true, false, false],
   );
-  assert.equal(boardRange([18, 16, 17, 13, 14, 22]), '13,14,16-18,22');
+  assert.equal(boardRange([18, 16, 17, 13, 14, 22]), '13, 14, 16-18, 22');
 });
 
 test('award settings preserve scores and zero disables awards', () => {

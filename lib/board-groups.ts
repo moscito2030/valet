@@ -20,8 +20,8 @@ export function boardRange(numbers: number[]) {
     const start = i;
     while (i + 1 < sorted.length && sorted[i + 1] === sorted[i] + 1) i++;
     parts.push(
-      i - start >= 2 ? `${sorted[start]}-${sorted[i]}` : sorted.slice(start, i + 1).join(','),
+      i - start >= 2 ? `${sorted[start]}-${sorted[i]}` : sorted.slice(start, i + 1).join(', '),
     );
   }
-  return parts.join(',');
+  return parts.join(', ');
 }
