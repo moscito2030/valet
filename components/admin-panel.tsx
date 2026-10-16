@@ -111,7 +111,7 @@ export function AdminPanel({
   const [assignment, setAssignment] = useState(''),
     [board, setBoard] = useState(1),
     [round, setRound] = useState(1),
-    [reason, setReason] = useState('現場收分');
+    [reason, setReason] = useState('');
   const [input, setInput] = useState<ResultInput>({
     assignmentId: '',
     board: 1,
@@ -175,7 +175,7 @@ export function AdminPanel({
             lead: '',
           },
     );
-    setReason(r ? '更正成績' : '現場收分');
+    setReason('');
   }, [assignment, board, event?.revision]);
   async function save(payload: Record<string, unknown>) {
     if (!event) return;
@@ -629,10 +629,8 @@ export function AdminPanel({
                 </div>
               </div>
               <label className="field">
-                {existing ? '更正原因' : '紀錄說明'}
+                {existing ? '更正原因（選填）' : '紀錄說明（選填）'}
                 <input
-                  required
-                  minLength={2}
                   maxLength={200}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -663,8 +661,7 @@ export function AdminPanel({
                   disabled={
                     busy ||
                     event.status === 'finished' ||
-                    !!existing?.split ||
-                    reason.trim().length < 2
+                    !!existing?.split
                   }
                   onClick={() =>
                     save({
@@ -788,9 +785,8 @@ export function AdminPanel({
                 />
               </label>
               <label className="field">
-                匯入說明
+                匯入說明（選填）
                 <input
-                  minLength={2}
                   maxLength={200}
                   value={importReason}
                   onChange={(e) => setImportReason(e.target.value)}
@@ -802,7 +798,7 @@ export function AdminPanel({
                 </button>
                 <button
                   className="button primary"
-                  disabled={!preview || busy || importReason.trim().length < 2}
+                  disabled={!preview || busy}
                   onClick={async () => {
                     try {
                       const payload =

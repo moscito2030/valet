@@ -145,11 +145,11 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: '每場最多 128 副' });
   });
 export const mutationSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('rosters-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), csv: z.string().min(1).max(200000) }).strict(),
-  z.object({ action: z.literal('lineups-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), csv: z.string().min(1).max(200000) }).strict(),
+  z.object({ action: z.literal('rosters-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入隊伍賽員名單'), csv: z.string().min(1).max(200000) }).strict(),
+  z.object({ action: z.literal('lineups-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入入座名單'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('clear-results'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), confirmName: z.string().min(1).max(80) }).strict(),
-  z.object({ action: z.literal('results-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), csv: z.string().min(1).max(200000) }).strict(),
-  z.object({ action: z.literal('round-times-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), csv: z.string().min(1).max(200000) }).strict(),
+  z.object({ action: z.literal('results-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入成績'), csv: z.string().min(1).max(200000) }).strict(),
+  z.object({ action: z.literal('round-times-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入圈次時間'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('movement-plan'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), plan: z.string().min(1).max(80) }).strict(),
   z.object({ action: z.literal('team-roster'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), participantId: z.string(), players: z.array(z.string().trim().min(1).max(80)).max(30), captain: z.string().trim().max(80) }).strict(),
   z.object({ action: z.literal('table-lineup'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), assignmentId: z.string(), playerNames: z.object({ N: z.string().trim().max(80), E: z.string().trim().max(80), S: z.string().trim().max(80), W: z.string().trim().max(80) }).strict() }).strict(),
@@ -202,7 +202,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       action: z.literal('ruling'),
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
-      reason: z.string().trim().min(2).max(200),
+      reason: z.string().trim().max(200).optional().transform(value => value || '取消／恢復成績'),
       assignmentId: z.string().min(1).max(100),
       board: z.number().int().min(1).max(128),
       cancelled: z.boolean(),
@@ -224,7 +224,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       action: z.literal('results'),
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
-      reason: z.string().trim().min(2).max(200),
+      reason: z.string().trim().max(200).optional().transform(value => value || '輸入／更正成績'),
       results: z.array(resultSchema).min(1).max(2000),
     })
     .strict(),
@@ -250,7 +250,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       action: z.literal('pbn'),
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
-      reason: z.string().trim().min(2).max(200),
+      reason: z.string().trim().max(200).optional().transform(value => value || '匯入牌型'),
       pbn: z.string().min(1).max(200000),
     })
     .strict(),
@@ -259,7 +259,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       action: z.literal('movement'),
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
-      reason: z.string().trim().min(2).max(200),
+      reason: z.string().trim().max(200).optional().transform(value => value || '匯入賽程編排'),
       csv: z.string().min(1).max(200000),
     })
     .strict(),
