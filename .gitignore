@@ -8,3 +8,4 @@ node_modules/
 test-results/
 .tmp/
 /public/vendor/dds/
+/public/manual/

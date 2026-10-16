@@ -60,7 +60,7 @@ export default function ClubPage() {
   const board = data?.boards.find(b => b.number === draft?.board);
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
   return <main className="club-page">
-    <header><span className="eyebrow">CLUB SCORECARD</span><h1>{data?.pairName ?? '搭檔收分'}</h1><p>{data?.name}</p></header>
+    <header><span className="eyebrow">CLUB SCORECARD</span><h1>{data?.pairName ?? '搭檔收分'}</h1><p>{data?.name}</p><a href="/manual/players.html">收分操作手冊</a></header>
     {error && <div className="alert error" role="alert">{error}</div>}
     {notice && <div className="alert success" role="status">{notice}</div>}
     {!data ? <p>正在讀取專屬收分卡…</p> : <>

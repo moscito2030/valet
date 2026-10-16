@@ -1,0 +1,19 @@
+[book]
+title = "Valet 使用手冊"
+language = "zh-TW"
+src = "src"
+
+[build]
+build-dir = "../public/manual"
+create-missing = false
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "light"
+additional-css = ["theme/valet.css"]
+additional-js = ["theme/search-zh.js"]
+site-url = "/manual/"
+no-section-label = true
+
+[output.html.playground]
+runnable = false

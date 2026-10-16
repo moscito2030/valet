@@ -1,0 +1,40 @@
+# 部署與備份
+
+本章給維護網站的人。一般裁判與賽員不需要設定伺服器。
+
+## 正式部署
+
+Valet 使用 Next.js，可部署至 Vercel，正式資料使用 Neon PostgreSQL。建置指令使用 `npm run build`；它會一併產生本手冊，不需要另開文件網站專案。
+
+| 環境變數 | 用途 |
+| --- | --- |
+| STORAGE_MODE | 正式環境設為 `neon` |
+| DATABASE_URL | Neon 連線字串，不能加 NEXT_PUBLIC 前綴 |
+| ADMIN_PASSWORD | 至少 16 字元的賽務密碼 |
+| DIRECTOR_PASSWORD | 至少 16 字元，且不同於賽務密碼 |
+| SESSION_SECRET | 至少 32 字元的隨機字串 |
+| NEXT_PUBLIC_VALET_REVIEW_URL | 已部署的 Valet Review 網址 |
+
+初始化資料庫時使用專案的 `npm run db:migrate`。正式與 Preview 使用不同資料庫或分支。環境變數變更後重新部署；改密碼會撤銷相應角色的現有登入，改 SESSION_SECRET 會撤銷所有登入。
+
+正式開賽前，用測試賽事驗證建立、手機送分、對手確認、結算、公開分數及重新開啟後資料仍存在。`/api/health` 僅能證明程式回應，不能代替整個流程驗收。
+
+## 備份與復原
+
+資料庫備份應另存於部署以外的儲存空間，例如由管理者使用 PostgreSQL `pg_dump`。還原先在獨立測試資料庫演練，核對賽事、成績與操作紀錄，再安排正式復原。
+
+Vercel 回退程式版本不會回退資料庫；後台 JSON 匯出也沒有對應的一鍵還原流程。
+
+## 更新手冊
+
+手冊原稿位於 repo 的 `manual/src/`，目錄為 `SUMMARY.md`，樣式在 `manual/theme/valet.css`。修改後執行：
+
+```sh
+npm run manual:build
+npm run manual:check
+npm run build
+```
+
+建置腳本下載固定版本的官方 mdBook，檢查 SHA-256 後執行；第一次需要連上 GitHub。產物在 `public/manual/`，由建置產生，不加入 Git。平時修改原稿後重新執行 `manual:build`，本機 `/manual/` 即可查看。
+
+功能更新時一起修改操作步驟；不應把測試密碼、真實連線字串、專屬收分連結或備份檔放進公開手冊。

@@ -11,11 +11,13 @@
     "test": "tsx --test tests/*.test.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "prepare:dds": "node scripts/prepare-dds.mjs",
-    "predev": "npm run prepare:dds",
-    "predev:local": "npm run prepare:dds",
-    "prebuild": "npm run prepare:dds",
+    "predev": "npm run prepare:dds && npm run manual:build",
+    "predev:local": "npm run prepare:dds && npm run manual:build",
+    "prebuild": "npm run prepare:dds && npm run manual:build && npm run manual:check",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "test:security": "node scripts/security-smoke.mjs"
+    "test:security": "node scripts/security-smoke.mjs",
+    "manual:build": "node scripts/build-manual.mjs",
+    "manual:check": "node scripts/check-manual.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

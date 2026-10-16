@@ -1,4 +1,5 @@
 'use client';
+import { ManualLink } from './manual-link';
 import { Breadcrumbs } from './breadcrumbs';
 import { SessionControl } from './session-control';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -53,7 +54,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       <a href="/" className="brand"><span className="brand-symbol" aria-hidden="true">♦</span><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
       <div className="sidebar-label">賽事工作區</div>
       <a href="/" className="nav-item active"><Trophy size={18} />瀏覽賽事</a>
-      <div className="sidebar-bottom"><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>每一場比賽，從這裡開始。</p></div></div>
+      <div className="sidebar-bottom"><ManualLink /><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>每一場比賽，從這裡開始。</p></div></div>
     </aside>
     <div className="main-shell">
       <header className="topbar"><Breadcrumbs items={[{ label: competition?.name ?? (competitionId ? '賽事主頁' : '瀏覽賽事') }]} />

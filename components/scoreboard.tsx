@@ -36,6 +36,7 @@ X
 } from 'lucide-react';
 import { useCallback,useEffect,useRef,useState } from 'react';
 import { AdminPanel } from './admin-panel';
+import { ManualLink } from './manual-link';
 import { Breadcrumbs } from './breadcrumbs';
 import { BoardInformation,DealExplorer } from './deal-explorer';
 import { Modal } from './event-dialogs';
@@ -519,7 +520,7 @@ export default function Scoreboard() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-bottom">
+        <div className="sidebar-bottom"><ManualLink />
           <button className="workspace-button" aria-label={admin && !director ? '賽務功能表' : '裁判功能表'} aria-expanded={tab === 'admin'} onClick={openAdmin}>
             <Settings2 size={18} />
             <span>{admin && !director ? '賽務功能表' : '裁判功能表'}</span>

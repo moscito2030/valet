@@ -2,6 +2,10 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   transpilePackages: ['@valet/deal-viewer'],
   poweredByHeader: false,
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    return [{ source: '/manual/', destination: '/manual/index.html' }];
+  },
   async headers() {
     return [
       {
