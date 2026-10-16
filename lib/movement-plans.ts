@@ -16,13 +16,23 @@ export function movementOptions(event: Input): MovementPlan[] {
     options.push({ id: `howell-${template.id}`, label: rounds === tables * 2 - 1 ? '完整 Howell' : '3/4 Howell（Reduced Howell）', groups: Math.max(...template.rows.flat().map(cell => cell[2])),
       note: '請依預覽的各圈桌次、方向與牌號移動。', source: template.source });
   }
+  if (event.participants.length % 2 === 0 && tables >= 3 && tables <= 19) {
+    for (const option of [...options].filter(o => o.id.startsWith('mitchell')))
+      options.push({ ...option, id: `double-${option.id}`, label: `Double Winner ${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
+  }
   return options.filter(option => option.groups * event.boardsPerRound <= 128);
 }
 
 export function buildMovement(event: Input, id: string) {
   const option = movementOptions(event).find(option => option.id === id);
   if (!option) throw new Error('此桌數與圈數不適用所選賽程編排');
+  const doubleWinner = id.startsWith('double-');
+  if (doubleWinner) id = id.slice(7);
   const tables = Math.ceil(event.participants.length / 2);
+  const participants = event.participants.map((p, i) => {
+    const { group, ...rest } = p;
+    return { ...rest, ...(doubleWinner ? { group: i < tables ? 'NS' as const : 'EW' as const } : {}) };
+  });
   const assignments: Assignment[] = [];
   function add(round: number, table: number, nsIndex: number, ewIndex: number, group: number) {
     const ns = event.participants[nsIndex - 1]?.id, ew = event.participants[ewIndex - 1]?.id;
@@ -55,5 +65,5 @@ export function buildMovement(event: Input, id: string) {
     simultaneous.set(key, (simultaneous.get(key) ?? 0) + 1);
   }
   const copies = Math.max(1, ...simultaneous.values());
-  return { option, assignments, boardCount: option.groups * event.boardsPerRound, shared: copies > 1, copies };
+  return { option, participants, assignments, boardCount: option.groups * event.boardsPerRound, shared: copies > 1, copies };
 }

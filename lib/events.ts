@@ -133,6 +133,17 @@ export function createEvent(
     }
     rotation.splice(1, 0, rotation.pop()!);
   }
+  if (data.movementPlan) {
+    const plan = (() => {
+      try { return buildMovement(e, data.movementPlan); }
+      catch (error) { throw new DomainError((error as Error).message); }
+    })();
+    e.participants = plan.participants;
+    e.assignments = plan.assignments;
+    e.boards = Array.from({ length: plan.boardCount }, (_, i) => ({ ...makeBoard(i + 1), group: `Movement-${Math.floor(i / e.boardsPerRound) + 1}`, ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) }));
+    e.movementImported = true;
+    e.movementDescription = `${plan.option.label}；${plan.option.note}`;
+  }
   // New events have no real deals until PBN import. Use empty hands instead of generated ones.
   e.boards = e.boards.map((b) => ({ ...b, deal: { N: [], E: [], S: [], W: [] } }));
   e.audit = [{ at: now, action: '建立賽事', reason: '固定圈次賽程', revision: 1 }];
@@ -427,6 +438,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
           group: `Movement-${Math.floor(i / e.boardsPerRound) + 1}`,
           ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) };
       });
+      e.participants = plan.participants;
       parseMovement(exportMovement({ ...e, assignments: plan.assignments }), e);
       e.assignments = plan.assignments;
       e.movementImported = true;

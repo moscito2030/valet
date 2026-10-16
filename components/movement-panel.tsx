@@ -23,6 +23,9 @@ export function MovementPanel({ event, busy, save }: {
     <p className="footnote">依本賽段桌數、圈數列出適用選項。3/4 Howell 的圈數依編排表而定，並非固定為完整 Howell 的四分之三。</p>
     {plan && <>
       <p>{plan.option.note}</p>
+      {choice.startsWith('double-') && <div className="form-grid">
+        {(['NS', 'EW'] as const).map(group => <div key={group}><strong>{group} 組</strong><p>{plan.participants.filter(p => p.group === group).map(p => p.name).join('、')}</p></div>)}
+      </div>}
       <p>共 {plan.option.groups} 組牌、{plan.boardCount} 副。{event.participants.length % 2 ? '每圈有一對輪空。' : ''}不共牌需準備 {plan.copies} 套完整牌，每套 {plan.boardCount} 副，共 {plan.copies * plan.boardCount} 副實體牌。{plan.shared ? '各套相同牌號的牌型須一致；也可安排共牌。' : ''}</p>
       {plan.boardCount !== event.boards.length && <p className="footnote">套用後牌數將由 {event.boards.length} 改為 {plan.boardCount}；保留相同牌號的牌型，移除範圍外的牌號。</p>}
       <button className="button subtle" onClick={() => setPreview(!preview)}>{preview ? '收起預覽' : '預覽完整賽程'}</button>

@@ -34,7 +34,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     trim: event.trim,
     penalties: event.penalties,
     demo: event.demo,
-    participants: event.participants.map(p => ({ id:p.id, name:p.name, players:p.players, captain:p.captain })),
+    participants: event.participants.map(p => ({ id:p.id, name:p.name, players:p.players, captain:p.captain, group:p.group })),
     assignments: event.assignments.map(a => ({ id:a.id, round:a.round, table:a.table, room:a.room, ns:a.ns, ew:a.ew, boards:a.boards, matchId:a.matchId, playerNames:a.playerNames })),
     parentEventId: event.parentEventId,
     stageName: event.stageName,

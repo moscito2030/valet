@@ -134,6 +134,8 @@ export function parseMovement(text: string, e: BridgeEvent): Assignment[] {
       boards.some((n) => !e.boards.some((b) => b.number === n))
     )
       throw new Error(`第 ${i + 2} 列牌組錯誤`);
+    if (e.participants.some(p => p.group) && (e.participants.find(p => p.id === r.ns)?.group !== 'NS' || e.participants.find(p => p.id === r.ew)?.group !== 'EW'))
+      throw new Error(`第 ${i + 2} 列方向不符合 NS／EW 分組`);
     const tableKey = `${round}:${table}`;
     if (tables.has(tableKey)) throw new Error('同一圈桌號重複');
     tables.add(tableKey);

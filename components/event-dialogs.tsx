@@ -49,6 +49,7 @@ export function CreateDialog({
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const [method, setMethod] = useState('mp');
+  const [movementPlan, setMovementPlan] = useState('');
   const [gameMode, setGameMode] = useState<'bridge' | 'minibridge'>('bridge');
   const [staged, setStaged] = useState(false);
   const [eventDate, setEventDate] = useState(() =>
@@ -60,9 +61,13 @@ export function CreateDialog({
     setBusy(true);
     setError('');
     try {
+      const lines = (field: string) => String(form.get(field) ?? '').split('\n').map(s => s.trim()).filter(Boolean);
+      const grouped = kind === 'pairs' && !!movementPlan;
+      if (grouped && lines('nsNames').length !== lines('ewNames').length) throw new Error('NS 與 EW 組需有相同搭檔數');
       const stage = {
         kind,
         gameMode,
+        ...(grouped ? { movementPlan } : {}),
         pairMethod: kind === 'pairs' ? method : 'mp',
         trim: kind === 'pairs' && method !== 'mp' ? form.get('trim') : 'none',
         name: form.get('name'),
@@ -72,10 +77,7 @@ export function CreateDialog({
         ...(!competition && staged ? { firstStageName: form.get('firstStageName') } : {}),
         rounds: Number(form.get('rounds')),
         boardsPerRound: Number(form.get('boardsPerRound')),
-        names: String(form.get('names'))
-          .split('\n')
-          .map((s) => s.trim())
-          .filter(Boolean),
+        names: grouped ? [...lines('nsNames'), ...lines('ewNames')] : lines('names'),
       };
       const res = await api<{ id: string }>(
         competition ? `/api/competitions/${competition.id}/stages` : '/api/events',
@@ -248,7 +250,7 @@ export function CreateDialog({
           )}
           <label className="field">
             圈數
-            <input name="rounds" type="number" min={1} max={15} defaultValue={3} required />
+            <input name="rounds" type="number" min={1} max={kind === 'pairs' ? 19 : 15} defaultValue={3} required />
           </label>
           <label className="field">
             每圈牌數
@@ -263,7 +265,19 @@ export function CreateDialog({
             />
           </label>
         </div>
-        <label className="field">
+        {kind === 'pairs' && <label className="field">排名與編排
+          <select value={movementPlan} onChange={e => setMovementPlan(e.target.value)}>
+            <option value="">合併排名 · 全場同牌輪轉</option>
+            <option value="double-mitchell">Double Winner Mitchell／Skip Mitchell</option>
+            <option value="double-mitchell-relay">Double Winner Mitchell（偶數桌共牌／中繼）</option>
+          </select>
+          <span className="footnote">雙冠軍支援 3–19 桌。奇數桌最多桌數圈；Skip Mitchell 最多桌數減一圈；共牌／中繼最多桌數圈。總牌數最多 128 副。</span>
+        </label>}
+        {kind === 'pairs' && movementPlan ? <div className="form-grid">
+          {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–19 組）
+            <textarea name={group === 'NS' ? 'nsNames' : 'ewNames'} rows={5} required />
+          </label>)}
+        </div> : <label className="field">
           {kind === 'teams' ? '隊伍名稱' : '搭檔名稱'}（一行一組，至少四組）
           <textarea
             name="names"
@@ -275,9 +289,9 @@ export function CreateDialog({
                 : '林冠宇 / 陳思妤\n張哲維 / 王品涵\n李柏翰 / 黃詠晴\n吳承恩 / 劉芷瑜'
             }
           />
-        </label>
+        </label>}
         <p className="footnote">
-          預設建立固定循環對戰，各桌每圈打相同牌組。雙人賽需備妥重複牌組，或在收分前匯入自己的賽程編排。排名同分並列。
+          {kind === 'pairs' && movementPlan ? 'NS 固定、EW 依編排移動，各組獨立排名、同分並列。請在圈次與對戰中確認牌組流向；偶數桌共牌／中繼需安排共牌或複製牌。' : '預設建立固定循環對戰，各桌每圈打相同牌組。雙人賽需備妥重複牌組，或在收分前匯入自己的賽程編排。排名同分並列。'}
         </p>
         {error && (
           <p className="error-text" role="alert">

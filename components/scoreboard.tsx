@@ -618,7 +618,7 @@ export default function Scoreboard() {
                           {event.gameMode === 'minibridge' && 'MiniBridge · 無身價 · '}
                           {event.kind === 'teams'
                             ? 'IMP · WBF 20-0 VP'
-                            : `${methodNames[pairMethod]} · 合併排名 · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
+                            : `${methodNames[pairMethod]} · ${event.participants.every(p => p.group) ? 'NS／EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
                         </span>
                       </div>
                     </div>
@@ -812,6 +812,7 @@ export default function Scoreboard() {
                           <thead>
                             <tr>
                               <th className="rank-col">排名</th>
+                              {event.participants.some(p => p.group) && <th>組別</th>}
                               <th>{event.kind === 'teams' ? '隊伍' : '搭檔'}</th>
                               <th>完成／安排牌數</th>
                               <th className="score-col">
@@ -848,6 +849,7 @@ export default function Scoreboard() {
                                       )}
                                     </span>
                                   </td>
+                                  {event.participants.some(p => p.group) && <td>{s.group}</td>}
                                   <td>
                                     <button
                                       className="participant-link"

@@ -5,7 +5,7 @@ export type Kind = 'teams' | 'pairs';
 export type PairMethod = 'mp' | 'crossimp' | 'butler';
 export type Trim = 'none' | 'one' | 'ten-percent';
 export type Vulnerability = 'None' | 'NS' | 'EW' | 'All';
-export type Participant = { id: string; name: string; players: string; captain?: string };
+export type Participant = { id: string; name: string; players: string; captain?: string; group?: 'NS' | 'EW' };
 export type CompetitionInfo = {
   id: string;
   name: string;
@@ -118,6 +118,7 @@ export const createSchema = z
     prefix: z.string().trim().max(80).optional(),
     kind: z.enum(['teams', 'pairs']),
     gameMode: z.enum(['bridge', 'minibridge']).optional(),
+    movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay']).optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
     trim: z.enum(['none', 'one', 'ten-percent']).optional(),
     date: z
@@ -128,12 +129,14 @@ export const createSchema = z
         '日期不正確',
       ),
     venue: z.string().trim().max(80),
-    names: z.array(z.string().trim().min(1).max(60)).min(4).max(32),
-    rounds: z.number().int().min(1).max(15),
+    names: z.array(z.string().trim().min(1).max(60)).min(4).max(38),
+    rounds: z.number().int().min(1).max(19),
     boardsPerRound: z.number().int().min(1).max(32),
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.kind === 'teams' && (v.names.length > 32 || v.rounds > 15 || v.movementPlan))
+      ctx.addIssue({ code: 'custom', message: '隊制賽最多 32 隊、15 圈，不適用雙冠軍編排' });
     if (new Set(v.names).size !== v.names.length)
       ctx.addIssue({ code: 'custom', message: '名稱不可重複' });
     if (v.kind === 'teams' && v.names.length % 2)
@@ -160,7 +163,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
-      round: z.number().int().min(0).max(15),
+      round: z.number().int().min(0).max(19),
       phase: z.enum(['playing', 'break']),
     })
     .strict(),
@@ -170,7 +173,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
-      round: z.number().int().min(1).max(15),
+      round: z.number().int().min(1).max(19),
       startAt: z.string().datetime({ offset: true }).nullable(),
       endAt: z.string().datetime({ offset: true }).nullable(),
     })
@@ -264,6 +267,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
 export type Mutation = z.infer<typeof mutationSchema>;
 export type StoredEvent = { event: BridgeEvent; requests: string[]; projection: Projection };
 export type Standing = {
+  group?: 'NS' | 'EW';
   id: string;
   name: string;
   players: string;

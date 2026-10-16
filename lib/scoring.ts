@@ -283,22 +283,17 @@ export function project(e: ProjectionInput): Projection {
     row.penalty = e.penalties?.[row.id] ?? 0;
     if (row.score !== null) row.score -= row.penalty;
   }
-  // Tied scores share ranks; names only provide stable display order.
-  standing.sort(
-    (a, b) =>
-      (a.score === null ? (b.score === null ? 0 : 1) : b.score === null ? -1 : b.score - a.score) ||
-      a.name.localeCompare(b.name, 'zh-Hant'),
-  );
-  let rank = 0;
-  for (let i = 0; i < standing.length; i++) {
-    const s = standing[i];
-    if (
-      i === 0 ||
-      (s.score === null) !== (standing[i - 1].score === null) ||
-      Math.abs((s.score ?? 0) - (standing[i - 1].score ?? 0)) > 1e-8
-    )
-      rank = i + 1;
-    s.rank = rank;
-  }
+  // Fixed-direction events rank each group independently; legacy events stay combined.
+  const grouped = e.kind === 'pairs' && standing.length > 0 && standing.every(s => s.group);
+  const groups = grouped ? ['NS', 'EW'] as const : [undefined];
+  projection.standings = groups.flatMap(group => {
+    const rows = standing.filter(s => !grouped || s.group === group).sort((a, b) =>
+      (a.score === null ? (b.score === null ? 0 : 1) : b.score === null ? -1 : b.score - a.score) || a.name.localeCompare(b.name, 'zh-Hant'));
+    rows.forEach((row, i) => {
+      const previous = rows[i - 1];
+      row.rank = previous && (row.score === null) === (previous.score === null) && Math.abs((row.score ?? 0) - (previous.score ?? 0)) <= 1e-8 ? previous.rank : i + 1;
+    });
+    return rows;
+  });
   return projection;
 }
