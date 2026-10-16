@@ -132,6 +132,10 @@ small {
 .sidebar-label.second {
   margin-top: 31px;
 }
+.workspace-button,
+.nav-item {
+  font-size: 14px;
+}
 .workspace-button {
   width: 100%;
   background: #355045;
@@ -158,7 +162,6 @@ small {
   gap: 13px;
   border-radius: 6px;
   text-align: left;
-  font-size: 13px;
   margin-bottom: 5px;
 }
 .nav-item:hover {
