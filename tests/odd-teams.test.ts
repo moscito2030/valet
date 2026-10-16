@@ -12,7 +12,13 @@ import {
   type Result,
   type StoredEvent,
 } from '../lib/model';
-import { teamByes, validateInterleavedLineups } from '../lib/team-movement';
+import {
+  teamByes,
+  validateInterleavedLineups,
+  defaultInterleavedGroups,
+  roundLabel,
+  interleavedSize,
+} from '../lib/team-movement';
 import { teamButlerStats } from '../lib/team-butler';
 import { audienceEvent } from '../lib/club-view';
 import { allRoundsComplete } from '../lib/round-progress';
@@ -233,7 +239,9 @@ test('malformed interleaved imports are rejected without changing state', () => 
   copy.assignments[1].boards = copy.assignments[0].boards;
   assert.throws(() => parseMovement(exportMovement(copy), event));
   assert.equal(Object.keys(event.results).length, 0);
-  assert.ok(!movementOptions({ ...event, rounds: 3 }).some((o) => o.id === 'team-interleaved'));
+  assert.ok(
+    !movementOptions({ ...event, rounds: 3 }).some((o) => o.id.startsWith('team-interleaved')),
+  );
   assert.ok(
     !movementOptions({ ...event, boardsPerRound: 26 }).some((o) => o.id === 'team-interleaved'),
   );
@@ -252,4 +260,172 @@ test('interleaved player statistics wait for all uses and count each appearance 
   assert.ok(stats.individual.every((p) => p.boards === 8 && p.total === 0 && p.mpPercent === 50));
   event.assignments.find((a) => a.ns === 'p1')!.playerNames!.N = 'p1-E';
   assert.throws(() => validateInterleavedLineups(event.assignments), /不可交換/);
+});
+
+test('interleaved groups support all divisible team counts and repeated cycles with regrouping', () => {
+  for (const size of [3, 5] as const)
+    for (let n = size; n <= 32; n += size) {
+      for (const cycles of [1, 2, 3]) {
+        const rounds = cycles * (size - 1);
+        const draft = fixture(n, rounds, 1);
+        const groups = defaultInterleavedGroups(draft, size);
+        // Shift roster positions between cycles; both opponents and table seats may change.
+        for (let c = 1; c < cycles; c++) {
+          const order = draft.participants.map((p) => p.id);
+          order.push(...order.splice(0, c));
+          groups[c] = Array.from({ length: n / size }, (_, g) =>
+            order.slice(g * size, (g + 1) * size),
+          );
+        }
+        const event = apply(store(draft), {
+          action: 'movement-plan',
+          plan: `team-interleaved-${size}`,
+          interleavedGroups: groups,
+        }).event;
+        assert.equal(event.teamMovement, 'interleaved');
+        assert.equal(event.assignments.length, n * rounds);
+        assert.equal(event.boards.length, size * cycles);
+        assert.equal(interleavedSize(event), size);
+        assert.equal(roundLabel(event, size), '2-1');
+        assert.equal(roundLabel(event, rounds), `${cycles}-${size - 1}`);
+        assert.deepEqual(parseMovement(exportMovement(event), event), event.assignments);
+        assert.deepEqual(teamByes(event), []);
+        assert.equal(buildMovement(draft, `team-interleaved-${size}`, groups).copies, n / size);
+        for (let c = 0; c < cycles; c++)
+          for (const group of groups[c])
+            for (const id of group) {
+              const rows = event.assignments.filter(
+                (a) => a.round > c * (size - 1) && a.round <= (c + 1) * (size - 1) && a.ns === id,
+              );
+              assert.deepEqual(
+                new Set(rows.map((a) => a.ew)),
+                new Set(group.filter((p) => p !== id)),
+              );
+              assert.equal(rows.length, size - 1);
+            }
+        score(event, 1);
+        assert.ok(project(event).standings.every((s) => s.score === 0));
+        score(event, 2);
+        assert.ok(project(event).standings.every((s) => s.score === 20));
+        score(event);
+        const final = project(event);
+        assert.equal(final.matches.length, (n * rounds) / 2);
+        assert.ok(final.standings.every((s) => s.score === rounds * 10 && s.played === rounds));
+      }
+    }
+});
+
+test('regrouping is validated atomically and CSV cannot mix cycles or incomplete groups', () => {
+  const draft = fixture(6, 4, 1);
+  const groups = [
+    [
+      ['p1', 'p2', 'p3'],
+      ['p4', 'p5', 'p6'],
+    ],
+    [
+      ['p1', 'p4', 'p5'],
+      ['p2', 'p3', 'p6'],
+    ],
+  ];
+  const saved = apply(store(draft), {
+    action: 'movement-plan',
+    plan: 'team-interleaved-3',
+    interleavedGroups: groups,
+  });
+  const event = saved.event;
+  assert.deepEqual(
+    new Set(event.assignments.filter((a) => a.round > 2 && a.ns === 'p1').map((a) => a.ew)),
+    new Set(['p4', 'p5']),
+  );
+  for (const invalid of [
+    groups.slice(0, 1),
+    [groups[0], groups[0].map((g) => g.map(() => 'p1'))],
+    [
+      groups[0],
+      [
+        ['p1', 'p2', 'p3'],
+        ['p4', 'p5', 'missing'],
+      ],
+    ],
+  ]) {
+    assert.throws(() =>
+      apply(store(draft), {
+        action: 'movement-plan',
+        plan: 'team-interleaved-3',
+        interleavedGroups: invalid,
+      }),
+    );
+    assert.equal(draft.teamMovement, undefined);
+  }
+  const wrong = structuredClone(event);
+  for (const a of wrong.assignments.filter((a) => a.round > 2))
+    a.boards = a.boards.map((b) => b - 3);
+  assert.throws(() => parseMovement(exportMovement(wrong), event), /重複|新牌/);
+  const duplicateMatch = structuredClone(event);
+  for (const a of duplicateMatch.assignments.filter((a) => a.round > 2)) a.matchId = 'cycle-1-2';
+  assert.throws(() => parseMovement(exportMovement(duplicateMatch), event));
+  assert.throws(() =>
+    parseMovement(exportMovement({ ...event, assignments: event.assignments.slice(1) }), event),
+  );
+  score(event, 1);
+  assert.throws(
+    () =>
+      apply(store(event), {
+        action: 'movement-plan',
+        plan: 'team-interleaved-3',
+        interleavedGroups: groups,
+      }),
+    /尚未收分/,
+  );
+});
+
+test('mode selection and round labels distinguish 3- and 5-team groups and retain bounds', () => {
+  const draft = fixture(15, 8, 1);
+  assert.deepEqual(
+    movementOptions(draft)
+      .filter((p) => p.interleavedSize)
+      .map((p) => p.interleavedSize),
+    [3, 5],
+  );
+  assert.ok(!movementOptions(fixture(6, 3, 1)).some((p) => p.interleavedSize));
+  assert.ok(!movementOptions(fixture(7, 4, 1)).some((p) => p.interleavedSize));
+  assert.ok(!movementOptions(fixture(5, 8, 13)).some((p) => p.interleavedSize));
+  assert.equal(roundLabel(draft, 4), '4');
+  const e = apply(store(fixture(10, 8, 1)), {
+    action: 'movement-plan',
+    plan: 'team-interleaved-5',
+  }).event;
+  assert.deepEqual(
+    Array.from({ length: 8 }, (_, i) => roundLabel(e, i + 1)),
+    ['1-1', '1-2', '1-3', '1-4', '2-1', '2-2', '2-3', '2-4'],
+  );
+  assert.equal(roundLabel(e, 0), '0');
+});
+
+test('new cycles isolate repeated-opponent scores and allow lineup direction changes only between cycles', () => {
+  const event = apply(store(fixture(6, 4, 1)), {
+    action: 'movement-plan',
+    plan: 'team-interleaved-3',
+  }).event;
+  score(event);
+  const first = event.assignments.find((a) => a.ns === 'p1' && a.ew === 'p2' && a.round <= 2)!;
+  const second = event.assignments.find((a) => a.ns === 'p1' && a.ew === 'p2' && a.round > 2)!;
+  event.results[resultKey(first.id, first.boards[0])].nsScore = 620;
+  event.results[resultKey(second.id, second.boards[0])].nsScore = -100;
+  const projection = project(event);
+  assert.notEqual(first.matchId, second.matchId);
+  assert.equal(projection.matches.find((m) => m.id === first.matchId)!.marginA, 12);
+  assert.equal(projection.matches.find((m) => m.id === second.matchId)!.marginA, -3);
+  for (const a of event.assignments) {
+    a.playerNames = { N: `${a.ns}-N`, S: `${a.ns}-S`, E: `${a.ew}-E`, W: `${a.ew}-W` };
+    if (a.round > 2)
+      a.playerNames = { N: `${a.ns}-E`, S: `${a.ns}-W`, E: `${a.ew}-N`, W: `${a.ew}-S` };
+  }
+  assert.doesNotThrow(() => validateInterleavedLineups(event.assignments));
+  const stats = teamButlerStats(event);
+  assert.equal(stats.individual.length, 24);
+  assert.ok(stats.individual.every((p) => p.boards === 4));
+  const changed = event.assignments.find((a) => a.round === 4 && a.ew === 'p1')!;
+  changed.playerNames!.E = 'p1-E';
+  assert.throws(() => validateInterleavedLineups(event.assignments), /同一交錯循環/);
 });

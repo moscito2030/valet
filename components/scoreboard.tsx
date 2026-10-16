@@ -1,4 +1,5 @@
 'use client';
+import { roundLabel } from '@/lib/team-movement';
 import { InterleavedRound } from './interleaved-round';
 import { displayedBoardNumber,boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import {
@@ -466,7 +467,7 @@ export default function Scoreboard() {
             onChange={(e) => browseBoard(Number(e.target.value))}>
             {event.kind === 'teams'
               ? boardRounds.map((round) => (
-                  <optgroup key={round.round} label={'第 ' + round.round + ' 圈'}>
+                  <optgroup key={round.round} label={'第 ' + roundLabel(event, round.round) + ' 圈'}>
                     {round.boards.map((number, index) => (
                       <option key={index} value={number}>牌號 {displayBoardNumber(number)}（圈內第 {index + 1} 牌）</option>
                     ))}
@@ -654,7 +655,7 @@ export default function Scoreboard() {
                         (competitionComplete
                           ? ' · 賽事已結束'
                           : progressRound
-                            ? ` · 第 ${progressRound}/${event.rounds} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
+                            ? ` · 第 ${roundLabel(event, progressRound)}/${roundLabel(event, event.rounds)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
                             : event.rounds ? ' · 尚未開始' : ' · 待設定賽程')}
                     </span>
                     <ChevronDown size={15} className={dashboardCollapsed ? 'collapsed' : ''} />
@@ -670,8 +671,8 @@ export default function Scoreboard() {
                     />
                     <Stat
                       label="目前圈數"
-                      value={progressRound}
-                      suffix={`/ ${event.rounds} 圈`}
+                      value={roundLabel(event, progressRound)}
+                      suffix={`/ ${roundLabel(event, event.rounds)} 圈`}
                       detail={
                         competitionComplete
                           ? '賽事已結束'
@@ -728,7 +729,7 @@ export default function Scoreboard() {
                   >
                     <strong>
                       {competitionComplete ? '賽事已結束' : progressRound
-                        ? `第 ${progressRound} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
+                        ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
                         : '裁判尚未指定目前圈數'}
                     </strong>
                     <div>
@@ -976,7 +977,7 @@ export default function Scoreboard() {
                               : '查看桌次、南北／東西搭檔與牌組安排。'}
                           </p>
                         </div>
-                        <RoundSelect count={event.rounds} round={round} setRound={setRound} />
+                        <RoundSelect event={event} count={event.rounds} round={round} setRound={setRound} />
                       </div>
                       {event.teamMovement === 'interleaved' && <InterleavedRound event={event} round={round} onBoard={(b, a) => { setBoard(b); setSelectedResult(a); setTab('boards'); }} />}
                       {event.projection.byes?.filter(b => b.round === round).map(b => <p key={b.participantId} className="footnote team-bye-note">{name(b.participantId)}：輪空，{number(b.vp)} VP（{b.awarded ? '已計入排名' : '本圈收分完成後計入'}）。不計 IMP 或實打牌數。</p>)}
@@ -985,7 +986,7 @@ export default function Scoreboard() {
                           {selectedRoundMatches.map((m) => (
                             <div className="match-card" key={m.id}>
                               <div className="match-meta">
-                                {event.teamMovement === 'interleaved' ? `第 ${Math.ceil(m.round / 2) * 2 - 1}–${m.round} 圈比較` : `第 ${event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌`}{' '}
+                                {event.teamMovement === 'interleaved' ? `第 ${roundLabel(event, Math.ceil(m.round / 2) * 2 - 1)}–${roundLabel(event, m.round)} 圈比較` : `第 ${event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌`}{' '}
                                 <span>
                                   {m.completed === m.total
                                     ? '已收齊'
@@ -1353,7 +1354,7 @@ export default function Scoreboard() {
                                           }}
                                         >
                                           <td className="table-round">
-                                            {a.table} <small className="muted">/ R{a.round}</small>
+                                            {a.table} <small className="muted">/ R{roundLabel(event, a.round)}</small>
                                           </td>
                                           <td>
                                             <span
@@ -1457,7 +1458,7 @@ export default function Scoreboard() {
                         {event.kind === 'teams' && <label className="participant-picker">
                           查看圈次
                           <select aria-label="選擇成績圈次" value={playerRound} onChange={e => setPlayerRound(Number(e.target.value))}>
-                            {Array.from({ length: event.rounds }, (_, i) => <option key={i + 1} value={i + 1}>第 {i + 1} 圈</option>)}
+                            {Array.from({ length: event.rounds }, (_, i) => <option key={i + 1} value={i + 1}>第 {roundLabel(event, i + 1)} 圈</option>)}
                           </select>
                         </label>}
                         </div>
@@ -1475,7 +1476,7 @@ export default function Scoreboard() {
                               popover="auto"
                               className="player-detail-popover"
                             >
-                            <small>{playerRound === 1 ? '賽前' : `截至第 ${playerRound - 1} 圈`}</small>
+                            <small>{playerRound === 1 ? '賽前' : `截至第 ${roundLabel(event, playerRound - 1)} 圈`}</small>
                             {[playerId!, playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns].map((id, i) => {
                               const standing = previousStandings.find(s => s.id === id);
                               return <div key={id}>{i === 0 ? '我方' : '對手'}：{playerRound === 1 ? '0.00 VP · 尚無排名' : `${number(standing?.score ?? null)} VP · #${standing?.rank ?? '—'}`}</div>;
@@ -1524,20 +1525,20 @@ export default function Scoreboard() {
                                 <button type="button" className="contract-link mono" aria-label="查看雙方累積 VP" popoverTarget="player-cumulative-vp" onClick={e => positionDetail(e.currentTarget)}>{number(playerMatchVp)} : {number(opponentMatchVp)}</button>
                               </div>
                               <div key={`${playerId}-${playerRound}-cumulative`} id="player-cumulative-vp" popover="auto" className="player-detail-popover">
-                                <strong>截至第 {playerRound} 圈 · 累積 VP</strong>
+                                <strong>截至第 {roundLabel(event, playerRound)} 圈 · 累積 VP</strong>
                                 {[playerId, playerMatch ? (playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns) : undefined].map((id, index) => <div key={index}>
                                   {index === 0 ? '我方' : '對手'} · {id ? name(id) : '—'}：<span className="mono">{number(cumulativePlayerStandings.find(s => s.id === id)?.score ?? null)} VP</span>
                                 </div>)}
                                 <small className="muted">計入已完成對戰與已結算輪空的 VP。</small>
                               </div>
                               <div key={`${playerId}-${playerRound}-butler`} id="player-butler-summary" popover="auto" className="player-detail-popover">
-                                <strong>第 {playerRound} 圈 · Butler IMP 合計</strong>
+                                <strong>第 {roundLabel(event, playerRound)} 圈 · Butler IMP 合計</strong>
                                 <div>我方 · {name(playerId!)}：<span className="butler-total">{playerButlers.length ? signed(playerButlerTotal) : '—'}</span></div>
                                 <div>對手 · {playerMatch ? name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns) : '—'}：<span className="butler-total">{playerButlers.length ? signed(opponentButlerTotal) : '—'}</span></div>
                                 <small className="muted">加總本圈兩室已收的有效成績；取消牌不計入。</small>
                               </div>
                               <div key={`${playerId}-${playerRound}-${playerVpBoards}`} id="player-vp-scale" popover="auto" className="player-detail-popover vp-scale-popover">
-                                <strong>第 {playerRound} 圈 · {playerVpBoards} 牌 VP 換算表</strong>
+                                <strong>第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 換算表</strong>
                                 <p>WBF 20–0 · 依原訂牌數換算</p>
                                 <p>{playerMatchVp === null ? '成績未齊，尚未換算 VP' : `我方 ${signed(playerImpTotal)} IMP → ${number(playerMatchVp)} VP`}</p>
                                 {playerVpScale.length ? <div className="vp-scale-scroll">
@@ -1621,7 +1622,7 @@ export default function Scoreboard() {
                                         setTab('rounds');
                                       }}
                                     >
-                                      <strong className="player-round">R{a.round}</strong>
+                                      <strong className="player-round">R{roundLabel(event, a.round)}</strong>
                                       <small className="muted">/{a.table}</small>
                                     </button>
                                   </td>}

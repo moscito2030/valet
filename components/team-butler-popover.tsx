@@ -4,11 +4,11 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BarChart3, X } from 'lucide-react';
 import type { BridgeEvent } from '@/lib/model';
-import { isInterleaved } from '@/lib/team-movement';
+import { isInterleaved, roundLabel } from '@/lib/team-movement';
 import { teamButlerStats } from '@/lib/team-butler';
 
 type Props = {
-  event: Pick<BridgeEvent, 'kind' | 'rounds' | 'assignments' | 'results' | 'participants'>;
+  event: Pick<BridgeEvent, 'teamMovement' | 'kind' | 'rounds' | 'assignments' | 'results' | 'participants'>;
   teamId: string;
 };
 const decimal = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : '∞');
@@ -80,7 +80,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
             </div>
             <p className="team-butler-scope">
               {stats.rounds.length
-                ? `已納入第 ${stats.rounds.join('、')} 圈 · 共 ${stats.rounds.length} 圈`
+                ? `已納入第 ${stats.rounds.map(r => roundLabel(event, r)).join('、')} 圈 · 共 ${stats.rounds.length} 圈`
                 : '尚無已完成圈次'}
               <span>排名以全場計算，同分並列；預設依每牌 IMP 排序。</span>
             </p>

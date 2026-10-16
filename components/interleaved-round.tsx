@@ -1,3 +1,4 @@
+import { roundLabel } from '@/lib/team-movement';
 import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { awardedResult, teamBoardImps } from '@/lib/scoring';
@@ -24,7 +25,7 @@ export function InterleavedRound({
     <div className="interleaved-round">
       <p className="footnote">
         交錯循環：南北／東西為各隊固定搭檔，請依桌號與牌號移動。兩桌分別在不同圈打牌，收齊後比較；VP
-        歸入第 {Math.ceil(round / 2) * 2} 圈。
+        歸入第 {roundLabel(event, Math.ceil(round / 2) * 2)} 圈。
       </p>
       <div className="table-scroll">
         <table aria-label="交錯循環實際入座">
@@ -69,10 +70,10 @@ export function InterleavedRound({
                     <tr>
                       <th>牌號</th>
                       <th>
-                        我方南北：第 {own.round} 圈／{own.table} 桌
+                        我方南北：第 {roundLabel(event, own.round)} 圈／{own.table} 桌
                       </th>
                       <th>
-                        我方東西：第 {other.round} 圈／{other.table} 桌
+                        我方東西：第 {roundLabel(event, other.round)} 圈／{other.table} 桌
                       </th>
                       <th>IMP 差</th>
                     </tr>
@@ -98,7 +99,7 @@ export function InterleavedRound({
                               <td key={a.id}>
                                 <button
                                   className="contract-link"
-                                  aria-label={`查看第 ${a.round} 圈 ${a.table} 桌牌號 ${board}`}
+                                  aria-label={`查看第 ${roundLabel(event, a.round)} 圈 ${a.table} 桌牌號 ${board}`}
                                   onClick={() => onBoard(board, a.id)}
                                 >
                                   <Contract result={r} />

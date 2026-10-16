@@ -444,7 +444,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       if (command.byeVp !== undefined && (e.kind !== 'teams' || e.participants.length % 2 === 0 || command.plan !== 'team-round-robin'))
         throw new Error('僅奇數隊輪空編排可設定輪空 VP');
       if (command.byeVp !== undefined) e.byeVp = command.byeVp;
-      const plan = buildMovement(e, command.plan);
+      const plan = buildMovement(e, command.plan, command.interleavedGroups);
       e.boards = Array.from({ length: plan.boardCount }, (_, i) => {
         const old = e.boards.find(b => b.number === i + 1);
         return { ...(old ?? { ...makeBoard(i + 1), deal: { N: [], E: [], S: [], W: [] }, published: false }),
@@ -454,7 +454,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       e.participants = plan.participants;
       parseMovement(exportMovement({ ...e, assignments: plan.assignments }), e);
       e.assignments = plan.assignments;
-      e.teamMovement = command.plan === 'team-interleaved' ? 'interleaved' : undefined;
+      e.teamMovement = plan.option.interleavedSize ? 'interleaved' : undefined;
       e.movementImported = true;
       e.movementDescription = `${plan.option.label}；${plan.option.note}${plan.byes.length ? `輪空每圈 ${e.byeVp ?? 12} VP。` : ''}${plan.shared ? '同圈有共用牌組，請準備複製牌或安排共牌。' : ''}`;
       e.roundTimes = {};

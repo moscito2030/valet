@@ -1,4 +1,5 @@
 'use client';
+import { roundLabel } from '@/lib/team-movement';
 import type { PublicEvent, Seat } from '@/lib/model';
 import { Activity, LockKeyhole } from 'lucide-react';
 import { hasDeal, seatNames, suitSymbols } from './scoreboard-shared';
@@ -48,10 +49,12 @@ export function Stat({
   );
 }
 export function RoundSelect({
+  event,
   count,
   round,
   setRound,
 }: {
+  event: PublicEvent;
   count: number;
   round: number;
   setRound: (n: number) => void;
@@ -66,7 +69,7 @@ export function RoundSelect({
       >
         {Array.from({ length: count }, (_, i) => (
           <option key={i} value={i + 1}>
-            第 {i + 1} 圈
+            第 {roundLabel(event, i + 1)} 圈
           </option>
         ))}
       </select>

@@ -1,5 +1,5 @@
 'use client';
-import { isInterleaved, teamByes } from '@/lib/team-movement';
+import { isInterleaved, teamByes, roundLabel } from '@/lib/team-movement';
 import { boardGroups, boardRange } from '@/lib/board-groups';
 import {
   exportMovement,
@@ -64,7 +64,7 @@ function RoundStateFields({ event }: { event: PublicEvent }) {
               value={i + 1}
               disabled={!event.assignments.some((a) => a.round === i + 1)}
             >
-              第 {i + 1} 圈
+              第 {roundLabel(event, i + 1)} 圈
             </option>
           ))}
         </select>
@@ -260,7 +260,7 @@ export function AdminPanel({
         const local = (value: string) =>
           new Date(Date.parse(value) + 8 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
         setPreview(
-          `共 ${rows.length} 圈時間（臺灣時間），僅更新所列圈次：\n${rows.map((row) => `第 ${row.round} 圈：${row.startAt && row.endAt ? `${local(row.startAt)} — ${local(row.endAt)}` : '清除時間'}`).join('\n')}`,
+          `共 ${rows.length} 圈時間（臺灣時間），僅更新所列圈次：\n${rows.map((row) => `第 ${roundLabel(event, row.round)} 圈：${row.startAt && row.endAt ? `${local(row.startAt)} — ${local(row.endAt)}` : '清除時間'}`).join('\n')}`,
         );
       } else if (importType === 'pbn') {
         const boards = parsePbn(text);
@@ -419,7 +419,7 @@ export function AdminPanel({
                       .sort((a, b) => a - b)
                       .map((r) => (
                         <option value={r} key={r}>
-                          {r}
+                          {roundLabel(event, r)}
                         </option>
                       ))}
                   </select>

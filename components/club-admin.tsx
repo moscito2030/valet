@@ -1,4 +1,5 @@
 'use client';
+import { roundLabel } from '@/lib/team-movement';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { AdminEvent } from './scoreboard-shared';
@@ -59,7 +60,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
       void act({ action: 'issue', pair: p.id });
     }}><span className="club-pair-label">{p.id.toUpperCase()} {p.name}</span></button>)}</div>
     {link && <section className="club-link-card"><strong>{pair.toUpperCase()} 專屬收分卡</strong>{qr && <img src={qr} width={280} height={280} alt={`${pair} 收分 QR code`} />}<a href={link} target="_blank" rel="noopener noreferrer">開啟收分卡</a><input aria-label="專屬連結" readOnly value={link} onFocus={e => e.currentTarget.select()} /><button className="button subtle" onClick={() => { void navigator.clipboard.writeText(link).then(() => setNotice('連結已複製。')).catch(() => setError('請選取上方連結手動複製')); }}>複製連結</button><small>連結僅在本次簽發時顯示，請交給對應搭檔。</small></section>}
-    <h4>目前第 {round} 圈 · {finalized ? '已結算' : '未結算'}</h4>
+    <h4>目前第 {roundLabel(event, round)} 圈 · {finalized ? '已結算' : '未結算'}</h4>
     <p>請在「圈次與發布設定」指定當前圈數與開始／休息狀態。</p>
     {assignments.map(a => <div key={a.id} className="club-progress-row">桌 {a.table} · {a.boards.filter(b => event.results[`${a.id}:${b}`]).length} / {a.boards.length} 副 · 輸入 {clubRoles(event, a).inputPair.toUpperCase()} ／ 確認 {clubRoles(event, a).confirmPair.toUpperCase()} · {clubAccepted(event, a) ? '已認可' : '待輸入／確認'}</div>)}
     <label className="field">結算原因<input value={reason} minLength={2} maxLength={200} onChange={e => setReason(e.target.value)} /></label>
@@ -77,7 +78,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
     <p className="footnote">個別桌次指定優先；改變分工會保留已輸入成績，並請新的確認方重新確認。</p>
     <label className="field">個別桌次 · 圈次
       <select value={settingsRound} onChange={e => setSettingsRound(Number(e.target.value))}>
-        {Array.from({ length: event.rounds }, (_, i) => <option key={i + 1} value={i + 1}>第 {i + 1} 圈</option>)}
+        {Array.from({ length: event.rounds }, (_, i) => <option key={i + 1} value={i + 1}>第 {roundLabel(event, i + 1)} 圈</option>)}
       </select>
     </label>
     {event.assignments.filter(a => a.round === settingsRound).map(a => {
