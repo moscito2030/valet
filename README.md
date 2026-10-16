@@ -111,3 +111,7 @@ npm run build
 ```
 
 雙夢家分析使用 [bridge-dds](https://github.com/bookchris/bridge-dds-js)；VP 換算依據 [WBF 連續 VP 公式](https://www.worldbridge.org/wp-content/uploads/2019/06/VP-Scale-Functiondetails.pdf)。
+
+## 共用牌局檢視器
+
+Valet 與 Valet Review 使用 `@valet/deal-viewer`。唯一實作來源位於 `packages/deal-viewer/`，涵蓋牌桌、試打與分析 worker。維護與升版方式見該目錄的 README；更新 Review 使用 `npm run viewer:sync -- ../valet-review`，兩個倉庫仍可獨立部署。
