@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BarChart3, X } from 'lucide-react';
 import type { BridgeEvent } from '@/lib/model';
+import { isInterleaved } from '@/lib/team-movement';
 import { teamButlerStats } from '@/lib/team-butler';
 
 type Props = {
@@ -156,7 +157,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
             )}
             <footer className="team-butler-notes">
               <p>
-                只統計整圈各桌已收齊的成績，取消牌與無其他桌可比較的牌不納入有效牌數。姓名依各桌實際上場名單；同隊相同姓名合併，搭檔交換座位仍視為同一組。
+                {isInterleaved(event.assignments) ? '交錯循環須等同牌所有安排圈次收齊，再跨圈比較。' : '只統計整圈各桌已收齊的成績。'}取消牌與無其他桌可比較的牌不納入有效牌數。姓名依各桌實際上場名單；同隊相同姓名合併，搭檔交換座位仍視為同一組。
               </p>
               {stats.missingNames > 0 && (
                 <p>
@@ -165,7 +166,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                 </p>
               )}
               <p>
-                Butler：以同圈同牌有效原始分平均，四捨五入至十位作為
+                Butler：以{isInterleaved(event.assignments) ? '跨圈同牌' : '同圈同牌'}有效原始分平均，四捨五入至十位作為
                 Datum，不去頭去尾。正／負平均各除以正／負分牌數；總平均與每牌 IMP 均為總 IMP ÷
                 有效牌數。商數＝正 IMP 總和 ÷ 負 IMP 總和絕對值（無負分且有正分為 ∞，全零為 —）。
               </p>

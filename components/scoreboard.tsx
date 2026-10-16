@@ -1,4 +1,5 @@
 'use client';
+import { InterleavedRound } from './interleaved-round';
 import { displayedBoardNumber,boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import {
 exportPbn
@@ -440,7 +441,8 @@ export default function Scoreboard() {
     (a) => a.id === selectedResult && a.boards.includes(selectedBoard?.number ?? 0),
   );
   const activeNames = event ? tableNames(event.kind, event.participants, activeAssignment) : {};
-  const selectedRoundMatches = event?.projection.matches.filter((m) => m.round === round) ?? [];
+  const selectedRoundMatches = event?.projection.matches.filter((m) => event.teamMovement === 'interleaved' ? event.assignments.some(a => a.round === round && a.matchId === m.id) : m.round === round) ?? [];
+  const playerBye = event?.projection.byes?.find(b => b.round === playerRound && b.participantId === playerId);
   const roundPairStandings = event?.kind === 'pairs' ? pairStandingsBeforeRound(event, round) : [];
   const roundTeamStandings = event?.kind === 'teams' ? teamStandingsThroughRound(event, round) : [];
   function browseBoard(number: number) {
@@ -760,7 +762,7 @@ export default function Scoreboard() {
                         {currentProgress.slowest.map(({ assignment, received, expected }) => (
                           <div key={assignment.id}>
                             桌 {assignment.table}
-                            {assignment.room === 'open'
+                            {event.teamMovement ? '' : assignment.room === 'open'
                               ? ' · 開室'
                               : assignment.room === 'closed'
                                 ? ' · 閉室'
@@ -794,7 +796,7 @@ export default function Scoreboard() {
                           </h3>
                           <p>
                             {event.kind === 'teams'
-                              ? 'VP 僅計入開閉兩室全部收齊的對戰；同分並列。'
+                              ? 'VP 計入已完成對戰與已結算輪空；同分並列。'
                               : '依有效結果暫時計分，排名包含罰分計算，同分並列。'}
                           </p>
                         </div>
@@ -908,6 +910,7 @@ export default function Scoreboard() {
                                           pairMethod === 'butler' && event.kind === 'pairs' ? 0 : 2,
                                         )}
                                       </div>
+                                      {event.projection.byes?.filter(b => b.participantId === s.id).map(b => <div key={b.round}>第 {b.round} 圈輪空：{number(b.vp)} VP（{b.awarded ? '已計入' : '待收齊'}）</div>)}
                                       <div>
                                         調整{' '}
                                         {event.kind === 'teams'
@@ -975,12 +978,14 @@ export default function Scoreboard() {
                         </div>
                         <RoundSelect count={event.rounds} round={round} setRound={setRound} />
                       </div>
+                      {event.teamMovement === 'interleaved' && <InterleavedRound event={event} round={round} onBoard={(b, a) => { setBoard(b); setSelectedResult(a); setTab('boards'); }} />}
+                      {event.projection.byes?.filter(b => b.round === round).map(b => <p key={b.participantId} className="footnote team-bye-note">{name(b.participantId)}：輪空，{number(b.vp)} VP（{b.awarded ? '已計入排名' : '本圈收分完成後計入'}）。不計 IMP 或實打牌數。</p>)}
                       {event.kind === 'teams' ? (
                         <div className="match-grid">
                           {selectedRoundMatches.map((m) => (
                             <div className="match-card" key={m.id}>
                               <div className="match-meta">
-                                第 {event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌{' '}
+                                {event.teamMovement === 'interleaved' ? `第 ${Math.ceil(m.round / 2) * 2 - 1}–${m.round} 圈比較` : `第 ${event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌`}{' '}
                                 <span>
                                   {m.completed === m.total
                                     ? '已收齊'
@@ -1173,7 +1178,7 @@ export default function Scoreboard() {
                         <section className="panel board-results">
                           <div className="panel-heading">
                             <div>
-                              <h3>{event.kind === 'teams' ? '開閉兩室逐副比較' : '單副成績表'}</h3>
+                              <h3>{event.kind === 'teams' ? event.teamMovement ? '跨圈兩桌逐副比較' : '開閉兩室逐副比較' : '單副成績表'}</h3>
                             </div>
                             {event.kind === 'teams' && (
                               <button type="button" className="button subtle" aria-pressed={awayPerspective} onClick={() => setAwayPerspective(value => !value)}>
@@ -1456,7 +1461,7 @@ export default function Scoreboard() {
                           </select>
                         </label>}
                         </div>
-                        {event.kind === 'teams' && <div className="player-round-context">
+                        {event.kind === 'teams' && !event.teamMovement && <div className="player-round-context">
                           {playerMatch ? <>
                             <button
                               type="button"
@@ -1476,11 +1481,12 @@ export default function Scoreboard() {
                               return <div key={id}>{i === 0 ? '我方' : '對手'}：{playerRound === 1 ? '0.00 VP · 尚無排名' : `${number(standing?.score ?? null)} VP · #${standing?.rank ?? '—'}`}</div>;
                             })}
                             </div>
-                          </> : <div>本圈無對戰安排</div>}
+                          </> : <div>{playerBye ? `本圈輪空：${number(playerBye.vp)} VP（${playerBye.awarded ? '已計入排名' : '待本圈收分完成'}），不計 IMP 或實打牌數。` : '本圈無對戰安排'}</div>}
                         </div>}
                       </div>
                       <div className="table-scroll">
-                        {event.kind === 'teams' && <table className="team-player-results">
+                        {event.teamMovement === 'interleaved' && <InterleavedRound event={event} round={playerRound} teamId={playerId} onBoard={(b, a) => { setBoard(b); setSelectedResult(a); setTab('boards'); }} />}
+                        {event.kind === 'teams' && !event.teamMovement && !playerBye && <table className="team-player-results">
                           <thead><tr><th>牌號</th><th>公開</th><th>關閉</th><th>IMP 差</th></tr></thead>
                           <tbody>
                             {teamPlayerRows.map(({ a, b, closed, impDiff, butlers }) => {
@@ -1522,7 +1528,7 @@ export default function Scoreboard() {
                                 {[playerId, playerMatch ? (playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns) : undefined].map((id, index) => <div key={index}>
                                   {index === 0 ? '我方' : '對手'} · {id ? name(id) : '—'}：<span className="mono">{number(cumulativePlayerStandings.find(s => s.id === id)?.score ?? null)} VP</span>
                                 </div>)}
-                                <small className="muted">僅計入已完成對戰的 VP。</small>
+                                <small className="muted">計入已完成對戰與已結算輪空的 VP。</small>
                               </div>
                               <div key={`${playerId}-${playerRound}-butler`} id="player-butler-summary" popover="auto" className="player-detail-popover">
                                 <strong>第 {playerRound} 圈 · Butler IMP 合計</strong>

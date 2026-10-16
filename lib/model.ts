@@ -94,6 +94,8 @@ export type BridgeEvent = {
   awardDescription?: string;
   movementDescription?: string;
   movementImported?: boolean;
+  teamMovement?: 'interleaved';
+  byeVp?: number;
   currentRound?: number;
   roundPhase?: 'playing' | 'break';
   roundTimes?: Record<number, { startAt: string; endAt: string }>;
@@ -129,20 +131,21 @@ export const createSchema = z
         '日期不正確',
       ),
     venue: z.string().trim().max(80),
-    names: z.array(z.string().trim().min(1).max(60)).min(4).max(38),
-    rounds: z.number().int().min(1).max(19).optional(),
+    names: z.array(z.string().trim().min(1).max(60)).min(3).max(38),
+    rounds: z.number().int().min(1).max(31).optional(),
     boardsPerRound: z.number().int().min(1).max(32).optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
-    if (v.kind === 'teams' && (v.names.length > 32 || (v.rounds ?? 0) > 15 || v.movementPlan))
-      ctx.addIssue({ code: 'custom', message: '隊制賽最多 32 隊、15 圈，不適用雙冠軍編排' });
+    if (v.kind === 'teams' && (v.names.length > 32 || (v.rounds ?? 0) > 31 || v.movementPlan))
+      ctx.addIssue({ code: 'custom', message: '隊制賽最多 32 隊、31 圈，不適用雙冠軍編排' });
+    if (v.kind === 'pairs' && (v.rounds ?? 0) > 19) ctx.addIssue({ code: 'custom', message: '雙人賽最多 19 圈' });
     if (v.rounds && !v.boardsPerRound) ctx.addIssue({ code: 'custom', message: '設定圈數時請同時指定每圈牌數' });
     if (v.movementPlan && (v.names.length < 6 || v.names.length % 2 || (v.movementPlan === 'double-mitchell-relay' && v.names.length % 4))) ctx.addIssue({ code: 'custom', message: '雙冠軍需 3–19 桌完整搭檔，共牌／中繼僅適用偶數桌' });
     if (new Set(v.names).size !== v.names.length)
       ctx.addIssue({ code: 'custom', message: '名稱不可重複' });
-    if (v.kind === 'teams' && v.names.length % 2)
-      ctx.addIssue({ code: 'custom', message: '隊制賽需偶數隊伍' });
+    if (v.kind === 'pairs' && v.names.length < 4)
+      ctx.addIssue({ code: 'custom', message: '雙人賽至少四對' });
     if ((v.rounds ?? 0) * (v.boardsPerRound ?? 0) > 128)
       ctx.addIssue({ code: 'custom', message: '每場最多 128 副' });
   });
@@ -152,7 +155,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('clear-results'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), confirmName: z.string().min(1).max(80) }).strict(),
   z.object({ action: z.literal('results-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入成績'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('round-times-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入圈次時間'), csv: z.string().min(1).max(200000) }).strict(),
-  z.object({ action: z.literal('movement-plan'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), plan: z.string().min(1).max(80), rounds: z.number().int().min(1).max(19).optional(), boardsPerRound: z.number().int().min(1).max(32).optional() }).strict(),
+  z.object({ action: z.literal('movement-plan'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), plan: z.string().min(1).max(80), byeVp: z.number().min(0).max(20).multipleOf(0.01).optional(), rounds: z.number().int().min(1).max(31).optional(), boardsPerRound: z.number().int().min(1).max(32).optional() }).strict(),
   z.object({ action: z.literal('team-roster'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), participantId: z.string(), players: z.array(z.string().trim().min(1).max(80)).max(30), captain: z.string().trim().max(80) }).strict(),
   z.object({ action: z.literal('table-lineup'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), assignmentId: z.string(), playerNames: z.object({ N: z.string().trim().max(80), E: z.string().trim().max(80), S: z.string().trim().max(80), W: z.string().trim().max(80) }).strict() }).strict(),
   z.object({ action: z.literal('competition-settings'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), name: z.string().trim().min(2).max(80), prefix: z.string().trim().max(80), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, '日期不正確'), venue: z.string().trim().max(80) }).strict(),
@@ -165,7 +168,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
-      round: z.number().int().min(0).max(19),
+      round: z.number().int().min(0).max(31),
       phase: z.enum(['playing', 'break']),
     })
     .strict(),
@@ -175,7 +178,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
-      round: z.number().int().min(1).max(19),
+      round: z.number().int().min(1).max(31),
       startAt: z.string().datetime({ offset: true }).nullable(),
       endAt: z.string().datetime({ offset: true }).nullable(),
     })
@@ -304,6 +307,7 @@ export type PairScore = {
   cancelled?: boolean;
 };
 export type Projection = {
+  byes?: { round: number; participantId: string; vp: number; awarded: boolean }[];
   standings: Standing[];
   matches: MatchScore[];
   pairScores: Record<string, PairScore>;

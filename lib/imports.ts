@@ -1,4 +1,5 @@
 import { csvCell, decodeCsvCell } from './csv-cell';
+import { isInterleaved, validateInterleaved } from './team-movement';
 import {
   Assignment,
   Board,
@@ -99,12 +100,22 @@ export function exportResultsCsv(e: BridgeEvent) {
   );
 }
 export function exportMovement(e: BridgeEvent) {
+  const interleaved = e.kind === 'teams' && isInterleaved(e.assignments);
+  const bye = e.kind === 'teams' && e.participants.length % 2 === 1 && !interleaved;
   return (
-    (e.kind === 'teams' ? 'round,table,room,ns,ew,boards\n' : 'round,table,ns,ew,boards\n') +
+    (e.kind === 'teams' ? `round,table,room,ns,ew,boards${interleaved ? ',matchId' : bye ? ',byeVp' : ''}\n` : 'round,table,ns,ew,boards\n') +
     e.assignments
-      .map((a) => [a.round, a.table, ...(e.kind === 'teams' ? [a.room] : []), a.ns, a.ew, a.boards.join(';')].map(csvCell).join(','))
+      .map((a) => [a.round, a.table, ...(e.kind === 'teams' ? [a.room] : []), a.ns, a.ew, a.boards.join(';'), ...(interleaved ? [a.matchId] : bye ? [e.byeVp ?? 12] : [])].map(csvCell).join(','))
       .join('\n')
   );
+}
+export function parseByeVp(text: string): number | undefined {
+  const rows = parseCsv(text);
+  if (!rows.some(r => 'byeVp' in r)) return undefined;
+  const values = rows.map(r => r.byeVp);
+  if (new Set(values).size !== 1 || !/^\d+(\.\d{1,2})?$/.test(values[0]) || Number(values[0]) > 20)
+    throw new Error('byeVp 每列須一致，範圍 0–20，最多兩位小數');
+  return Number(values[0]);
 }
 export function parseMovement(text: string, e: BridgeEvent): Assignment[] {
   if (e.kind === 'teams') return parseTeamMovement(text, e);
@@ -169,6 +180,18 @@ export function parseMovement(text: string, e: BridgeEvent): Assignment[] {
 }
 function parseTeamMovement(text: string, e: BridgeEvent): Assignment[] {
   const rows = parseCsv(text);
+  const byeVp = parseByeVp(text);
+  if (byeVp !== undefined && (e.participants.length % 2 === 0 || rows.some(r => 'matchId' in r)))
+    throw new Error('byeVp 僅適用奇數隊輪空編排');
+  if (rows.some(r => 'matchId' in r)) {
+    const assignments = rows.map(r => ({
+      id: `r${Number(r.round)}t${r.table}`, round: Number(r.round), table: /^\d+$/.test(r.table) ? Number(r.table) : r.table,
+      room: r.room as Assignment['room'], ns: r.ns, ew: r.ew,
+      boards: (r.boards ?? '').split(';').map(Number), matchId: r.matchId,
+    }));
+    validateInterleaved(assignments, e);
+    return assignments;
+  }
   const rooms = new Map<string, Record<string, string>>();
   for (const row of rows) {
     if (!['open', 'closed'].includes(row.room)) throw new Error('隊制賽 room 須為 open（開室）或 closed（閉室）');

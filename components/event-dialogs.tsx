@@ -250,7 +250,7 @@ export function CreateDialog({
           )}
           <label className="field">
             圈數（選填）
-            <input name="rounds" type="number" min={1} max={kind === 'pairs' ? 19 : 15} placeholder="稍後設定" />
+            <input name="rounds" type="number" min={1} max={kind === 'pairs' ? 19 : 31} placeholder="稍後設定" />
           </label>
           <label className="field">
             每圈牌數（可稍後調整）
@@ -277,7 +277,7 @@ export function CreateDialog({
             <textarea name={group === 'NS' ? 'nsNames' : 'ewNames'} rows={5} required />
           </label>)}
         </div> : <label className="field">
-          {kind === 'teams' ? '隊伍名稱' : '搭檔名稱'}（一行一組，至少四組）
+          {kind === 'teams' ? '隊伍名稱（一行一隊，至少三隊）' : '搭檔名稱（一行一對，至少四對）'}
           <textarea
             name="names"
             rows={5}
@@ -291,7 +291,7 @@ export function CreateDialog({
         </label>}
         <p className="footnote">圈數留空時僅建立名單，請至裁判「匯入／匯出」設定賽程編排後再開始收分。</p>
         <p className="footnote">
-          {kind === 'pairs' && movementPlan ? 'NS 固定、EW 依編排移動，各組獨立排名、同分並列。請在圈次與對戰中確認牌組流向；偶數桌共牌／中繼需安排共牌或複製牌。' : '預設建立固定循環對戰，各桌每圈打相同牌組。雙人賽需備妥重複牌組，或在收分前匯入自己的賽程編排。排名同分並列。'}
+          {kind === 'teams' ? '預設為兩室循環對戰；奇數隊每圈一隊輪空，預設 12 VP。三隊、五隊交錯循環請在收分前至裁判「匯入／匯出」選擇，並可設定輪空 VP。' : kind === 'pairs' && movementPlan ? 'NS 固定、EW 依編排移動，各組獨立排名、同分並列。請在圈次與對戰中確認牌組流向；偶數桌共牌／中繼需安排共牌或複製牌。' : '預設建立固定循環對戰，各桌每圈打相同牌組。雙人賽需備妥重複牌組，或在收分前匯入自己的賽程編排。排名同分並列。'}
         </p>
         {error && (
           <p className="error-text" role="alert">

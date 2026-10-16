@@ -1,6 +1,7 @@
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 import { awardedResult, imps } from './scoring';
+import { isInterleaved } from './team-movement';
 
 type Source = Pick<BridgeEvent, 'kind' | 'rounds' | 'assignments' | 'results' | 'participants'>;
 export type ButlerRow = {
@@ -103,10 +104,13 @@ export function teamButlerStats(event: Source) {
     }
     map.set(key, row);
   };
-  for (const round of rounds) {
-    const tables = event.assignments.filter((a) => a.round === round);
+  const interleaved = isInterleaved(event.assignments);
+  const batches = interleaved ? [event.assignments.filter(a => rounds.includes(a.round))] : rounds.map(round => event.assignments.filter(a => a.round === round));
+  for (const tables of batches) {
     const boards = new Set(tables.flatMap((a) => a.boards));
     for (const board of boards) {
+      // All uses of an interleaved board must be complete before comparing the field.
+      if (interleaved && event.assignments.some(a => a.boards.includes(board) && !rounds.includes(a.round))) continue;
       const entries = tables
         .filter((a) => a.boards.includes(board))
         .map((a) => ({ a, r: event.results[resultKey(a.id, board)] }))

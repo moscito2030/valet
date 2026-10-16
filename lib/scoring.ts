@@ -9,6 +9,7 @@ Vulnerability,
 resultKey,
 } from './model';
 import { normalizeResults } from './result-status';
+import { teamByes } from './team-movement';
 // Assigned scores remain in NS coordinates; the side selects the awarded contract.
 export function awardedResult(result: Result | undefined, side: 'ns' | 'ew'): Result | undefined {
   return result?.split && result.status !== 'cancelled' && result.status !== 'average'
@@ -36,6 +37,8 @@ export function teamStandingsThroughRound(
   round: number,
 ) {
   const rows = event.participants.map(p => ({ ...p, score: -(event.penalties?.[p.id] ?? 0), rank: 0 }));
+  for (const bye of event.projection.byes ?? []) if (bye.awarded && bye.round <= round)
+    rows.find(p => p.id === bye.participantId)!.score += bye.vp;
   for (const match of event.projection.matches.filter(m => m.round <= round)) {
     if (match.vpA === null || match.vpB === null) continue;
     rows.find(p => p.id === match.a)!.score += match.vpA;
@@ -132,7 +135,7 @@ export function vp(margin: number, boards: number): number {
   const win = table[Math.min(Math.abs(margin), table.length - 1)] / 100;
   return margin >= 0 ? win : Math.round((20 - win) * 100) / 100;
 }
-type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'pairMethod' | 'trim' | 'penalties'> & { boards: { number: number }[] };
+type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'pairMethod' | 'trim' | 'penalties' | 'byeVp'> & { boards: { number: number }[] };
 
 export function pairStandingsBeforeRound(event: ProjectionInput, round: number): Standing[] {
   const assignments = event.assignments.filter(a => a.round < round);
@@ -161,12 +164,18 @@ export function project(e: ProjectionInput): Projection {
   };
   for (const a of e.assignments) for (const id of [a.ns, a.ew]) byId[id].total += a.boards.length;
   if (e.kind === 'teams') {
+    projection.byes = teamByes(e).map(bye => {
+      const tables = e.assignments.filter(a => a.round === bye.round);
+      const awarded = tables.length > 0 && tables.every(a => a.boards.every(b => !!e.results[resultKey(a.id, b)]));
+      if (awarded) byId[bye.participantId].score! += bye.vp;
+      return { ...bye, awarded };
+    });
     for (const open of e.assignments.filter((a) => a.room === 'open')) {
       const closed = e.assignments.find((a) => a.matchId === open.matchId && a.room === 'closed');
       if (!closed) continue;
       const match = {
         id: open.matchId,
-        round: open.round,
+        round: Math.max(open.round, closed.round),
         a: open.ns,
         b: open.ew,
         impsA: 0,

@@ -1,10 +1,12 @@
 'use client';
+import { isInterleaved, teamByes } from '@/lib/team-movement';
 import { boardGroups, boardRange } from '@/lib/board-groups';
 import {
   exportMovement,
   exportPbn,
   exportResultsCsv,
   parseMovement,
+  parseByeVp,
   parsePbn,
   parseResultsCsv,
 } from '@/lib/imports';
@@ -267,9 +269,8 @@ export function AdminPanel({
         );
       } else {
         const rows = parseMovement(text, event as BridgeEvent);
-        setPreview(
-          `共 ${rows.length} 組桌次安排；匯入所列圈次，已收分的圈次不得改動。${event.kind === 'teams' ? '未列出的圈次保持不變；每場對戰包含開室與閉室。' : '首次匯入會取代尚未收分的預設賽程。'}`,
-        );
+        const byes = teamByes({ ...event, assignments: rows, byeVp: parseByeVp(text) ?? event.byeVp });
+        setPreview(`共 ${rows.length} 組桌次安排。${isInterleaved(rows) ? '交錯循環須完整匯入，已有成績後禁止重匯；每場跨相鄰兩圈比較。' : event.kind === 'teams' ? '僅更新所列圈次，未列出的圈次保持不變，已收分圈次不得改動。' : '首次匯入會取代尚未收分的預設賽程。'}${byes.length ? '\n輪空：' + byes.map(b => `第 ${b.round} 圈 ${event.participants.find(p => p.id === b.participantId)?.name}，${b.vp} VP`).join('；') : ''}`);
       }
     } catch (e) {
       setError((e as Error).message);
@@ -438,7 +439,7 @@ export function AdminPanel({
                       .map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.table}
-                          {event.kind === 'teams'
+                          {event.kind === 'teams' && !event.teamMovement
                             ? a.room === 'open'
                               ? ' · 開室'
                               : ' · 閉室'
@@ -841,7 +842,7 @@ export function AdminPanel({
                         ? '牌型僅能在尚未收分時替換。'
                         : importType === 'round-times'
                           ? '欄位：round,startAt,endAt。時間使用 HH:mm（賽事日期）或 YYYY-MM-DD HH:mm，皆為臺灣時間。只更新所列圈次；開始與結束皆留空可清除該圈時間。時間不會自動切換圈次。'
-                          : `可先匯出賽程再修改，逐圈匯入時每圈須包含完整賽程；已收分的圈次不可更改，已結束賽事須先重新開放。${event.kind === 'teams' ? '隊制賽需填寫 room：open（開室）、closed（閉室），同桌兩室隊伍須交換方向、牌組須相同。' : ''}`}
+                          : `可先匯出賽程再修改，逐圈匯入時每圈須包含完整賽程；已收分的圈次不可更改，已結束賽事須先重新開放。${event.kind === 'teams' ? '一般隊制賽填 room：open／closed，同桌兩室方向相反、牌組相同。交錯循環另填 matchId 配對跨圈兩桌，須在收分前一次匯入完整賽程。奇數隊輪空可附 byeVp，預設 12。' : ''}`}
               </p>
             </section>
             <section className="import-export-section">

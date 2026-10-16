@@ -4064,3 +4064,12 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
 }
 
 .topbar .home-navigation { gap: 18px; }
+.interleaved-round > .footnote, .team-bye-note { margin: 0; padding: 16px 24px; }
+.interleaved-round > section { padding-top: 20px; border-top: 1px solid var(--line); }
+.interleaved-round > section > h4 { margin: 0 24px 8px; }
+.interleaved-round > section > p { margin: 0 24px 16px; color: var(--muted); font-size: 14px; }
+.interleaved-round table { min-width: 440px; }
+@media (max-width: 600px) {
+  .interleaved-round > .footnote, .team-bye-note { padding: 14px 16px; }
+  .interleaved-round > section > h4, .interleaved-round > section > p { margin-inline: 16px; }
+}

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { boardGroups } from './board-groups';
 import { clubAccepted,clubReviewVersion,clubRoles } from './club-confirmation';
 import { DomainError } from './domain-error';
-import { exportMovement,parseMovement,parsePbn,parseResultsCsv } from './imports';
+import { exportMovement,parseMovement,parsePbn,parseResultsCsv,parseByeVp } from './imports';
 import {
 Board,
 BridgeEvent,
@@ -17,6 +17,7 @@ StoredEvent,
 Vulnerability,
 } from './model';
 import { buildMovement } from './movement-plans';
+import { isInterleaved } from './team-movement';
 import { normalizeResults } from './result-status';
 import { applyRosterMutation,isRosterMutation } from './roster-mutations';
 import { roundProgress } from './round-progress';
@@ -73,6 +74,7 @@ export function createEvent(
     prefix: data.prefix ?? '',
     ...(data.firstStageName ? { hasStages: true, stageName: data.firstStageName } : {}),
     kind: data.kind,
+    ...(data.kind === 'teams' && participants.length % 2 ? { byeVp: 12 } : {}),
     maxBoardNumber: data.kind === 'pairs' ? 0 : 32,
     gameMode: data.gameMode ?? 'bridge',
     date: data.date,
@@ -439,6 +441,9 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     try {
       e.rounds = command.rounds ?? e.rounds;
       e.boardsPerRound = command.boardsPerRound ?? e.boardsPerRound;
+      if (command.byeVp !== undefined && (e.kind !== 'teams' || e.participants.length % 2 === 0 || command.plan !== 'team-round-robin'))
+        throw new Error('僅奇數隊輪空編排可設定輪空 VP');
+      if (command.byeVp !== undefined) e.byeVp = command.byeVp;
       const plan = buildMovement(e, command.plan);
       e.boards = Array.from({ length: plan.boardCount }, (_, i) => {
         const old = e.boards.find(b => b.number === i + 1);
@@ -449,8 +454,9 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       e.participants = plan.participants;
       parseMovement(exportMovement({ ...e, assignments: plan.assignments }), e);
       e.assignments = plan.assignments;
+      e.teamMovement = command.plan === 'team-interleaved' ? 'interleaved' : undefined;
       e.movementImported = true;
-      e.movementDescription = `${plan.option.label}；${plan.option.note}${plan.shared ? '同圈有共用牌組，請準備複製牌或安排共牌。' : ''}`;
+      e.movementDescription = `${plan.option.label}；${plan.option.note}${plan.byes.length ? `輪空每圈 ${e.byeVp ?? 12} VP。` : ''}${plan.shared ? '同圈有共用牌組，請準備複製牌或安排共牌。' : ''}`;
       e.roundTimes = {};
       e.currentRound = 0;
       e.roundPhase = 'break';
@@ -491,6 +497,15 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     try {
       const incoming = parseMovement(command.csv, e);
+      const byeVp = e.kind === 'teams' ? parseByeVp(command.csv) : undefined;
+      if (byeVp !== undefined) {
+        if (byeVp !== (e.byeVp ?? 12) && Object.keys(e.results).length)
+          throw new Error('已有成績，不可變更輪空 VP');
+        detail = `輪空 VP：${e.byeVp ?? 12} → ${byeVp}`;
+        e.byeVp = byeVp;
+      }
+      if ((isInterleaved(incoming) || isInterleaved(e.assignments)) && Object.keys(e.results).length)
+        throw new Error('交錯循環已有成績，不可重新匯入賽程');
       const rounds = new Set(incoming.map((a) => a.round));
       const scoredRounds = new Set(
         e.assignments
@@ -527,6 +542,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
           String(a.table).localeCompare(String(b.table), 'en', { numeric: true }),
       );
       e.movementImported = true;
+      e.teamMovement = isInterleaved(e.assignments) ? 'interleaved' : undefined;
     } catch (error) {
       throw new DomainError((error as Error).message);
     }

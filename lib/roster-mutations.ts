@@ -1,5 +1,6 @@
 import type { BridgeEvent, Mutation } from './model';
 import { DomainError } from './domain-error';
+import { validateInterleavedLineups } from './team-movement';
 import { parseRosters } from './roster-import';
 import { parseLineups, lineupRosterAdditions } from './lineup-import';
 type RosterMutation = Extract<
@@ -89,6 +90,8 @@ export function applyRosterMutation(e: BridgeEvent, command: RosterMutation) {
         throw new DomainError(`${seat} 姓名不在該隊名單`);
     }
     a.playerNames = command.playerNames;
+    try { validateInterleavedLineups(e.assignments); }
+    catch (error) { throw new DomainError((error as Error).message); }
     detail = `${a.id}：${JSON.stringify(a.playerNames)}`;
   }
   return detail;

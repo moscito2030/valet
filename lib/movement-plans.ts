@@ -1,13 +1,21 @@
 import templates from './movement-templates.json';
 import type { Assignment, BridgeEvent } from './model';
+import { interleavedAssignments, teamByes } from './team-movement';
 
 export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string };
-type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind'>;
+type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
 export function movementOptions(event: Input): MovementPlan[] {
-  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 15 : 19) ||
+  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 31 : 19) ||
       !Number.isInteger(event.boardsPerRound) || event.boardsPerRound < 1 || event.boardsPerRound > 32) return [];
-  if (event.kind === 'teams') return event.rounds * event.boardsPerRound <= 128
-    ? [{ id: 'team-round-robin', label: '隊制循環對戰', groups: event.rounds, note: '每場對戰安排開室與閉室，兩室交換方向；每圈使用新牌組。' }] : [];
+  if (event.kind === 'teams') {
+    const n = event.participants.length;
+    if (n < 3 || n > 32) return [];
+    const options: MovementPlan[] = [{ id: 'team-round-robin', label: n % 2 ? '隊制循環對戰（每圈一隊輪空）' : '隊制循環對戰', groups: event.rounds,
+      note: `每場對戰安排開室與閉室，兩室交換方向；每圈使用新牌組。${n % 2 ? `完整一循環需 ${n} 圈，每隊輪空一次；可安排部分圈次。輪空不計 IMP 或實打牌數。` : ''}` }];
+    if ([3, 5].includes(n) && event.rounds === n - 1) options.push({ id: 'team-interleaved', label: `${n === 3 ? '三' : '五'}隊交錯循環（全員打牌）`, groups: n,
+      note: `${n} 張實體桌、${n - 1} 圈。各隊固定南北／東西搭檔，南北留桌、東西及牌組依預覽移動。每兩圈完成一批比較，每場按每圈牌數換算 20–0 VP；全賽每隊 ${n - 1} 場。開／閉為比較方向，非固定房間；賽前先備妥全部 ${n} 組牌。` });
+    return options.filter(option => option.groups * event.boardsPerRound <= 128);
+  }
   const tables = Math.ceil(event.participants.length / 2), rounds = event.rounds;
   const options: MovementPlan[] = [{ id: 'barometer', label: '全場同牌輪轉', groups: rounds, note: '每圈各桌打相同牌組，須準備多份複製牌。' }];
   const max = tables % 2 ? tables : tables - 1;
@@ -43,7 +51,9 @@ export function buildMovement(event: Input, id: string) {
     assignments.push({ id: `r${round}t${table}`, matchId: `r${round}t${table}`, round, table, room: 'pairs', ns, ew,
       boards: Array.from({ length: event.boardsPerRound }, (_, i) => (group - 1) * event.boardsPerRound + i + 1) });
   }
-  if (id.startsWith('howell-')) {
+  if (id === 'team-interleaved') {
+    assignments.push(...interleavedAssignments(event));
+  } else if (id.startsWith('howell-')) {
     const template = templates.find(t => `howell-${t.id}` === id)!;
     template.rows.forEach((row, r) => row.forEach(([ns, ew, group], t) => add(r + 1, t + 1, ns, ew, group)));
   } else if (id === 'mitchell' || id === 'mitchell-relay') {
@@ -62,7 +72,7 @@ export function buildMovement(event: Input, id: string) {
       rotation.splice(1, 0, rotation.pop()!);
     }
   }
-  if (event.kind === 'teams') {
+  if (event.kind === 'teams' && id !== 'team-interleaved') {
     const pairs = assignments.splice(0);
     for (const a of pairs) {
       const [ns, ew] = Number(a.ns.slice(1)) < Number(a.ew.slice(1)) ? [a.ns, a.ew] : [a.ew, a.ns];
@@ -75,5 +85,5 @@ export function buildMovement(event: Input, id: string) {
     simultaneous.set(key, (simultaneous.get(key) ?? 0) + 1);
   }
   const copies = Math.max(1, ...simultaneous.values());
-  return { option, participants, assignments, boardCount: option.groups * event.boardsPerRound, shared: copies > 1, copies };
+  return { option, participants, assignments, byes: teamByes({ ...event, assignments }), boardCount: option.groups * event.boardsPerRound, shared: copies > 1, copies };
 }

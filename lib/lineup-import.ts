@@ -2,6 +2,7 @@ import { csvCell } from './csv-cell';
 import type { BridgeEvent, Seat } from './model';
 import { seats } from './model';
 import { parseCsv } from './imports';
+import { validateInterleavedLineups } from './team-movement';
 
 type Source = Pick<BridgeEvent, 'kind' | 'assignments' | 'participants'>;
 type LineupUpdate = { assignmentId: string; playerNames: Record<Seat, string> };
@@ -77,5 +78,6 @@ export function parseLineups(csv: string, event: Source) {
       occupied.add(key);
     }
   lineupRosterAdditions(updates, event);
+  validateInterleavedLineups(combined);
   return updates;
 }
