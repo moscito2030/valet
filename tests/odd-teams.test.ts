@@ -258,7 +258,7 @@ test('interleaved player statistics wait for all uses and count each appearance 
   const stats = teamButlerStats(event);
   assert.equal(stats.individual.length, 20);
   assert.ok(stats.individual.every((p) => p.boards === 8 && p.total === 0 && p.mpPercent === 50));
-  event.assignments.find((a) => a.ns === 'p1')!.playerNames!.N = 'p1-E';
+  event.assignments.find((a) => a.ns === 't1')!.playerNames!.N = 't1-E';
   assert.throws(() => validateInterleavedLineups(event.assignments), /不可交換/);
 });
 
@@ -319,12 +319,12 @@ test('regrouping is validated atomically and CSV cannot mix cycles or incomplete
   const draft = fixture(6, 4, 1);
   const groups = [
     [
-      ['p1', 'p2', 'p3'],
-      ['p4', 'p5', 'p6'],
+      ['t1', 't2', 't3'],
+      ['t4', 't5', 't6'],
     ],
     [
-      ['p1', 'p4', 'p5'],
-      ['p2', 'p3', 'p6'],
+      ['t1', 't4', 't5'],
+      ['t2', 't3', 't6'],
     ],
   ];
   const saved = apply(store(draft), {
@@ -334,17 +334,17 @@ test('regrouping is validated atomically and CSV cannot mix cycles or incomplete
   });
   const event = saved.event;
   assert.deepEqual(
-    new Set(event.assignments.filter((a) => a.round > 2 && a.ns === 'p1').map((a) => a.ew)),
-    new Set(['p4', 'p5']),
+    new Set(event.assignments.filter((a) => a.round > 2 && a.ns === 't1').map((a) => a.ew)),
+    new Set(['t4', 't5']),
   );
   for (const invalid of [
     groups.slice(0, 1),
-    [groups[0], groups[0].map((g) => g.map(() => 'p1'))],
+    [groups[0], groups[0].map((g) => g.map(() => 't1'))],
     [
       groups[0],
       [
-        ['p1', 'p2', 'p3'],
-        ['p4', 'p5', 'missing'],
+        ['t1', 't2', 't3'],
+        ['t4', 't5', 'missing'],
       ],
     ],
   ]) {
@@ -409,8 +409,8 @@ test('new cycles isolate repeated-opponent scores and allow lineup direction cha
     plan: 'team-interleaved-3',
   }).event;
   score(event);
-  const first = event.assignments.find((a) => a.ns === 'p1' && a.ew === 'p2' && a.round <= 2)!;
-  const second = event.assignments.find((a) => a.ns === 'p1' && a.ew === 'p2' && a.round > 2)!;
+  const first = event.assignments.find((a) => a.ns === 't1' && a.ew === 't2' && a.round <= 2)!;
+  const second = event.assignments.find((a) => a.ns === 't1' && a.ew === 't2' && a.round > 2)!;
   event.results[resultKey(first.id, first.boards[0])].nsScore = 620;
   event.results[resultKey(second.id, second.boards[0])].nsScore = -100;
   const projection = project(event);
@@ -426,7 +426,7 @@ test('new cycles isolate repeated-opponent scores and allow lineup direction cha
   const stats = teamButlerStats(event);
   assert.equal(stats.individual.length, 24);
   assert.ok(stats.individual.every((p) => p.boards === 4));
-  const changed = event.assignments.find((a) => a.round === 4 && a.ew === 'p1')!;
-  changed.playerNames!.E = 'p1-E';
+  const changed = event.assignments.find((a) => a.round === 4 && a.ew === 't1')!;
+  changed.playerNames!.E = 't1-E';
   assert.throws(() => validateInterleavedLineups(event.assignments), /同一交錯循環/);
 });

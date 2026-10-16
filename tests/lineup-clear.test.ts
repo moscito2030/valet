@@ -78,13 +78,13 @@ test('clear results resets all score state with name and revision protection whi
     };
   e.stageName = '決賽';
   e.status = 'finished';
-  e.penalties = { p1: 3 };
+  e.penalties = { t1: 3 };
   e.currentRound = 1;
   e.roundPhase = 'break';
   e.club = {
     enabled: true,
-    tokens: { p1: 'token' },
-    confirmations: { '1:p1': { at: '', forced: true } },
+    tokens: { t1: 'token' },
+    confirmations: { '1:t1': { at: '', forced: true } },
     finalized: [1],
   };
   assert.throws(

@@ -36,7 +36,7 @@ test('Butler uses completed rounds only, same-round datum, correct EW signs and 
   delete e.results[resultKey(e.assignments[4].id, 3)];
   const stats = teamButlerStats(e);
   assert.deepEqual(stats.rounds, [1]);
-  const pair = stats.pairs.find((r) => r.teamId === 'p1')!;
+  const pair = stats.pairs.find((r) => r.teamId === 't1')!;
   assert.equal(pair.boards, 4);
   assert.equal(pair.total, 12);
   assert.equal(pair.average, 3);
@@ -44,10 +44,10 @@ test('Butler uses completed rounds only, same-round datum, correct EW signs and 
   assert.equal(pair.mpPercent, 100);
   assert.equal(pair.ratio, Infinity);
   assert.equal(pair.averageRank, 1);
-  const individuals = stats.individual.filter((r) => r.teamId === 'p1');
+  const individuals = stats.individual.filter((r) => r.teamId === 't1');
   assert.equal(individuals.length, 2);
   assert.ok(individuals.every((r) => r.averageRank === 1 && r.boards === 4));
-  assert.equal(stats.pairs.find((r) => r.teamId === 'p4')!.total, -12);
+  assert.equal(stats.pairs.find((r) => r.teamId === 't4')!.total, -12);
   // Later rounds use the same physical board numbers but cannot alter this round's datum.
   e.assignments
     .filter((a) => a.round === 2)
@@ -61,7 +61,7 @@ test('Butler uses completed rounds only, same-round datum, correct EW signs and 
           nsScore: 1000,
         };
     });
-  const expanded = teamButlerStats(e).pairs.find((r) => r.teamId === 'p1')!;
+  const expanded = teamButlerStats(e).pairs.find((r) => r.teamId === 't1')!;
   assert.equal(expanded.total, 12);
   assert.equal(expanded.boards, 8);
 });
@@ -75,7 +75,7 @@ test('Cancelled counts toward round completion but not Butler or MP, missing nam
   assert.ok(stats.missingNames > 0);
   assert.ok(stats.pairs.every((r) => r.boards <= 2));
   assert.ok(stats.individual.every((r) => r.names[0]));
-  assert.equal(stats.individual.find((r) => r.teamId === 'p1' && r.names[0] === '甲p1')!.boards, 1);
+  assert.equal(stats.individual.find((r) => r.teamId === 't1' && r.names[0] === '甲t1')!.boards, 1);
   for (const a of e.assignments.slice(1)) e.results[resultKey(a.id, 1)].status = 'cancelled';
   assert.equal(teamButlerStats(e).pairs.length, 0);
 });
@@ -90,9 +90,9 @@ test('split contracts use independent awards; partnership seat order and names o
   };
   r.split = { ns: award(-100), ew: award(200) };
   const stats = teamButlerStats(e);
-  assert.equal(stats.pairs.find((r) => r.teamId === 'p1')!.total, 6);
-  assert.equal(stats.pairs.find((r) => r.teamId === 'p4')!.total, -14);
-  assert.equal(stats.pairs.filter((r) => r.teamId === 'p1').length, 1);
+  assert.equal(stats.pairs.find((r) => r.teamId === 't1')!.total, 6);
+  assert.equal(stats.pairs.find((r) => r.teamId === 't4')!.total, -14);
+  assert.equal(stats.pairs.filter((r) => r.teamId === 't1').length, 1);
   e.assignments.forEach((a) => {
     a.playerNames = { N: '同名甲', S: '同名乙', E: '同名甲', W: '同名乙' };
   });

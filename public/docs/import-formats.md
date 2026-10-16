@@ -4,6 +4,8 @@
 
 ## 1. 操作流程
 
+新建隊制賽的隊伍 ID 使用 `t1`、`t2`、`t3`……；雙人賽使用 `p1`、`p2`、`p3`……。既有賽事保留原 ID，請以該賽事匯出的檔案為準，不要自行修改 ID 前綴。
+
 在裁判後台的「匯入／匯出」頁，先選擇匯入類型、上傳檔案或貼上文字，再按「驗證並預覽」。核對內容後（匯入說明選填），按「確認匯入」。預覽不會寫入資料；正式提交仍會重新驗證。整批成功才會儲存，任何一筆錯誤都不會部分匯入。賽務身分不提供匯入／匯出及操作紀錄。
 
 使用 UTF-8 編碼。檔案上傳上限為 200,000 bytes；CSV 支援 BOM、CRLF 或 LF 換行。CSV 第一列是區分大小寫的欄位名稱；每列欄位數必須一致。含逗號的文字以雙引號包住，文字中的雙引號寫成兩個雙引號。空白列忽略；欄位頭尾空白會移除。
@@ -50,10 +52,10 @@ r1tA1,2,0,NT,1,N,0,,played
 
 ```csv
 round,table,room,ns,ew,boards
-1,1,open,p1,p2,1;2
-1,1,closed,p2,p1,1;2
-1,2,open,p3,p4,1;2
-1,2,closed,p4,p3,1;2
+1,1,open,t1,t2,1;2
+1,1,closed,t2,t1,1;2
+1,2,open,t3,t4,1;2
+1,2,closed,t4,t3,1;2
 ```
 
 隊制賽匯入只更新所列圈次，未列出的圈次保留。已收分圈次不得改動；重新匯入相同安排會保留成績識別碼與上場名單。已結束賽事可匯出，但須先重新開放才可匯入。新安排的識別碼為 `r{round}m{table}o`（開室）與 `r{round}m{table}c`（閉室）。
@@ -70,12 +72,12 @@ round,table,room,ns,ew,boards
 
 ```csv
 round,table,room,ns,ew,boards,matchId
-1,1,open,p1,p2,2,cycle-1-2
-1,2,open,p2,p3,1,cycle-2-3
-1,3,closed,p3,p1,3,cycle-1-3
-2,1,open,p1,p3,3,cycle-1-3
-2,2,closed,p2,p1,2,cycle-1-2
-2,3,closed,p3,p2,1,cycle-2-3
+1,1,open,t1,t2,2,cycle-1-2
+1,2,open,t2,t3,1,cycle-2-3
+1,3,closed,t3,t1,3,cycle-1-3
+2,1,open,t1,t3,3,cycle-1-3
+2,2,closed,t2,t1,2,cycle-1-2
+2,3,closed,t3,t2,1,cycle-2-3
 ```
 
 成績與入座名單使用 `r{round}t{table}` 作為 assignmentId。不要將這種跨圈賽程轉成一般同圈兩室格式，也不能只匯入其中一圈。已有成績時禁止重新匯入；更正成績仍沿用一般成績／裁判功能。輪空與交錯循環不可在同一份賽程混用。

@@ -24,7 +24,7 @@ test('team movement rejects missing rooms, wrong opponents, differing boards and
     rows.filter((_, i) => i !== 2).join('\n'),
     rows.map((r, i) => i === 2 ? r.replace('"closed"', '"pairs"') : r).join('\n'),
     rows.map((r, i) => i === 2 ? r.replace('"1;2"', '"3;4"') : r).join('\n'),
-    rows.map((r, i) => i === 2 ? r.replace('"p4","p1"', '"p1","p4"') : r).join('\n'),
+    rows.map((r, i) => i === 2 ? r.replace('"t4","t1"', '"t1","t4"') : r).join('\n'),
     [...rows, rows[1]].join('\n'),
   ]) assert.throws(() => parseMovement(csv, event));
 });

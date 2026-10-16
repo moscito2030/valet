@@ -65,7 +65,7 @@ export function createEvent(
   const parsed = createSchema.parse(input),
     data = { ...parsed, rounds: parsed.rounds ?? 0, boardsPerRound: parsed.boardsPerRound ?? 0 },
     now = new Date().toISOString();
-  const participants = data.names.map((name, i) => ({ id: `p${i + 1}`, name, players: '' }));
+  const participants = data.names.map((name, i) => ({ id: `${data.kind === 'teams' ? 't' : 'p'}${i + 1}`, name, players: '' }));
   const rotation: (string | null)[] = participants.map((p) => p.id);
   if (rotation.length % 2) rotation.push(null);
   const e: BridgeEvent = {
