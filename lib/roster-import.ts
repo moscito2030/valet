@@ -5,7 +5,7 @@ import { parseCsv } from './imports';
 type Source = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments'>;
 export function exportRosters(event: Source) {
   return 'teamId,teamName,captain,players\n' + event.participants.map(p =>
-    [p.id, p.name, p.captain ?? '', p.players].map(csvCell).join(','),
+    [p.id, p.name, p.captain ?? '', p.players.split('、').join(';')].map(csvCell).join(','),
   ).join('\n');
 }
 export function parseRosters(csv: string, event: Source) {
