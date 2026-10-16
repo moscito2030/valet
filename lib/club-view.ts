@@ -17,6 +17,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     kind: event.kind,
     gameMode: event.gameMode,
     date: event.date,
+    endDate: event.endDate,
     venue: event.venue,
     rounds: event.rounds,
     boardsPerRound: event.boardsPerRound,

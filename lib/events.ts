@@ -78,6 +78,7 @@ export function createEvent(
     maxBoardNumber: data.kind === 'pairs' ? 0 : 32,
     gameMode: data.gameMode ?? 'bridge',
     date: data.date,
+    ...(data.endDate ? { endDate: data.endDate } : {}),
     venue: data.venue,
     rounds: data.rounds,
     boardsPerRound: data.boardsPerRound,
@@ -362,6 +363,11 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       e.stageName = command.stageName;
     }
     if (command.date !== undefined) e.date = command.date;
+    if (command.endDate !== undefined) {
+      if (command.endDate === null) delete e.endDate;
+      else e.endDate = command.endDate;
+    }
+    if (e.endDate && e.endDate < e.date) throw new DomainError('結束日期不可早於開始日期');
     if (command.name !== undefined) e.name = command.name;
     if (command.prefix !== undefined) e.prefix = command.prefix;
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;

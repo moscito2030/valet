@@ -9,6 +9,7 @@ export type IndexEvent = Pick<
   | 'gameMode'
   | 'pairMethod'
   | 'date'
+  | 'endDate'
   | 'venue'
   | 'status'
   | 'demo'
@@ -38,6 +39,7 @@ export function eventIndex(stored: StoredEvent): EventIndex {
       gameMode: e.gameMode,
       pairMethod: e.pairMethod,
       date: e.date,
+      endDate: e.endDate,
       venue: e.venue,
       status: e.status,
       demo: e.demo,

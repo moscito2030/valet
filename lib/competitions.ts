@@ -8,7 +8,7 @@ export function competitionInfo(root: IndexEvent): CompetitionInfo {
 }
 
 export function stageSummary(event: IndexEvent) {
-  return { id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
+  return { id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, endDate: event.endDate || event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
 }
 
 export function competitionCatalog(data: EventIndex[]) {
@@ -17,7 +17,7 @@ export function competitionCatalog(data: EventIndex[]) {
     .map(({ event }) => {
       const stages = data.filter(s => s.event.id === event.id || s.event.parentEventId === event.id).map(s => stageSummary(s.event));
       const dates = [...new Set(stages.map(s => s.date))].sort();
-      return { ...competitionInfo(event), date: dates[0], endDate: dates[dates.length - 1], dates, stages };
+      return { ...competitionInfo(event), date: dates[0], endDate: stages.map(s => s.endDate).sort().at(-1)!, dates, stages };
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 }

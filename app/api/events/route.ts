@@ -23,6 +23,7 @@ export async function GET() {
             kind: e.kind,
             pairMethod: e.pairMethod ?? 'mp',
             date: e.date,
+            endDate: e.endDate,
             venue: roots.get(e.parentEventId ?? e.id)?.venue ?? e.venue,
             status: e.status,
             demo: e.demo,

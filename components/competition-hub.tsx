@@ -7,6 +7,7 @@ import { listenForOutsideDismiss } from '@/lib/outside-dismiss';
 import { EventCalendar } from './event-calendar';
 import { ArrowLeft, ArrowRight, CalendarDays, Eye, EyeOff, MapPin, Plus, Trophy, Users } from 'lucide-react';
 import { CreateDialog, Modal } from './event-dialogs';
+import { dateRangeLabel, includesDate } from '@/lib/date-range';
 import type { Competition } from '@/lib/competitions';
 
 async function request<T>(url: string, body?: object, method = 'POST'): Promise<T> {
@@ -15,7 +16,7 @@ async function request<T>(url: string, body?: object, method = 'POST'): Promise<
   if (!r.ok) throw new Error(data.error ?? '讀取失敗');
   return data;
 }
-const competitionDateLabel = (c: Competition) => c.date === c.endDate ? c.date : `${c.date} ～ ${c.endDate}`;
+const competitionDateLabel = dateRangeLabel;
 const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? 'MiniBridge · ' : '') + (s.kind === 'teams' ? '隊制賽 · IMP / VP' : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
 
 export default function CompetitionHub({ competitionId }: { competitionId?: string }) {
@@ -49,7 +50,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   }, []);
   useEffect(() => { void load().catch(e => setError(e.message)).finally(() => setLoading(false)); }, [load]);
   const competition = competitions.find(c => c.id === competitionId);
-  const matches = competitions.filter(c => (!date || c.dates.includes(date)) && `${c.prefix} ${c.name} ${c.venue} ${c.dates.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
+  const matches = competitions.filter(c => (!date || c.stages.some(s => includesDate(s, date))) && (`${c.prefix} ${c.name} ${c.venue} ${c.stages.map(dateRangeLabel).join(' ')}`.toLowerCase().includes(query.toLowerCase()) || (/^\d{4}-\d{2}-\d{2}$/.test(query.trim()) && c.stages.some(s => includesDate(s, query.trim())))));
   return <div className={`app-shell competition-hub${competitionId ? ' competition-home' : ''}`}>
     <aside className="sidebar">
       <a href="/" className="brand"><span className="brand-symbol" aria-hidden="true">♦</span><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
@@ -105,7 +106,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             <div className="hub-section-heading"><h2>{competition.hasStages ? '選擇賽段' : '賽事成績'}</h2>{competition.hasStages && <p>各賽段的日期、名單、賽制與成績各自獨立。</p>}</div>
             <div className="competition-grid competition-list">{competition.stages.map(s => <a key={s.id} className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
-              <div className="competition-card-copy"><h3>{competition.hasStages ? s.name : '進入賽事'}</h3><p>{s.date} · {format(s)}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
+              <div className="competition-card-copy"><h3>{competition.hasStages ? s.name : '進入賽事'}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
               <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
             </a>)}</div>
           </section>
@@ -115,7 +116,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             <label className="field" htmlFor="competition-search">搜尋賽事</label>
             <div className="field hub-search-input">
               <input id="competition-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="名稱、地點或日期" />
-              <EventCalendar dates={competitions.flatMap(c => c.dates)} value={date} onChange={setDate} />
+              <EventCalendar dates={[]} dateRanges={competitions.map(c => c.stages)} value={date} onChange={setDate} />
             </div>
             {date && <div className="hub-date-filter"><span>日期：{date}</span><button type="button" className="button subtle" onClick={() => setDate('')}>清除日期</button></div>}
           </div>

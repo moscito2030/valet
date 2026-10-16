@@ -11,6 +11,7 @@ PublicEvent,
 Result
 } from '@/lib/model';
 import { resultKey } from '@/lib/model';
+import { dateRangeLabel } from '@/lib/date-range';
 import { participantNumber } from '@/lib/participant-number';
 import { allRoundsComplete,roundProgress } from '@/lib/round-progress';
 import { awardedResult,imps,pairStandingsBeforeRound,teamBoardImps,teamStandingsThroughRound,vp } from '@/lib/scoring';
@@ -595,7 +596,7 @@ export default function Scoreboard() {
                         className="player-detail-popover event-information"
                       >
                         <strong>{[event.prefix, event.name].filter(Boolean).join(' ')}</strong>
-                        <div>日期：{event.date}</div>
+                        <div>日期：{dateRangeLabel(event)}</div>
                         <div>地點：{event.venue || '線上記分'}</div>
                       </div>
                       <div className="event-meta">

@@ -23,7 +23,7 @@ async function main() {
   try {
     const initial = await admin();
     assert.equal((await call('/api/competitions')).body.competitions.find((c: any) => c.id === id).hasStages, false);
-    const stage = { ...input, name: '隊制決賽', date: '2026-10-17', kind: 'teams', names: ['QA 甲', 'QA 乙', 'QA 丙', 'QA 丁'], rounds: 2, boardsPerRound: 4, venue: '應忽略此場地' };
+    const stage = { ...input, name: '隊制決賽', date: '2026-10-17', endDate: '2026-10-19', kind: 'teams', names: ['QA 甲', 'QA 乙', 'QA 丙', 'QA 丁'], rounds: 2, boardsPerRound: 4, venue: '應忽略此場地' };
     await login(process.env.ADMIN_PASSWORD ?? 'local-bridge-admin-2026');
     assert.equal((await call(`/api/competitions/${id}/stages`, 'POST', { revision: initial.revision, firstStageName: '預賽', stage })).status, 403);
     await login(process.env.DIRECTOR_PASSWORD ?? 'local-bridge-director-2026');
@@ -44,15 +44,17 @@ async function main() {
     assert.equal(updated.date, '2026-10-17'); assert.equal(updated.venue, 'QA 新地點');
     assert.deepEqual(updated.results, before.results); assert.equal(updated.revision, before.revision);
     assert.equal(updated.competition.id, id);
-    const dateChange = { action: 'settings', revision: updated.revision, requestId: randomUUID(), reason: 'QA 賽段日期', status: 'live', date: '2026-11-02' };
+    const dateChange = { action: 'settings', revision: updated.revision, requestId: randomUUID(), reason: 'QA 賽段日期', status: 'live', date: '2026-11-02', endDate: '2026-11-04' };
     await login(process.env.ADMIN_PASSWORD ?? 'local-bridge-admin-2026');
     assert.equal((await call(`/api/events/${childId}`, 'PATCH', dateChange)).status, 403);
     await login(process.env.DIRECTOR_PASSWORD ?? 'local-bridge-director-2026');
     assert.equal((await call(`/api/events/${childId}`, 'PATCH', dateChange)).status, 200);
     assert.equal((await admin(childId)).date, '2026-11-02');
+    assert.equal((await admin(childId)).endDate, '2026-11-04');
     assert.equal((await admin()).date, input.date);
     const dates = (await call('/api/competitions')).body.competitions.find((c: any) => c.id === id).dates;
     assert.deepEqual(dates, [input.date, '2026-11-02']);
+    assert.equal((await call('/api/competitions')).body.competitions.find((c: any) => c.id === id).endDate, '2026-11-04');
     assert.equal((await call('/api/events')).body.events.find((e: any) => e.id === childId).date, '2026-11-02');
     assert.equal((await call(`/api/events/${childId}`, 'PATCH', { ...meta, revision: (await admin(childId)).revision, requestId: randomUUID() })).status, 400);
     assert.equal((await call(`/api/admin/events/${id}`, 'DELETE', { revision: (await admin()).revision, confirmName: name })).status, 400);

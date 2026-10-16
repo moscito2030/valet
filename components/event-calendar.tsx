@@ -2,10 +2,12 @@
 
 import { useId, useRef, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { dateRangeMonths, includesDate, type DateRange } from '@/lib/date-range';
 
-export function EventCalendar({ dates, value, onChange, unrestricted = false }: {
+export function EventCalendar({ dates, dateRanges, value, onChange, unrestricted = false }: {
   unrestricted?: boolean;
   dates: string[];
+  dateRanges?: DateRange[][];
   value: string;
   onChange: (date: string) => void;
 }) {
@@ -13,7 +15,7 @@ export function EventCalendar({ dates, value, onChange, unrestricted = false }: 
   const calendarId = useId();
   const counts = new Map<string, number>();
   dates.forEach(date => counts.set(date, (counts.get(date) ?? 0) + 1));
-  const months = [...new Set(dates.map(date => date.slice(0, 7)))].sort();
+  const months = dateRangeMonths([...dates.map(date => ({ date })), ...(dateRanges?.flat() ?? [])]);
   const [month, setMonth] = useState('');
   const shown = unrestricted ? month || value.slice(0, 7) : months.includes(month) ? month : months.at(-1) || new Date().toISOString().slice(0, 7);
   const [year, monthNumber] = shown.split('-').map(Number);
@@ -44,7 +46,7 @@ export function EventCalendar({ dates, value, onChange, unrestricted = false }: 
           {Array.from({ length: days }, (_, i) => {
             const day = i + 1;
             const date = `${shown}-${String(day).padStart(2, '0')}`;
-            const count = counts.get(date) ?? 0;
+            const count = (counts.get(date) ?? 0) + (dateRanges?.filter(ranges => ranges.some(range => includesDate(range, date))).length ?? 0);
             return <button type="button" key={date} disabled={!unrestricted && !count} className={unrestricted || count ? 'has-events' : ''} aria-pressed={value === date} aria-label={`${year} 年 ${monthNumber} 月 ${day} 日${unrestricted ? '' : `，${count ? `${count} 場賽事` : '無賽事'}`}`} onClick={() => select(date)}><span>{day}</span>{count > 0 && <i aria-hidden="true" />}</button>;
           })}
         </div>

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, '日期不正確');
 export const seats = ['N', 'E', 'S', 'W'] as const;
 export type Seat = (typeof seats)[number];
 export type Kind = 'teams' | 'pairs';
@@ -85,6 +86,7 @@ export type BridgeEvent = {
   kind: Kind;
   gameMode?: 'bridge' | 'minibridge';
   date: string;
+  endDate?: string;
   venue: string;
   rounds: number;
   boardsPerRound: number;
@@ -122,13 +124,8 @@ export const createSchema = z
     movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay']).optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
     trim: z.enum(['none', 'one', 'ten-percent']).optional(),
-    date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/)
-      .refine(
-        (v) => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v,
-        '日期不正確',
-      ),
+    date: dateSchema,
+    endDate: dateSchema.optional(),
     venue: z.string().trim().max(80),
     names: z.array(z.string().trim().min(1).max(60)).min(3).max(38),
     rounds: z.number().int().min(1).max(31).optional(),
@@ -136,6 +133,7 @@ export const createSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.endDate && v.endDate < v.date) ctx.addIssue({ code: 'custom', path: ['endDate'], message: '結束日期不可早於開始日期' });
     if (v.kind === 'teams' && (v.names.length > 32 || (v.rounds ?? 0) > 31 || v.movementPlan))
       ctx.addIssue({ code: 'custom', message: '隊制賽最多 32 隊、31 圈，不適用雙冠軍編排' });
     if (v.kind === 'pairs' && (v.rounds ?? 0) > 19) ctx.addIssue({ code: 'custom', message: '雙人賽最多 19 圈' });
@@ -242,7 +240,8 @@ export const mutationSchema = z.discriminatedUnion('action', [
       awardPlaces: z.number().int().min(0).max(32).optional(),
       awardDescription: z.string().trim().max(2000).optional(),
       movementDescription: z.string().trim().max(4000).optional(),
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, '日期不正確').optional(),
+      date: dateSchema.optional(),
+      endDate: dateSchema.nullable().optional(),
       stageName: z.string().trim().min(1).max(80).optional(),
       name: z.string().trim().min(2).max(80).optional(),
       prefix: z.string().trim().max(80).optional(),

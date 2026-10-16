@@ -73,6 +73,7 @@ export function CreateDialog({
         name: form.get('name'),
         prefix: competition ? '' : form.get('prefix'),
         date: form.get('date'),
+        ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
         venue: competition?.venue ?? form.get('venue'),
         ...(!competition && staged ? { firstStageName: form.get('firstStageName') } : {}),
         rounds: form.get('rounds') ? Number(form.get('rounds')) : undefined,
@@ -236,10 +237,14 @@ export function CreateDialog({
         )}
         <div className="form-grid create-details-grid">
           <div className="field">
-            <span>{competition || staged ? '賽段日期' : '日期'}</span>
+            <span>開始日期</span>
             <input name="date" type="hidden" value={eventDate} />
             <EventCalendar dates={[]} value={eventDate} onChange={setEventDate} unrestricted />
           </div>
+          <label className="field">
+            結束日期（選填，單日可留空）
+            <input name="endDate" type="date" min={eventDate} />
+          </label>
           {!competition && (
             <label className="field">
               地點

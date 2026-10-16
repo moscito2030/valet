@@ -34,7 +34,8 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
       command.prefix !== undefined ||
       command.maxBoardNumber !== undefined ||
       command.stageName !== undefined ||
-      command.date !== undefined)
+      command.date !== undefined ||
+      command.endDate !== undefined)
   )
     return role === 'director';
   return true;
