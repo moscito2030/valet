@@ -786,7 +786,7 @@ export default function Scoreboard() {
                           <Search size={17} />
                           <input
                             aria-label="搜尋參賽者"
-                            placeholder={event.kind === 'teams' ? '搜尋隊名…' : '搜尋姓名或搭檔…'}
+                            placeholder={event.kind === 'teams' ? '搜尋隊名、隊員或隊長…' : '搜尋姓名或搭檔…'}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                           />
@@ -812,11 +812,13 @@ export default function Scoreboard() {
                           </thead>
                           <tbody>
                             {event.projection.standings
-                              .filter(
-                                (s) =>
-                                  s.name.toLowerCase().includes(query.toLowerCase()) ||
-                                  participantNumber(s.id, event.kind).toLowerCase().includes(query.toLowerCase()),
-                              )
+                              .filter((s) => {
+                                const participant = event.kind === 'teams'
+                                  ? event.participants.find(p => p.id === s.id)
+                                  : undefined;
+                                return [s.name, participantNumber(s.id, event.kind), participant?.players, participant?.captain]
+                                  .some(value => value?.toLowerCase().includes(query.trim().toLowerCase()));
+                              })
                               .map((s) => (
                                 <tr
                                   key={s.id}
