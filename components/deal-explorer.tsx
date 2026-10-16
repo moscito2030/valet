@@ -383,15 +383,15 @@ export function DealExplorer({
                             <button
                               key={card}
                               type="button"
-                              aria-label={`${seat} ${card}，出牌`}
+                              aria-label={`${seat} ${card}，${state && !state.hands[seat].includes(card) ? '已出牌' : '出牌'}`}
                               disabled={
                                 seat !== turn || finished || busy || !future || !playable.has(card)
                               }
                               onClick={() => playFromHand(seat, card)}
-                              className={`hand-card ${validLead && seat === leader && card === lead ? 'opening-lead' : ''}`}
+                              className={`hand-card ${validLead && seat === leader && card === lead ? 'opening-lead' : ''}${state && !state.hands[seat].includes(card) ? ' played-card' : ''}`}
                             >
                               {card[1]}
-                              {!perspective && seat === turn && !finished && values[card] !== undefined && (
+                              {!perspective && seat === turn && !finished && state?.hands[seat].includes(card) && values[card] !== undefined && (
                                 <sub
                                   className={`card-dd-value ${values[card] === best ? 'dd-best' : 'dd-inferior'}`}
                                   aria-label={`莊家最終 ${values[card]} 墩，${values[card] === best ? '最佳' : '非最佳'}出牌`}

@@ -4048,3 +4048,8 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
 }
 .clear-results-control > div > .button { color: #963f45; background: #f8eeee; border-color: #e6cbcb; }
 .clear-results-control > div > .button:hover { background: #f2dfdf; }
+.bridge-ranks .hand-card.played-card:disabled {
+  color: #9aa49f;
+  background: transparent;
+  text-shadow: none;
+}
