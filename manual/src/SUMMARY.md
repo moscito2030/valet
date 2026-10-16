@@ -2,7 +2,7 @@
 
 [開始閱讀](index.md)
 
-- [快速辦一場 MiniBridge](quick-start.md)
+- [辦一場四桌雙人賽](quick-start.md)
 - [建立賽事與賽段](events.md)
 - [設定賽程與牌局](movement.md)
 - [裁判收分、更正與結算](director.md)

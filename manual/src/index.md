@@ -10,7 +10,7 @@
 
 | 要做什麼 | 閱讀章節 |
 | --- | --- |
-| 辦一場 3 桌迷你橋牌 | [快速開始](quick-start.md) |
+| 辦一場四桌雙人賽 | [快速開始](quick-start.md) |
 | 先收名單，晚點決定圈數 | [建立賽段](events.md) |
 | NS／EW 分開排名、選擇 Mitchell | [設定賽程](movement.md) |
 | 收分、更正、取消牌、結算 | [裁判操作](director.md) |
