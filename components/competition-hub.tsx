@@ -101,7 +101,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             <div className="competition-grid competition-list">{competition.stages.map(s => <a key={s.id} className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
               <div className="competition-card-copy"><h3>{competition.hasStages ? s.name : '進入賽事'}</h3><p>{format(s)}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
-              <span className="competition-status">{s.status === 'finished' ? '已結束' : '進行中'}</span>
+              <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
             </a>)}</div>
           </section>
         </> : <>
@@ -117,7 +117,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
             <span className={`event-icon ${c.stages[0].kind}`} aria-hidden="true"><Users size={23} /></span>
             <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{c.hasStages ? `${c.stages.length} 個賽段` : format(c.stages[0])}</span><time dateTime={c.date}>{Number(c.date.slice(5, 7))} / {Number(c.date.slice(8, 10))}</time></p></div>
-            <span className="competition-status">{c.stages.every(s => s.status === 'finished') ? '已結束' : '進行中'}</span>
+            <span className="competition-status">{c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}

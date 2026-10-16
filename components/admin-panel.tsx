@@ -137,7 +137,7 @@ export function AdminPanel({
     setEvent(null);
     load()
       .then((e) => {
-        if (alive) {
+        if (alive && e.assignments.length) {
           setRound(e.assignments[0].round);
           setAssignment(e.assignments[0].id);
           setBoard(e.assignments[0].boards[0]);
@@ -194,9 +194,11 @@ export function AdminPanel({
       const updated = await load();
       if (!updated.assignments.some((a) => a.id === assignment && a.boards.includes(board))) {
         const first = updated.assignments.find((a) => a.round === round) ?? updated.assignments[0];
-        setRound(first.round);
-        setAssignment(first.id);
-        setBoard(first.boards[0]);
+        if (first) {
+          setRound(first.round);
+          setAssignment(first.id);
+          setBoard(first.boards[0]);
+        }
       }
       await onSaved('已儲存並重新計分。觀眾頁面每 30 秒自動更新，也可手動更新。');
       return true;
@@ -387,7 +389,8 @@ export function AdminPanel({
             </button>
           </div>
         )}
-        {section === 'score' && (
+        {!event.rounds && <p className="footnote">待設定賽程：請至「匯入／匯出」選擇 Movement，設定圈數與每圈牌數後再開始收分。</p>}
+        {section === 'score' && event.rounds > 0 && (
           <>
             <form
               onSubmit={async (e) => {
@@ -705,7 +708,7 @@ export function AdminPanel({
         )}
         {section === 'import' && event.canDirect && (
           <>
-            {event.kind === 'pairs' && (
+            {(
               <MovementPanel
                 key={`movement-${event.id}-${event.revision}`}
                 event={event as BridgeEvent}

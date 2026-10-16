@@ -652,7 +652,7 @@ export default function Scoreboard() {
                           ? ' · 賽事已結束'
                           : progressRound
                             ? ` · 第 ${progressRound}/${event.rounds} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
-                            : ' · 尚未開始')}
+                            : event.rounds ? ' · 尚未開始' : ' · 待設定賽程')}
                     </span>
                     <ChevronDown size={15} className={dashboardCollapsed ? 'collapsed' : ''} />
                   </button>

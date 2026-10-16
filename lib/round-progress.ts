@@ -2,7 +2,7 @@ import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 
 export function allRoundsComplete(event: Pick<BridgeEvent, 'rounds' | 'assignments' | 'results' | 'club'>) {
-  return Array.from({ length: event.rounds }, (_, i) => i + 1).every(round => {
+  return event.rounds > 0 && Array.from({ length: event.rounds }, (_, i) => i + 1).every(round => {
     const tables = event.assignments.filter(a => a.round === round);
     return tables.length > 0 && tables.every(a => a.boards.length > 0 &&
       a.boards.every(b => !!event.results[resultKey(a.id, b)])) &&

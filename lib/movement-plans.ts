@@ -4,7 +4,10 @@ import type { Assignment, BridgeEvent } from './model';
 export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string };
 type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind'>;
 export function movementOptions(event: Input): MovementPlan[] {
-  if (event.kind !== 'pairs') return [];
+  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 15 : 19) ||
+      !Number.isInteger(event.boardsPerRound) || event.boardsPerRound < 1 || event.boardsPerRound > 32) return [];
+  if (event.kind === 'teams') return event.rounds * event.boardsPerRound <= 128
+    ? [{ id: 'team-round-robin', label: '隊制循環對戰', groups: event.rounds, note: '每場對戰安排開室與閉室，兩室交換方向；每圈使用新牌組。' }] : [];
   const tables = Math.ceil(event.participants.length / 2), rounds = event.rounds;
   const options: MovementPlan[] = [{ id: 'barometer', label: '全場同牌輪轉', groups: rounds, note: '每圈各桌打相同牌組，須準備多份複製牌。' }];
   const max = tables % 2 ? tables : tables - 1;
@@ -57,6 +60,13 @@ export function buildMovement(event: Input, id: string) {
         add(r, t + 1, (r + t) % 2 ? a : b, (r + t) % 2 ? b : a, r);
       }
       rotation.splice(1, 0, rotation.pop()!);
+    }
+  }
+  if (event.kind === 'teams') {
+    const pairs = assignments.splice(0);
+    for (const a of pairs) {
+      const [ns, ew] = Number(a.ns.slice(1)) < Number(a.ew.slice(1)) ? [a.ns, a.ew] : [a.ew, a.ns];
+      assignments.push({ ...a, id: `${a.id}o`, room: 'open', ns, ew }, { ...a, id: `${a.id}c`, room: 'closed', ns: ew, ew: ns });
     }
   }
   const simultaneous = new Map<string, number>();

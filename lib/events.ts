@@ -61,7 +61,8 @@ export function createEvent(
   input: z.infer<typeof createSchema>,
   id: string = randomUUID(),
 ): BridgeEvent {
-  const data = createSchema.parse(input),
+  const parsed = createSchema.parse(input),
+    data = { ...parsed, rounds: parsed.rounds ?? 0, boardsPerRound: parsed.boardsPerRound ?? 0 },
     now = new Date().toISOString();
   const participants = data.names.map((name, i) => ({ id: `p${i + 1}`, name, players: '' }));
   const rotation: (string | null)[] = participants.map((p) => p.id);
@@ -133,7 +134,10 @@ export function createEvent(
     }
     rotation.splice(1, 0, rotation.pop()!);
   }
-  if (data.movementPlan) {
+  if (data.movementPlan && !data.rounds) {
+    e.participants = e.participants.map((p, i) => ({ ...p, group: i < e.participants.length / 2 ? 'NS' : 'EW' }));
+  }
+  if (data.movementPlan && data.rounds) {
     const plan = (() => {
       try { return buildMovement(e, data.movementPlan); }
       catch (error) { throw new DomainError((error as Error).message); }
@@ -146,7 +150,7 @@ export function createEvent(
   }
   // New events have no real deals until PBN import. Use empty hands instead of generated ones.
   e.boards = e.boards.map((b) => ({ ...b, deal: { N: [], E: [], S: [], W: [] } }));
-  e.audit = [{ at: now, action: '建立賽事', reason: '固定圈次賽程', revision: 1 }];
+  e.audit = [{ at: now, action: '建立賽事', reason: data.rounds ? '固定圈次賽程' : '待設定賽程', revision: 1 }];
   return e;
 }
 export { DomainError } from './domain-error';
@@ -165,6 +169,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   const e = structuredClone(stored.event),
     at = new Date().toISOString();
   e.results = normalizeResults(e.results);
+  if (!e.rounds && (['results', 'results-import', 'club-play', 'club-finalize', 'round-control', 'movement', 'pbn', 'ruling', 'split-contract'].includes(command.action) || (command.action === 'settings' && command.status === 'finished')))
+    throw new DomainError('待設定賽程，請先選擇 Movement 並設定圈數與每圈牌數');
   const changes: { key: string; before: Result | null; after: Result | null }[] = [];
   let detail: string | undefined;
   if (command.action === 'clear-results') {
@@ -431,6 +437,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (e.status === 'finished' || Object.keys(e.results).length || e.club?.finalized.length)
       throw new DomainError('僅能在尚未收分且未結束的賽段套用賽程編排');
     try {
+      e.rounds = command.rounds ?? e.rounds;
+      e.boardsPerRound = command.boardsPerRound ?? e.boardsPerRound;
       const plan = buildMovement(e, command.plan);
       e.boards = Array.from({ length: plan.boardCount }, (_, i) => {
         const old = e.boards.find(b => b.number === i + 1);
@@ -443,6 +451,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       e.assignments = plan.assignments;
       e.movementImported = true;
       e.movementDescription = `${plan.option.label}；${plan.option.note}${plan.shared ? '同圈有共用牌組，請準備複製牌或安排共牌。' : ''}`;
+      e.roundTimes = {};
       e.currentRound = 0;
       e.roundPhase = 'break';
       if (e.club) { e.club.confirmations = {}; e.club.inputOverrides = {}; }

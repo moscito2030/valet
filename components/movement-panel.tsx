@@ -9,13 +9,20 @@ export function MovementPanel({ event, busy, save }: {
 }) {
   const [choice, setChoice] = useState('');
   const [preview, setPreview] = useState(false);
-  const options = movementOptions(event);
-  const plan = choice ? buildMovement(event, choice) : null;
+  const [rounds, setRounds] = useState(event.rounds || 3);
+  const [boardsPerRound, setBoardsPerRound] = useState(event.boardsPerRound || (event.kind === 'teams' ? 8 : 2));
+  const draft = { ...event, rounds, boardsPerRound };
+  const options = movementOptions(draft);
+  const plan = options.some(p => p.id === choice) ? buildMovement(draft, choice) : null;
   const locked = event.status === 'finished' || Object.keys(event.results).length > 0;
   const name = (id: string) => event.participants.find(p => p.id === id)?.name ?? id;
   return <section className="import-export-section">
     <h4>指定賽程編排</h4>
-    <p>{event.participants.length} 對（{event.participants.length / 2} 桌），{event.rounds} 圈，每圈 {event.boardsPerRound} 牌。</p>
+    <p>{event.participants.length} {event.kind === 'teams' ? '隊' : '對'} · {event.rounds ? `目前 ${event.rounds} 圈，每圈 ${event.boardsPerRound} 牌` : '待設定賽程'}</p>
+    <div className="form-grid">
+      <label className="field">圈數<input type="number" min={1} max={event.kind === 'teams' ? 15 : 19} value={rounds || ''} disabled={locked} onChange={e => { setRounds(Number(e.target.value)); setPreview(false); }} /></label>
+      <label className="field">每圈牌數<input type="number" min={1} max={32} value={boardsPerRound || ''} disabled={locked} onChange={e => { setBoardsPerRound(Number(e.target.value)); setPreview(false); }} /></label>
+    </div>
     <label className="field">適用的編排方式<select value={choice} onChange={e => { setChoice(e.target.value); setPreview(false); }}>
       <option value="">請選擇賽程編排</option>
       {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
@@ -33,9 +40,9 @@ export function MovementPanel({ event, busy, save }: {
         <div className="table-scroll"><table><thead><tr><th>圈次</th><th>桌號</th><th>南北</th><th>東西</th><th>牌號</th></tr></thead><tbody>
           {plan.assignments.map(a => <tr key={a.id}><td>{a.round}</td><td>{a.table}</td><td>{name(a.ns)}</td><td>{name(a.ew)}</td><td>{a.boards.join(', ')}</td></tr>)}
         </tbody></table></div>
-        <p className="footnote">確認後將替換本賽段賽程，並重設圈次為尚未開始。已有成績時不能套用。</p>
+        <p className="footnote">確認後將替換本賽段賽程、清除原圈次時間，並重設為尚未開始。已有成績時不能套用。</p>
         <button className="button subtle" disabled={busy || locked} onClick={async () => {
-          if (await save({ action: 'movement-plan', plan: choice, reason: `指定 ${plan.option.label}` })) setPreview(false);
+          if (await save({ action: 'movement-plan', plan: choice, rounds, boardsPerRound, reason: `指定 ${plan.option.label}` })) setPreview(false);
         }}>確認套用賽程編排</button>
       </>}
       {plan.option.source && <p className="footnote"><a href={plan.option.source} target="_blank" rel="noreferrer">查看編排表來源</a></p>}
