@@ -128,25 +128,6 @@ export default function Scoreboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false);
   useEffect(() => {
-    if (tab !== 'admin') return;
-    setDashboardCollapsed(true);
-    try {
-      localStorage.setItem('bridge-dashboard-collapsed', 'true');
-    } catch {}
-  }, [tab]);
-  useEffect(() => {
-    try {
-      setDashboardCollapsed(localStorage.getItem('bridge-dashboard-collapsed') === 'true');
-    } catch {}
-  }, []);
-  function toggleSection(section: 'dashboard') {
-    const next = !dashboardCollapsed;
-    setDashboardCollapsed(next);
-    try {
-      localStorage.setItem(`bridge-${section}-collapsed`, String(next));
-    } catch {}
-  }
-  useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(''), 5000);
     return () => clearTimeout(timer);
@@ -647,7 +628,7 @@ export default function Scoreboard() {
                     className="section-collapse"
                     aria-expanded={!dashboardCollapsed}
                     aria-controls="event-dashboard"
-                    onClick={() => toggleSection('dashboard')}
+                    onClick={() => setDashboardCollapsed((collapsed) => !collapsed)}
                   >
                     <span>
                       比賽進度
