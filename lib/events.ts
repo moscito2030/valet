@@ -1,3 +1,4 @@
+import { parseRosters } from './roster-import';
 import { randomUUID } from 'node:crypto';
 import { roundProgress } from './round-progress';
 import { buildMovement } from './movement-plans';
@@ -185,6 +186,17 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
         return change;
       }).join('；');
       if (additions.length) detail += '；新增隊員：' + additions.map(a => `${a.teamName}：${a.names.join('、')}`).join('；');
+    } catch (error) { throw new DomainError((error as Error).message); }
+  } else if (command.action === 'rosters-import') {
+    try {
+      const updates = parseRosters(command.csv, e);
+      detail = updates.map(u => {
+        const team = e.participants.find(p => p.id === u.participantId)!;
+        const before = JSON.stringify({ players: team.players, captain: team.captain ?? '' });
+        team.players = u.players.join('、');
+        team.captain = u.captain;
+        return team.name + '：' + before + ' → ' + JSON.stringify({ players: team.players, captain: team.captain });
+      }).join('；');
     } catch (error) { throw new DomainError((error as Error).message); }
   } else if (command.action === 'team-roster') {
     const p = e.participants.find(p => p.id === command.participantId);
@@ -574,6 +586,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     action: {
       'competition-settings': '賽事共用資訊',
       'team-roster': '隊伍賽員名單',
+      'rosters-import': '匯入隊伍賽員名單',
       'lineups-import': '匯入入座名單',
       'clear-results': '清除所有成績',
       'table-lineup': '桌次上場名單',

@@ -1,6 +1,7 @@
 'use client';
 import { Breadcrumbs } from './breadcrumbs';
 import { ClearResults } from './clear-results';
+import { parseRosters, exportRosters } from '@/lib/roster-import';
 import { parseLineups, exportLineups, lineupRosterAdditions } from '@/lib/lineup-import';
 import { TeamButlerPopover } from './team-butler-popover';
 import { SplitContractEditor } from './split-contract-editor';
@@ -2371,6 +2372,9 @@ function AdminPanel({
             )
             .join('\n')}`,
         );
+      } else if (importType === 'rosters') {
+        const rows = parseRosters(text, event);
+        setPreview('更新 ' + rows.length + ' 隊名單（未列出的隊伍保持不變）：\n' + rows.map(r => r.teamName + '：隊長 ' + (r.captain || '未設定') + '；賽員 ' + (r.players.join('、') || '清空')).join('\n'));
       } else if (importType === 'lineups') {
         const rows = parseLineups(text, event);
         const additions = lineupRosterAdditions(rows, event);
@@ -2736,17 +2740,7 @@ function AdminPanel({
         )}
         {section === 'import' && event.canDirect && (
           <>
-            {event.kind === 'teams' && <EditorPopover className="import-export-section" title="隊伍賽員名單">
-              {event.participants.map(p => <form key={`${p.id}-${event.revision}`} className="round-settings-form" onSubmit={e => {
-                e.preventDefault(); const data = new FormData(e.currentTarget);
-                void save({ action: 'team-roster', participantId: p.id, captain: String(data.get('captain')), players: String(data.get('players')).split(/[\n、]/).map(n => n.trim()).filter(Boolean), reason: '更新隊伍賽員名單' });
-              }}>
-                <h4>{participantNumber(p.id, event.kind)} · {p.name}</h4>
-                <label className="field">隊長<input name="captain" defaultValue={p.captain ?? ''} /></label>
-                <label className="field">賽員（每行一人）<textarea name="players" defaultValue={p.players.split('、').join('\n')} /></label>
-                <button className="button subtle" disabled={busy}>儲存名單</button>
-              </form>)}
-            </EditorPopover>}
+
 
             {event.kind === 'pairs' && <MovementPanel key={`movement-${event.id}-${event.revision}`} event={event as BridgeEvent} busy={busy} save={save} />}
             <RandomDealsPanel key={`deals-${event.id}-${event.revision}`} boards={event.boards} locked={Object.keys(event.results).length > 0} busy={busy} save={save} />
@@ -2766,6 +2760,7 @@ function AdminPanel({
                   <option value="pbn">完整牌型 PBN</option>
                   <option value="round-times">各圈時間區間 CSV</option>
                   <option value="movement">賽程編排 CSV</option>
+                  {event.kind === 'teams' && <option value="rosters">隊伍賽員名單 CSV</option>}
                   {event.kind === 'teams' && <option value="lineups">入座名單 CSV</option>}
                 </select>
               </label>
@@ -2799,6 +2794,8 @@ function AdminPanel({
                   placeholder={
                     importType === 'results'
                       ? 'assignmentId,board,level,strain,doubled,declarer,tricks,lead\nr1m1o,1,3,NT,1,N,9,SA'
+                      : importType === 'rosters'
+                        ? 'teamId,teamName,captain,players\np1,隊伍名稱,隊長姓名,賽員甲、賽員乙'
                       : importType === 'lineups'
                         ? 'assignmentId,N,E,S,W\nr1m1o,北家姓名,東家姓名,南家姓名,西家姓名'
                       : importType === 'movement'
@@ -2832,6 +2829,8 @@ function AdminPanel({
                       const payload =
                         importType === 'results'
                           ? { action: 'results-import', csv: text }
+                          : importType === 'rosters'
+                            ? { action: 'rosters-import', csv: text }
                           : importType === 'lineups'
                             ? { action: 'lineups-import', csv: text }
                           : importType === 'pbn'
@@ -2856,6 +2855,8 @@ function AdminPanel({
               <p className="footnote">
                 {importType === 'results'
                   ? '可下載成績 CSV 修改後匯入；保留 assignmentId 與 board。status 可填 played 或 cancelled；取消牌不計分，合約欄可全部留空。匯入 played 會恢復該筆取消成績，請先核對預覽。'
+                  : importType === 'rosters'
+                    ? '每隊一列，以 teamId 對應現有隊伍，teamName 僅供辨識。賽員以頓號分隔；取代所列隊伍的完整名單與隊長，留白表示清空。未列出的隊伍保持不變；仍在入座名單中的賽員不可移除。'
                   : importType === 'lineups'
                     ? '欄位：assignmentId,N,E,S,W。新姓名會自動加入該座位所屬隊伍，預覽會列出新增隊員。空白座位表示清除，未列出的桌次保持不變。'
                   : importType === 'pbn'
@@ -2869,6 +2870,7 @@ function AdminPanel({
               <h4>匯出資料</h4>
               <p>下載目前賽事的成績、賽程或牌型。</p>
               <div className="button-row export-row">
+                {event.kind === 'teams' && <button className="button subtle" onClick={() => download(event.id + "-rosters.csv", exportRosters(event), "text/csv")}><ArrowDownToLine size={16} />隊伍賽員名單 CSV</button>}
                 {event.kind === 'teams' && <button className="button subtle" onClick={() => download(`${event.id}-lineups.csv`, exportLineups(event), 'text/csv')}><ArrowDownToLine size={16} />入座名單 CSV</button>}
                 <button className="button subtle" onClick={() => download(`${event.id}-round-times.csv`, exportRoundTimes(event), 'text/csv')}>
                   <ArrowDownToLine size={16} />各圈時間區間 CSV
