@@ -1,26 +1,27 @@
-import { parseRosters } from './roster-import';
 import { randomUUID } from 'node:crypto';
-import { roundProgress } from './round-progress';
-import { buildMovement } from './movement-plans';
-import { parseRoundTimes } from './round-times-import';
-import { parseLineups, lineupRosterAdditions } from './lineup-import';
 import { z } from 'zod';
-import {
-  Board,
-  BridgeEvent,
-  createSchema,
-  Mutation,
-  Result,
-  ResultInput,
-  StoredEvent,
-  resultKey,
-  seats,
-  Vulnerability,
-} from './model';
-import { contractScore, project } from './scoring';
 import { boardGroups } from './board-groups';
-import { clubAccepted, clubReviewVersion, clubRoles } from './club-confirmation';
-import { parsePbn, parseMovement, exportMovement, parseResultsCsv } from './imports';
+import { clubAccepted,clubReviewVersion,clubRoles } from './club-confirmation';
+import { DomainError } from './domain-error';
+import { exportMovement,parseMovement,parsePbn,parseResultsCsv } from './imports';
+import {
+Board,
+BridgeEvent,
+createSchema,
+Mutation,
+Result,
+ResultInput,
+resultKey,
+seats,
+StoredEvent,
+Vulnerability,
+} from './model';
+import { buildMovement } from './movement-plans';
+import { normalizeResults } from './result-status';
+import { applyRosterMutation,isRosterMutation } from './roster-mutations';
+import { roundProgress } from './round-progress';
+import { parseRoundTimes } from './round-times-import';
+import { contractScore,project } from './scoring';
 const vulCycle: Vulnerability[] = [
   'None',
   'NS',
@@ -134,17 +135,10 @@ export function createEvent(
   }
   // New events have no real deals until PBN import. Use empty hands instead of generated ones.
   e.boards = e.boards.map((b) => ({ ...b, deal: { N: [], E: [], S: [], W: [] } }));
-  e.audit = [{ at: now, action: '建立賽事', reason: '固定輪次賽程', revision: 1 }];
+  e.audit = [{ at: now, action: '建立賽事', reason: '固定圈次賽程', revision: 1 }];
   return e;
 }
-export class DomainError extends Error {
-  constructor(
-    message: string,
-    public status = 400,
-  ) {
-    super(message);
-  }
-}
+export { DomainError } from './domain-error';
 function scoredInput(r: ResultInput, event: BridgeEvent, board: Board) {
   const miniBridge = event.gameMode === 'minibridge';
   try {
@@ -159,6 +153,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     throw new DomainError('成績已被其他操作更新，請重新載入後再提交。', 409);
   const e = structuredClone(stored.event),
     at = new Date().toISOString();
+  e.results = normalizeResults(e.results);
   const changes: { key: string; before: Result | null; after: Result | null }[] = [];
   let detail: string | undefined;
   if (command.action === 'clear-results') {
@@ -171,56 +166,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     e.currentRound = 0;
     e.roundPhase = 'break';
     if (e.club) { e.club.confirmations = {}; e.club.finalized = []; }
-  } else if (command.action === 'lineups-import') {
-    try {
-      const updates = parseLineups(command.csv, e);
-      const additions = lineupRosterAdditions(updates, e);
-      for (const addition of additions) {
-        const team = e.participants.find(p => p.id === addition.teamId)!;
-        team.players = [...team.players.split('、').filter(Boolean), ...addition.names].join('、');
-      }
-      detail = updates.map(u => {
-        const a = e.assignments.find(a => a.id === u.assignmentId)!;
-        const change = `${a.id}: ${JSON.stringify(a.playerNames ?? {})} → ${JSON.stringify(u.playerNames)}`;
-        a.playerNames = u.playerNames;
-        return change;
-      }).join('；');
-      if (additions.length) detail += '；新增隊員：' + additions.map(a => `${a.teamName}：${a.names.join('、')}`).join('；');
-    } catch (error) { throw new DomainError((error as Error).message); }
-  } else if (command.action === 'rosters-import') {
-    try {
-      const updates = parseRosters(command.csv, e);
-      detail = updates.map(u => {
-        const team = e.participants.find(p => p.id === u.participantId)!;
-        const before = JSON.stringify({ players: team.players, captain: team.captain ?? '' });
-        team.players = u.players.join('、');
-        team.captain = u.captain;
-        return team.name + '：' + before + ' → ' + JSON.stringify({ players: team.players, captain: team.captain });
-      }).join('；');
-    } catch (error) { throw new DomainError((error as Error).message); }
-  } else if (command.action === 'team-roster') {
-    const p = e.participants.find(p => p.id === command.participantId);
-    if (e.kind !== 'teams' || !p) throw new DomainError('找不到隊伍');
-    if (new Set(command.players).size !== command.players.length) throw new DomainError('賽員不可重複');
-    const removed = (p.players || '').split('、').filter(n => n && !command.players.includes(n));
-    if (e.assignments.some(a => Object.values(a.playerNames ?? {}).some(n => removed.includes(n)))) throw new DomainError('請先更新使用此賽員的上場名單');
-    p.players = command.players.join('、');
-    p.captain = command.captain;
-    detail = `${p.name}：${p.players}；隊長：${p.captain}`;
-  } else if (command.action === 'table-lineup') {
-    const a = e.assignments.find(a => a.id === command.assignmentId);
-    if (e.kind !== 'teams' || !a) throw new DomainError('找不到隊制桌次');
-    const names = Object.values(command.playerNames).filter(Boolean);
-    if (new Set(names).size !== names.length) throw new DomainError('同桌賽員不可重複');
-    if (e.assignments.some(other => other.id !== a.id && other.round === a.round &&
-      Object.values(other.playerNames ?? {}).some(name => names.includes(name))))
-      throw new DomainError('同一圈賽員不可同時在其他桌上場');
-    for (const seat of ['N', 'E', 'S', 'W'] as const) {
-      const p = e.participants.find(p => p.id === (seat === 'N' || seat === 'S' ? a.ns : a.ew))!;
-      if (command.playerNames[seat] && !p.players.split('、').includes(command.playerNames[seat])) throw new DomainError(`${seat} 姓名不在該隊名單`);
-    }
-    a.playerNames = command.playerNames;
-    detail = `${a.id}：${JSON.stringify(a.playerNames)}`;
+  } else if (isRosterMutation(command)) {
+    detail = applyRosterMutation(e, command);
   } else if (command.action === 'competition-settings') {
     if (e.parentEventId) throw new DomainError('請從賽事主頁修改共用資訊');
     e.name = command.name;
@@ -382,7 +329,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       command.status === 'finished' &&
       new Set(e.assignments.map((a) => a.round)).size !== e.rounds
     )
-      throw new DomainError('尚有輪次未安排賽程，不能結束賽事。');
+      throw new DomainError('尚有圈次未安排賽程，不能結束賽事。');
     if (
       command.status === 'finished' &&
       Object.keys(e.results).length !== e.assignments.reduce((n, a) => n + a.boards.length, 0)
@@ -418,10 +365,10 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (!e.participants.some((p) => p.id === command.participantId))
       throw new DomainError('找不到參賽者');
     e.penalties ??= {};
-    detail = `${command.participantId} Penalty: ${e.penalties[command.participantId] ?? 0} → ${command.amount}`;
+    detail = `${command.participantId} 扣分： ${e.penalties[command.participantId] ?? 0} → ${command.amount}`;
     e.penalties[command.participantId] = command.amount;
   } else if (command.action === 'split-contract') {
-    if (e.kind !== 'teams') throw new DomainError('不平衡合約僅限隊伍賽');
+    if (e.kind !== 'teams') throw new DomainError('不平衡合約僅限隊制賽');
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     const a = e.assignments.find(a => a.id === command.assignmentId);
     const b = e.boards.find(b => b.number === command.board);
@@ -541,7 +488,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
           [...old.boards].sort((x, y) => x - y).join(',') !==
             [...a.boards].sort((x, y) => x - y).join(',')
         )
-          throw new Error(`第 ${a.round} 輪已有成績，不可改動其賽程`);
+          throw new Error(`第 ${a.round} 圈已有成績，不可改動其賽程`);
         a.id = old.id;
         a.matchId = old.matchId;
         a.playerNames = old.playerNames;
@@ -605,7 +552,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'round-times-import': '匯入各圈時間區間',
       ruling: '裁判取消／恢復',
       'split-contract': '不平衡合約',
-      penalty: '裁判 Penalty',
+      penalty: '判罰扣分',
     }[command.action],
     reason: command.reason,
     revision: e.revision,

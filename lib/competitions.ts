@@ -1,16 +1,17 @@
+import type { EventIndex, IndexEvent } from './event-index';
 import type { BridgeEvent, CompetitionInfo, StoredEvent } from './model';
 import { DomainError } from './events';
 import { project } from './scoring';
 
-export function competitionInfo(root: BridgeEvent): CompetitionInfo {
+export function competitionInfo(root: IndexEvent): CompetitionInfo {
   return { id: root.id, name: root.name, prefix: root.prefix ?? '', date: root.date, venue: root.venue, hasStages: !!root.hasStages, revision: root.revision };
 }
 
-export function stageSummary(event: BridgeEvent) {
+export function stageSummary(event: IndexEvent) {
   return { id: event.id, revision: event.revision, name: event.stageName ?? event.name, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
 }
 
-export function competitionCatalog(data: StoredEvent[]) {
+export function competitionCatalog(data: EventIndex[]) {
   return data.filter(({ event }) => !event.parentEventId)
     .sort((a, b) => b.event.date.localeCompare(a.event.date) || b.event.updatedAt.localeCompare(a.event.updatedAt))
     .map(({ event }) => ({ ...competitionInfo(event), stages: data.filter(s => s.event.id === event.id || s.event.parentEventId === event.id).map(s => stageSummary(s.event)) }));

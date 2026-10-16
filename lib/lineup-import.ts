@@ -1,3 +1,4 @@
+import { csvCell } from './csv-cell';
 import type { BridgeEvent, Seat } from './model';
 import { seats } from './model';
 import { parseCsv } from './imports';
@@ -32,7 +33,7 @@ export function exportLineups(event: Source) {
     event.assignments
       .map((a) =>
         [a.id, ...seats.map((s) => a.playerNames?.[s] ?? '')]
-          .map((v) => `"${v.replaceAll('"', '""')}"`)
+          .map(csvCell)
           .join(','),
       )
       .join('\n')

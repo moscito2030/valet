@@ -1,4 +1,4 @@
-name: Verify MVP
+name: Verify Valet
 on: [push, pull_request]
 permissions:
   contents: read
@@ -12,6 +12,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run check:secrets
+      - run: npm audit
       - run: npm test
       - run: npm run build
+      - run: npm run test:security
       - run: npm run typecheck

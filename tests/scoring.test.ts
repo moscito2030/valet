@@ -119,11 +119,11 @@ test('team comparison reverses closed room; incomplete matches do not earn VP', 
   assert.equal(project(e).matches[0].impsA, 0);
   e.results[resultKey(closed.id, 1)].nsScore = -170;
   assert.equal(project(e).matches[0].impsA, 11);
-  // An artificial average is 0 IMP without reducing the VP board count.
+  // Legacy average is cancelled: an entirely cancelled match earns no VP.
   e.results[resultKey(closed.id, 1)].status = 'average';
   p = project(e);
   assert.equal(p.matches[0].impsA, 0);
-  assert.equal(p.matches[0].vpA, 10);
+  assert.equal(p.matches[0].vpA, null);
   assert.equal(p.matches[0].completed, 1);
 });
 test('pairs score ties, missing results and recompute whole board on correction', () => {

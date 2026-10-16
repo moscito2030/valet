@@ -48,7 +48,7 @@ Valet 是繁體中文的橋牌賽事工具，適合橋藝社、俱樂部與小�
 ## 賽員與觀眾：用手機找到自己關心的成績
 
 - **總排名**：查看名次、得分與完成牌數，也能搜尋、追蹤參賽者。
-- **輪次與對戰**：查詢各圈桌號、對手與牌號；雙人賽另顯示該圈開始前的累積成績。
+- **圈次與對戰**：查詢各圈桌號、對手與牌號；雙人賽另顯示該圈開始前的累積成績。
 - **隊伍／搭檔成績**：集中查看自己的逐副結果；隊制賽可切換圈次，查看雙方 IMP 與 VP 比數。
 - **個人／搭檔 Butler 統計**：依實際上場名單彙整有效牌數、每牌 IMP、正負 IMP 商數、MP 與全場排名；進行中只納入整圈已完成的成績，可按隊伍篩選。
 - **逐副比較**：比較各桌合約、實得墩數與得分，從同一副牌理解分數差異。
@@ -60,7 +60,7 @@ Valet 是繁體中文的橋牌賽事工具，適合橋藝社、俱樂部與小�
 
 公開牌型後，可以直接在逐副頁面查看四家手牌、HCP、Par Contract、LoTT 與雙夢家最佳墩數，並用出牌鍵盤試打、回退，觀察不同出牌的結果。
 
-點擊一家姓名即可切換該家視角：首攻前只看自己的手牌，首攻後加上夢家手牌與本墩出牌。也能下載單副 PBN，或輸出至 Handviewer 繼續研究。
+點擊一家姓名即可切換該家視角：首攻前只看自己的手牌，首攻後加上夢家手牌與本墩出牌。也能下載單副 PBN，或輸出至 Valet Review 繼續研究。
 
 裁判可按牌組控制公開時間。成績、賽程、各圈時間及牌型都能匯出，另有賽事 JSON 匯出，方便留存與後續整理。
 
@@ -119,3 +119,16 @@ npm run build
 修改檢視器請到 Valet Viewer，升版並執行 `npm run sync -- ../alternative_online_bridge ../valet-review`。三個專案都需驗證並各自 commit，未經使用者指定不 push。
 
 「輸出至 Valet Review」會透過分享連結傳入目前單副牌型（不含各桌成績）。正式部署請在建置前設定 `NEXT_PUBLIC_VALET_REVIEW_URL` 為 Review 網址；本機 localhost／127.0.0.1 預設使用同主機的 3001 埠。
+
+## 程式結構
+
+- components/scoreboard.tsx：公開成績畫面與查詢狀態。
+- components/admin-panel.tsx：裁判／賽務後台。
+- components/event-dialogs.tsx：建立賽事與對話框。
+- components/scoreboard-shared.tsx、scoreboard-widgets.tsx：顯示格式、共用元件與瀏覽器操作。
+- lib/events.ts：操作協調、版本檢查與稽核；名單操作分離於 roster-mutations.ts。
+- lib/scoring.ts：純計分函式；舊 average 統一視為取消。
+- lib/store.ts、event-index.ts：儲存與精簡賽事摘要。
+- lib/mutation-permissions.ts、session-token.ts：角色規則與可撤銷登入憑證。
+- lib/csv-cell.ts：CSV 公式防護與往返還原。
+- Valet Viewer 固定版本套件：共用牌局檢視器；介面變更需在 Viewer 專案維護並更新兩個使用端。

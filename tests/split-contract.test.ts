@@ -128,7 +128,7 @@ test('ruling removal restores scoring, normal writes and cancellation cannot era
 
 test('split validates kind, assignment, contract identity, revision and finished status', () => {
   const pairs = fixture('pairs');
-  assert.throws(() => pairs.mutate(pairs.split()), /隊伍賽/);
+  assert.throws(() => pairs.mutate(pairs.split()), /隊制賽/);
   const f = fixture();
   assert.throws(() => f.mutate({ ...f.split(), board: 128 }), /桌次/);
   assert.throws(

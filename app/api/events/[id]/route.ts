@@ -1,3 +1,4 @@
+import { canMutate } from '@/lib/mutation-permissions';
 import { audienceEvent } from '@/lib/club-view';
 import { NextResponse } from 'next/server';
 import { getEvent, mutateEvent } from '@/lib/store';
@@ -8,9 +9,9 @@ import { DomainError } from '@/lib/events';
 export const dynamic = 'force-dynamic';
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { event } = await getEvent((await params).id);
+    const { event, projection } = await getEvent((await params).id);
     return NextResponse.json(
-      audienceEvent(event),
+      audienceEvent(event, projection),
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (e) {
@@ -21,20 +22,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     await requireAdmin(request);
     const command = mutationSchema.parse(await readJson(request));
-    if (command.action.startsWith('club-')) throw new DomainError('請使用俱樂部模式入口', 403);
-    if (
-      command.action === 'settings' &&
-      (command.name !== undefined || command.prefix !== undefined || command.maxBoardNumber !== undefined) &&
-      !(await isDirector())
-    )
-      throw new DomainError('修改賽事名稱與前綴僅限裁判', 403);
-    if (
-      ['rosters-import', 'clear-results', 'lineups-import', 'results-import', 'split-contract', 'pbn', 'movement', 'movement-plan', 'board-publication', 'round-control', 'round-timing', 'round-times-import', 'competition-settings', 'team-roster'].includes(
-        command.action,
-      ) &&
-      !(await isDirector())
-    )
-      throw new DomainError('此操作僅限裁判', 403);
+    if (!canMutate(await isDirector() ? 'director' : 'admin', command))
+      throw new DomainError('此操作需要裁判權限，俱樂部操作請使用專屬入口', 403);
     const stored = await mutateEvent((await params).id, command);
     return NextResponse.json(
       { revision: stored.event.revision },

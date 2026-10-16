@@ -1,3 +1,4 @@
+import { csvCell, decodeCsvCell } from './csv-cell';
 import {
   Assignment,
   Board,
@@ -41,7 +42,7 @@ export function parseCsv(text: string): Record<string, string>[] {
   if (new Set(header).size !== header.length) throw new Error('CSV 標題不可重複');
   return rows.map((r, i) => {
     if (r.length !== header.length) throw new Error(`第 ${i + 2} 列欄位數不正確`);
-    return Object.fromEntries(header.map((h, j) => [h, r[j]]));
+    return Object.fromEntries(header.map((h, j) => [h, decodeCsvCell(r[j])] ));
   });
 }
 export function parseResultsCsv(text: string): (ResultInput & { status?: 'cancelled' })[] {
@@ -72,12 +73,6 @@ export function parseResultsCsv(text: string): (ResultInput & { status?: 'cancel
 }
 export const resultsCsvHeader =
   'assignmentId,board,level,strain,doubled,declarer,tricks,lead,status';
-function csvCell(s: unknown) {
-  const v = String(s);
-  return /^[=+@\-]/.test(v) && typeof s === 'string'
-    ? `"'${v.replaceAll('"', '""')}"`
-    : `"${v.replaceAll('"', '""')}"`;
-}
 export function exportResultsCsv(e: BridgeEvent) {
   const hasSplit = Object.values(e.results).some(r => r.split);
   return (
@@ -130,7 +125,7 @@ export function parseMovement(text: string, e: BridgeEvent): Assignment[] {
       !/^[A-Za-z0-9][A-Za-z0-9_-]{0,15}$/.test(tableLabel) ||
       (typeof table === 'number' && (!Number.isSafeInteger(table) || table < 1))
     )
-      throw new Error(`第 ${i + 2} 列輪次或桌號錯誤`);
+      throw new Error(`第 ${i + 2} 列圈次或桌號錯誤`);
     if (r.ns === r.ew || ![r.ns, r.ew].every((id) => e.participants.some((p) => p.id === id)))
       throw new Error(`第 ${i + 2} 列搭檔編號錯誤`);
     if (
@@ -140,11 +135,11 @@ export function parseMovement(text: string, e: BridgeEvent): Assignment[] {
     )
       throw new Error(`第 ${i + 2} 列牌組錯誤`);
     const tableKey = `${round}:${table}`;
-    if (tables.has(tableKey)) throw new Error('同一輪桌號重複');
+    if (tables.has(tableKey)) throw new Error('同一圈桌號重複');
     tables.add(tableKey);
     for (const id of [r.ns, r.ew]) {
       const pos = `${round}:${id}`;
-      if (occupied.has(pos)) throw new Error('同一輪搭檔被安排至多桌');
+      if (occupied.has(pos)) throw new Error('同一圈搭檔被安排至多桌');
       occupied.add(pos);
       for (const b of boards) {
         const k = `${id}:${b}`;
@@ -167,7 +162,7 @@ export function parseMovement(text: string, e: BridgeEvent): Assignment[] {
     if (
       assignments.filter((a) => a.round === round).length !== Math.floor(e.participants.length / 2)
     )
-      throw new Error(`第 ${round} 輪桌次不完整`);
+      throw new Error(`第 ${round} 圈桌次不完整`);
   return assignments;
 }
 function parseTeamMovement(text: string, e: BridgeEvent): Assignment[] {
@@ -176,7 +171,7 @@ function parseTeamMovement(text: string, e: BridgeEvent): Assignment[] {
   for (const row of rows) {
     if (!['open', 'closed'].includes(row.room)) throw new Error('隊制賽 room 須為 open（開室）或 closed（閉室）');
     const key = `${Number(row.round)}:${/^\d+$/.test(row.table) ? Number(row.table) : row.table}:${row.room}`;
-    if (rooms.has(key)) throw new Error('同一輪桌號與開閉室重複');
+    if (rooms.has(key)) throw new Error('同一圈桌號與開閉室重複');
     rooms.set(key, row);
   }
   const opens = rows.filter(r => r.room === 'open');
@@ -185,10 +180,10 @@ function parseTeamMovement(text: string, e: BridgeEvent): Assignment[] {
   const matches = parseMovement(csv, { ...e, kind: 'pairs' });
   return matches.flatMap(a => {
     const closed = rooms.get(`${a.round}:${a.table}:closed`);
-    if (!closed || closed.ns !== a.ew || closed.ew !== a.ns) throw new Error(`第 ${a.round} 輪桌 ${a.table} 開閉室隊伍須交換方向`);
+    if (!closed || closed.ns !== a.ew || closed.ew !== a.ns) throw new Error(`第 ${a.round} 圈桌 ${a.table} 開閉室隊伍須交換方向`);
     const boards = closed.boards.split(';').map(Number);
     if (boards.length !== a.boards.length || [...boards].sort((x, y) => x - y).join(',') !== [...a.boards].sort((x, y) => x - y).join(','))
-      throw new Error(`第 ${a.round} 輪桌 ${a.table} 開閉室牌組須相同`);
+      throw new Error(`第 ${a.round} 圈桌 ${a.table} 開閉室牌組須相同`);
     const matchId = `r${a.round}m${a.table}`;
     return [
       { ...a, id: `${matchId}o`, matchId, room: 'open' as const },

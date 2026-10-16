@@ -1,10 +1,10 @@
-# MVP 交付與驗收
+# 交付與驗收
 
 驗收日期：2026-10-13。部署目標：Vercel + Neon PostgreSQL。
 
 ## 已驗證
 
-- `npm test`：12 組通過，涵蓋合約分、IMP、VP、開閉兩室方向、MP、輪空、更正、版本衝突、去重、CSV/PBN、錯誤匯入原子性與日期驗證。
+- `npm test`：執行全部回歸測試，涵蓋計分、匯入、權限、登入撤銷、CSV 安全與資料公開範圍；以當次輸出為準。
 - `npm run typecheck`：通過。
 - `npm run build`：Next.js 16.4.0 production build 通過。
 - `node scripts/smoke.mjs`：本機雙人賽及隊制賽的登入、建立、收分、重新讀取、去重、409 衝突、400 驗證、結束賽事、未授權及跨來源拒絕均通過。

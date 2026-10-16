@@ -156,7 +156,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
             )}
             <footer className="team-butler-notes">
               <p>
-                只統計整圈各桌已收齊的成績，Cancelled、平均分與無其他桌可比較的牌不納入有效牌數。姓名依各桌實際上場名單；同隊相同姓名合併，搭檔交換座位仍視為同一組。
+                只統計整圈各桌已收齊的成績，取消牌與無其他桌可比較的牌不納入有效牌數。姓名依各桌實際上場名單；同隊相同姓名合併，搭檔交換座位仍視為同一組。
               </p>
               {stats.missingNames > 0 && (
                 <p>
@@ -171,7 +171,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
               </p>
               <p>
                 MP：逐桌比較，勝 2 分、和 1 分、負 0 分；百分比＝總序分 ÷
-                可得最高序分。取消與平均分不參與比較；不平衡合約依各方獲判分計算，不直接採隊伍對戰
+                可得最高序分。取消牌不參與比較；不平衡合約依各方獲判分計算，不直接採隊伍對戰
                 IMP。
               </p>
             </footer>

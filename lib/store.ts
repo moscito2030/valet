@@ -1,3 +1,5 @@
+import { eventIndex, type EventIndex } from './event-index';
+import { normalizeResults } from './result-status';
 import 'server-only';
 import { neon } from '@neondatabase/serverless';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
@@ -51,6 +53,11 @@ export async function listEvents(): Promise<StoredEvent[]> {
   const rows = await sql()`SELECT document FROM bridge_events ORDER BY updated_at DESC`;
   return rows.map((r) => r.document as StoredEvent);
 }
+export async function listEventIndex(): Promise<EventIndex[]> {
+  if (storageMode() !== 'neon') return (await listEvents()).map(eventIndex);
+  const rows = await sql()`SELECT jsonb_build_object('id', document->'event'->'id','name', document->'event'->'name','prefix', document->'event'->'prefix','updatedAt', document->'event'->'updatedAt','kind', document->'event'->'kind','gameMode', document->'event'->'gameMode','pairMethod', document->'event'->'pairMethod','date', document->'event'->'date','venue', document->'event'->'venue','status', document->'event'->'status','demo', document->'event'->'demo','rounds', document->'event'->'rounds','parentEventId', document->'event'->'parentEventId','stageName', document->'event'->'stageName','hasStages', document->'event'->'hasStages','revision', document->'event'->'revision', 'participants', (SELECT jsonb_agg(jsonb_build_object('id', p->'id')) FROM jsonb_array_elements(document->'event'->'participants') p), 'boards', (SELECT jsonb_agg(jsonb_build_object('number', b->'number')) FROM jsonb_array_elements(document->'event'->'boards') b)) AS event, jsonb_build_object('received', document->'projection'->'received', 'expected', document->'projection'->'expected') AS projection FROM bridge_events ORDER BY updated_at DESC`;
+  return rows.map(r => ({ event: r.event, projection: r.projection }));
+}
 async function getRawEvent(id: string): Promise<StoredEvent> {
   if (storageMode() !== 'neon') {
     const e = (await listEvents()).find((x) => x.event.id === id);
@@ -64,7 +71,10 @@ async function getRawEvent(id: string): Promise<StoredEvent> {
 export async function getEvent(id: string): Promise<StoredEvent> {
   const stored = await getRawEvent(id);
   const root = stored.event.parentEventId ? await getRawEvent(stored.event.parentEventId) : stored;
-  return inheritCompetition(stored, root.event);
+  const inherited = inheritCompetition(stored, root.event);
+  const event = { ...inherited.event, results: normalizeResults(inherited.event.results) };
+  const legacy = Object.values(inherited.event.results).some(r => r.status === 'average');
+  return { ...inherited, event, projection: legacy ? project(event) : stored.projection };
 }
 export async function deleteEvent(id: string, revision: number) {
   if (storageMode() === 'demo') throw new DomainError('展示模式無法刪除賽事。', 503);

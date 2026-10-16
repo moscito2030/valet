@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { NextResponse } from 'next/server';
 import { authConfigured, isAdmin, isDirector, issueSession, loginRole } from '@/lib/auth';
 import { storageMode } from '@/lib/store';
@@ -24,8 +25,8 @@ export async function POST(request: Request) {
   try {
     checkOrigin(request);
     if (!authConfigured()) throw new DomainError('請先設定 ADMIN_PASSWORD 與 SESSION_SECRET', 503);
-    const body = await readJson(request);
     await limitLogin(request);
+    const body = z.object({ password: z.string().max(200) }).strict().parse(await readJson(request));
     const role =
       typeof body.password === 'string' && body.password.length <= 200
         ? loginRole(body.password)

@@ -137,7 +137,7 @@ export const createSchema = z
     if (new Set(v.names).size !== v.names.length)
       ctx.addIssue({ code: 'custom', message: '名稱不可重複' });
     if (v.kind === 'teams' && v.names.length % 2)
-      ctx.addIssue({ code: 'custom', message: '首版隊制賽需偶數隊伍' });
+      ctx.addIssue({ code: 'custom', message: '隊制賽需偶數隊伍' });
     if (v.rounds * v.boardsPerRound > 128)
       ctx.addIssue({ code: 'custom', message: '每場最多 128 副' });
   });
@@ -304,7 +304,8 @@ export type Projection = {
   received: number;
   expected: number;
 };
-export type PublicEvent = Omit<BridgeEvent, 'audit' | 'boards'> & {
+export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards'> & {
+  clubEnabled?: boolean;
   collectionProgress?: ReturnType<typeof import('./round-progress').roundProgress>;
   boards: Omit<Board, 'deal'>[] | Board[];
   projection: Projection;

@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import type { PublicEvent } from '@/lib/model';
+import type { AdminEvent } from './scoreboard-shared';
 import { clubRoles, clubAccepted } from '@/lib/club-confirmation';
 
-export function ClubAdmin({ event, reload }: { event: PublicEvent; reload: () => Promise<unknown> }) {
+export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => Promise<unknown> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');

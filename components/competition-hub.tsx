@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenForOutsideDismiss } from '@/lib/outside-dismiss';
 import { EventCalendar } from './event-calendar';
 import { ArrowLeft, ArrowRight, CalendarDays, Eye, EyeOff, MapPin, Plus, Trophy, Users } from 'lucide-react';
-import { CreateDialog, Modal } from './scoreboard';
+import { CreateDialog, Modal } from './event-dialogs';
 import type { Competition } from '@/lib/competitions';
 
 async function request<T>(url: string, body?: object, method = 'POST'): Promise<T> {

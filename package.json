@@ -13,7 +13,9 @@
     "prepare:dds": "node scripts/prepare-dds.mjs",
     "predev": "npm run prepare:dds",
     "predev:local": "npm run prepare:dds",
-    "prebuild": "npm run prepare:dds"
+    "prebuild": "npm run prepare:dds",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "test:security": "node scripts/security-smoke.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createSchema } from '@/lib/model';
 import { createEvent } from '@/lib/events';
-import { insertEvent, listEvents, storageMode } from '@/lib/store';
+import { insertEvent, listEventIndex, storageMode } from '@/lib/store';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
 import { DomainError } from '@/lib/events';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
-    const data = await listEvents();
+    const data = await listEventIndex();
     const roots = new Map(data.filter(s => !s.event.parentEventId).map(s => [s.event.id, s.event]));
     return NextResponse.json(
       {

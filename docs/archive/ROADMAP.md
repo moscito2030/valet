@@ -1,3 +1,5 @@
+> 歷史規劃文件；目前功能與部署方式請以 [README](../../README.md) 及現行操作文件為準。
+
 # Alternative Online Bridge: Overall Plan
 
 This project aims to provide an open, self-hostable online bridge platform that can be run by clubs, federations, teachers, casual groups, or independent organizers without depending on a single centralized service.

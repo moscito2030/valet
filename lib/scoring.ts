@@ -1,13 +1,14 @@
 import {
-  BridgeEvent,
-  Projection,
-  ResultInput,
-  Result,
-  Standing,
-  Vulnerability,
-  Trim,
-  resultKey,
+BridgeEvent,
+Projection,
+Result,
+ResultInput,
+Standing,
+Trim,
+Vulnerability,
+resultKey,
 } from './model';
+import { normalizeResults } from './result-status';
 // Assigned scores remain in NS coordinates; the side selects the awarded contract.
 export function awardedResult(result: Result | undefined, side: 'ns' | 'ew'): Result | undefined {
   return result?.split && result.status !== 'cancelled' && result.status !== 'average'
@@ -141,6 +142,7 @@ export function pairStandingsBeforeRound(event: ProjectionInput, round: number):
 }
 
 export function project(e: ProjectionInput): Projection {
+  e = { ...e, results: normalizeResults(e.results) };
   const standing: Standing[] = e.participants.map((p) => ({
     ...p,
     rank: 0,
@@ -187,11 +189,6 @@ export function project(e: ProjectionInput): Projection {
           continue;
         }
         if (!x || !y) continue;
-        // An imported artificial average is 0 IMP; it still counts toward VP board count.
-        if (x.status === 'average' || y.status === 'average') {
-          match.completed++;
-          continue;
-        }
         const [imp, otherImp] = teamBoardImps(x, y);
         match.marginA += imp;
         match.marginB += otherImp;
