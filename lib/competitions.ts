@@ -4,23 +4,28 @@ import { DomainError } from './events';
 import { project } from './scoring';
 
 export function competitionInfo(root: IndexEvent): CompetitionInfo {
-  return { id: root.id, name: root.name, prefix: root.prefix ?? '', date: root.date, venue: root.venue, hasStages: !!root.hasStages, revision: root.revision };
+  return { id: root.id, name: root.name, prefix: root.prefix ?? '', venue: root.venue, hasStages: !!root.hasStages, revision: root.revision };
 }
 
 export function stageSummary(event: IndexEvent) {
-  return { id: event.id, revision: event.revision, name: event.stageName ?? event.name, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
+  return { id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
 }
 
 export function competitionCatalog(data: EventIndex[]) {
   return data.filter(({ event }) => !event.parentEventId)
-    .sort((a, b) => b.event.date.localeCompare(a.event.date) || b.event.updatedAt.localeCompare(a.event.updatedAt))
-    .map(({ event }) => ({ ...competitionInfo(event), stages: data.filter(s => s.event.id === event.id || s.event.parentEventId === event.id).map(s => stageSummary(s.event)) }));
+    .sort((a, b) => b.event.updatedAt.localeCompare(a.event.updatedAt))
+    .map(({ event }) => {
+      const stages = data.filter(s => s.event.id === event.id || s.event.parentEventId === event.id).map(s => stageSummary(s.event));
+      const dates = [...new Set(stages.map(s => s.date))].sort();
+      return { ...competitionInfo(event), date: dates[0], endDate: dates[dates.length - 1], dates, stages };
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 export type Competition = ReturnType<typeof competitionCatalog>[number];
 
 export function inheritCompetition(stored: StoredEvent, root: BridgeEvent): StoredEvent {
-  return { ...stored, event: { ...stored.event, date: root.date, venue: root.venue, competition: competitionInfo(root) } };
+  return { ...stored, event: { ...stored.event, venue: root.venue, competition: competitionInfo(root) } };
 }
 
 export function appendStage(root: StoredEvent, stage: BridgeEvent, revision: number, firstStageName?: string): { root: StoredEvent; stage: StoredEvent } {
@@ -33,7 +38,7 @@ export function appendStage(root: StoredEvent, stage: BridgeEvent, revision: num
   next.event.revision++;
   next.event.updatedAt = new Date().toISOString();
   next.event.audit.push({ at: next.event.updatedAt, revision: next.event.revision, action: '新增賽段', reason: '裁判新增獨立賽段', detail: stage.name });
-  const child = { ...stage, parentEventId: root.event.id, stageName: stage.name, date: root.event.date, venue: root.event.venue };
+  const child = { ...stage, parentEventId: root.event.id, stageName: stage.name, venue: root.event.venue };
   delete child.competition;
   return { root: next, stage: { event: child, requests: [], projection: project(child) } };
 }

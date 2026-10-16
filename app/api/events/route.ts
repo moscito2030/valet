@@ -22,7 +22,7 @@ export async function GET() {
             updatedAt: e.updatedAt,
             kind: e.kind,
             pairMethod: e.pairMethod ?? 'mp',
-            date: roots.get(e.parentEventId ?? e.id)?.date ?? e.date,
+            date: e.date,
             venue: roots.get(e.parentEventId ?? e.id)?.venue ?? e.venue,
             status: e.status,
             demo: e.demo,

@@ -191,9 +191,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (e.parentEventId) throw new DomainError('請從賽事主頁修改共用資訊');
     e.name = command.name;
     e.prefix = command.prefix;
-    e.date = command.date;
     e.venue = command.venue;
-    detail = '修改賽事共用名稱、日期與地點';
+    detail = '修改賽事共用名稱、前綴與地點';
   } else if (command.action === 'club-config') {
     if (e.kind !== 'pairs') throw new DomainError('俱樂部模式僅支援雙人賽');
     e.club ??= { enabled: false, tokens: {}, confirmations: {}, finalized: [] };
@@ -362,6 +361,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       if (!e.hasStages && !e.parentEventId) throw new DomainError('此賽事未設賽段');
       e.stageName = command.stageName;
     }
+    if (command.date !== undefined) e.date = command.date;
     if (command.name !== undefined) e.name = command.name;
     if (command.prefix !== undefined) e.prefix = command.prefix;
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;

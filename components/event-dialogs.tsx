@@ -72,7 +72,7 @@ export function CreateDialog({
         trim: kind === 'pairs' && method !== 'mp' ? form.get('trim') : 'none',
         name: form.get('name'),
         prefix: competition ? '' : form.get('prefix'),
-        date: competition?.date ?? form.get('date'),
+        date: form.get('date'),
         venue: competition?.venue ?? form.get('venue'),
         ...(!competition && staged ? { firstStageName: form.get('firstStageName') } : {}),
         rounds: form.get('rounds') ? Number(form.get('rounds')) : undefined,
@@ -129,9 +129,9 @@ export function CreateDialog({
         )}
         {competition && (
           <p>
-            {competition.name} · {competition.date} · {competition.venue || '未填地點'}
+            {competition.name} · {competition.venue || '未填地點'}
             <br />
-            此賽段使用獨立名單、賽制與成績。
+            此賽段使用獨立日期、名單、賽制與成績。
           </p>
         )}
         <div className="segmented">
@@ -235,18 +235,16 @@ export function CreateDialog({
           </label>
         )}
         <div className="form-grid create-details-grid">
+          <div className="field">
+            <span>{competition || staged ? '賽段日期' : '日期'}</span>
+            <input name="date" type="hidden" value={eventDate} />
+            <EventCalendar dates={[]} value={eventDate} onChange={setEventDate} unrestricted />
+          </div>
           {!competition && (
-            <>
-              <div className="field">
-                <span>日期</span>
-                <input name="date" type="hidden" value={eventDate} />
-                <EventCalendar dates={[]} value={eventDate} onChange={setEventDate} unrestricted />
-              </div>
-              <label className="field">
-                地點
-                <input name="venue" maxLength={80} placeholder="比賽地點" />
-              </label>
-            </>
+            <label className="field">
+              地點
+              <input name="venue" maxLength={80} placeholder="比賽地點" />
+            </label>
           )}
           <label className="field">
             圈數（選填）

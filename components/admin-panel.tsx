@@ -938,23 +938,24 @@ export function AdminPanel({
         )}
         {section === 'publish' && (
           <>
-            {event.canDirect && (event.hasStages || event.parentEventId) && (
+            {event.canDirect && (
               <form
                 className="event-identity-form"
-                key={event.stageName}
+                key={`${event.stageName}-${event.date}`}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const form = new FormData(e.currentTarget);
                   void save({
                     action: 'settings',
                     status: event.status,
-                    stageName: String(form.get('name')),
-                    reason: '修改賽段名稱',
+                    ...((event.hasStages || event.parentEventId) ? { stageName: String(form.get('name')) } : {}),
+                    date: String(form.get('date')),
+                    reason: '修改賽段資訊',
                   });
                 }}
               >
                 <h4>賽段資訊</h4>
-                <label className="field">
+                {(event.hasStages || event.parentEventId) && <label className="field">
                   賽段名稱
                   <input
                     name="name"
@@ -963,14 +964,18 @@ export function AdminPanel({
                     required
                     defaultValue={event.stageName ?? event.name}
                   />
+                </label>}
+                <label className="field">
+                  賽段日期
+                  <input name="date" type="date" required defaultValue={event.date} />
                 </label>
                 <button className="button subtle" disabled={busy}>
-                  儲存賽段名稱
+                  儲存賽段資訊
                 </button>
               </form>
             )}
             <p className="footnote">
-              名稱、日期與地點等共用資訊，請至{' '}
+              名稱、前綴與地點等共用資訊，請至{' '}
               <a
                 href={`/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`}
               >

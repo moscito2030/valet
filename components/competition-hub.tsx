@@ -15,6 +15,7 @@ async function request<T>(url: string, body?: object, method = 'POST'): Promise<
   if (!r.ok) throw new Error(data.error ?? '讀取失敗');
   return data;
 }
+const competitionDateLabel = (c: Competition) => c.date === c.endDate ? c.date : `${c.date} ～ ${c.endDate}`;
 const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? 'MiniBridge · ' : '') + (s.kind === 'teams' ? '隊制賽 · IMP / VP' : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
 
 export default function CompetitionHub({ competitionId }: { competitionId?: string }) {
@@ -48,7 +49,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   }, []);
   useEffect(() => { void load().catch(e => setError(e.message)).finally(() => setLoading(false)); }, [load]);
   const competition = competitions.find(c => c.id === competitionId);
-  const matches = competitions.filter(c => (!date || c.date === date) && `${c.prefix} ${c.name} ${c.venue} ${c.date}`.toLowerCase().includes(query.toLowerCase()));
+  const matches = competitions.filter(c => (!date || c.dates.includes(date)) && `${c.prefix} ${c.name} ${c.venue} ${c.dates.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
   return <div className={`app-shell competition-hub${competitionId ? ' competition-home' : ''}`}>
     <aside className="sidebar">
       <a href="/" className="brand"><span className="brand-symbol" aria-hidden="true">♦</span><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
@@ -90,21 +91,21 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           <section className="competition-hero">
             {competition.prefix && <p className="competition-prefix">{competition.prefix}</p>}
             <h1>{competition.name}</h1>
-            <div className="competition-facts"><span><CalendarDays size={17} />{competition.date}</span><span><MapPin size={17} />{competition.venue || '地點未公布'}</span></div>
+            <div className="competition-facts"><span><CalendarDays size={17} />{competitionDateLabel(competition)}</span><span><MapPin size={17} />{competition.venue || '地點未公布'}</span></div>
             <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />{competition.hasStages ? '新增賽段' : '設立賽段'}</button></>}</div>
           </section>
           {editing && session.director && <form className="panel hub-form" key={competition.revision} onSubmit={async e => {
             e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
             try {
-              await request(`/api/events/${competition.id}`, { action: 'competition-settings', revision: competition.revision, requestId: crypto.randomUUID(), reason: '編輯賽事共用資訊', name: String(form.get('name')), prefix: String(form.get('prefix')), date: String(form.get('date')), venue: String(form.get('venue')) }, 'PATCH');
+              await request(`/api/events/${competition.id}`, { action: 'competition-settings', revision: competition.revision, requestId: crypto.randomUUID(), reason: '編輯賽事共用資訊', name: String(form.get('name')), prefix: String(form.get('prefix')), venue: String(form.get('venue')) }, 'PATCH');
               await load(); setEditing(false);
             } catch (e) { setError((e as Error).message); await load().catch(() => {}); } finally { setBusy(false); }
-          }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><label className="field">前綴<input name="prefix" maxLength={80} defaultValue={competition.prefix} /></label><div className="form-grid"><label className="field">日期<input name="date" type="date" required defaultValue={competition.date} /></label><label className="field">地點<input name="venue" maxLength={80} defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
+          }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><label className="field">前綴<input name="prefix" maxLength={80} defaultValue={competition.prefix} /></label><div className="form-grid"><label className="field">地點<input name="venue" maxLength={80} defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
           <section aria-label={competition.hasStages ? '選擇賽段' : '賽事成績'}>
-            <div className="hub-section-heading"><h2>{competition.hasStages ? '選擇賽段' : '賽事成績'}</h2>{competition.hasStages && <p>各賽段的名單、賽制與成績各自獨立。</p>}</div>
+            <div className="hub-section-heading"><h2>{competition.hasStages ? '選擇賽段' : '賽事成績'}</h2>{competition.hasStages && <p>各賽段的日期、名單、賽制與成績各自獨立。</p>}</div>
             <div className="competition-grid competition-list">{competition.stages.map(s => <a key={s.id} className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
-              <div className="competition-card-copy"><h3>{competition.hasStages ? s.name : '進入賽事'}</h3><p>{format(s)}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
+              <div className="competition-card-copy"><h3>{competition.hasStages ? s.name : '進入賽事'}</h3><p>{s.date} · {format(s)}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
               <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
             </a>)}</div>
           </section>
@@ -114,13 +115,13 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             <label className="field" htmlFor="competition-search">搜尋賽事</label>
             <div className="field hub-search-input">
               <input id="competition-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="名稱、地點或日期" />
-              <EventCalendar dates={competitions.map(c => c.date)} value={date} onChange={setDate} />
+              <EventCalendar dates={competitions.flatMap(c => c.dates)} value={date} onChange={setDate} />
             </div>
             {date && <div className="hub-date-filter"><span>日期：{date}</span><button type="button" className="button subtle" onClick={() => setDate('')}>清除日期</button></div>}
           </div>
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
             <span className={`event-icon ${c.stages[0].kind}`} aria-hidden="true"><Users size={23} /></span>
-            <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{c.hasStages ? `${c.stages.length} 個賽段` : format(c.stages[0])}</span><time dateTime={c.date}>{Number(c.date.slice(5, 7))} / {Number(c.date.slice(8, 10))}</time></p></div>
+            <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{c.hasStages ? `${c.stages.length} 個賽段` : format(c.stages[0])}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
             <span className="competition-status">{c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}

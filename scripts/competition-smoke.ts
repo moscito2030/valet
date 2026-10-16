@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-const origin = 'http://127.0.0.1:3000';
+const origin = process.env.SMOKE_ORIGIN ?? 'http://127.0.0.1:3000';
 let cookie = '';
 async function call(path: string, method = 'GET', body?: unknown) {
   const r = await fetch(origin + path, { method, headers: { Origin: origin, Cookie: cookie, 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -23,7 +23,7 @@ async function main() {
   try {
     const initial = await admin();
     assert.equal((await call('/api/competitions')).body.competitions.find((c: any) => c.id === id).hasStages, false);
-    const stage = { ...input, name: '隊制決賽', kind: 'teams', names: ['QA 甲', 'QA 乙', 'QA 丙', 'QA 丁'], rounds: 2, boardsPerRound: 4, venue: '應忽略此場地' };
+    const stage = { ...input, name: '隊制決賽', date: '2026-10-17', kind: 'teams', names: ['QA 甲', 'QA 乙', 'QA 丙', 'QA 丁'], rounds: 2, boardsPerRound: 4, venue: '應忽略此場地' };
     await login(process.env.ADMIN_PASSWORD ?? 'local-bridge-admin-2026');
     assert.equal((await call(`/api/competitions/${id}/stages`, 'POST', { revision: initial.revision, firstStageName: '預賽', stage })).status, 403);
     await login(process.env.DIRECTOR_PASSWORD ?? 'local-bridge-director-2026');
@@ -37,14 +37,24 @@ async function main() {
     assert.equal(competition.stages[0].name, '預賽');
     assert.equal(competition.stages[1].kind, 'teams');
     const before = await admin(childId);
-    const meta = { action: 'competition-settings', revision: competition.revision, requestId: randomUUID(), reason: 'QA 共用資訊', name, prefix: 'QA', date: '2026-11-01', venue: 'QA 新地點' };
+    const meta = { action: 'competition-settings', revision: competition.revision, requestId: randomUUID(), reason: 'QA 共用資訊', name, prefix: 'QA', venue: 'QA 新地點' };
     assert.equal((await call(`/api/events/${id}`, 'PATCH', meta)).status, 200);
     assert.equal((await call(`/api/events/${id}`, 'PATCH', { ...meta, requestId: randomUUID() })).status, 409);
     const updated = (await call(`/api/events/${childId}`)).body;
-    assert.equal(updated.date, '2026-11-01'); assert.equal(updated.venue, 'QA 新地點');
+    assert.equal(updated.date, '2026-10-17'); assert.equal(updated.venue, 'QA 新地點');
     assert.deepEqual(updated.results, before.results); assert.equal(updated.revision, before.revision);
     assert.equal(updated.competition.id, id);
-    assert.equal((await call(`/api/events/${childId}`, 'PATCH', { ...meta, revision: before.revision, requestId: randomUUID() })).status, 400);
+    const dateChange = { action: 'settings', revision: updated.revision, requestId: randomUUID(), reason: 'QA 賽段日期', status: 'live', date: '2026-11-02' };
+    await login(process.env.ADMIN_PASSWORD ?? 'local-bridge-admin-2026');
+    assert.equal((await call(`/api/events/${childId}`, 'PATCH', dateChange)).status, 403);
+    await login(process.env.DIRECTOR_PASSWORD ?? 'local-bridge-director-2026');
+    assert.equal((await call(`/api/events/${childId}`, 'PATCH', dateChange)).status, 200);
+    assert.equal((await admin(childId)).date, '2026-11-02');
+    assert.equal((await admin()).date, input.date);
+    const dates = (await call('/api/competitions')).body.competitions.find((c: any) => c.id === id).dates;
+    assert.deepEqual(dates, [input.date, '2026-11-02']);
+    assert.equal((await call('/api/events')).body.events.find((e: any) => e.id === childId).date, '2026-11-02');
+    assert.equal((await call(`/api/events/${childId}`, 'PATCH', { ...meta, revision: (await admin(childId)).revision, requestId: randomUUID() })).status, 400);
     assert.equal((await call(`/api/admin/events/${id}`, 'DELETE', { revision: (await admin()).revision, confirmName: name })).status, 400);
     for (const path of ['/', `/?competition=${id}`, `/?event=${childId}&view=standings`]) assert.equal((await fetch(origin + path)).status, 200);
     console.log('Competition API smoke passed: hierarchy, independent formats, shared metadata, permissions, conflicts, deletion protection and routes.');
