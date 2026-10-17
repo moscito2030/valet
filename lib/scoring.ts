@@ -36,7 +36,7 @@ export function teamStandingsThroughRound(
   event: Pick<BridgeEvent, 'participants' | 'penalties'> & { projection: Projection },
   round: number,
 ) {
-  const rows = event.participants.map(p => ({ ...p, score: -(event.penalties?.[p.id] ?? 0), rank: 0 }));
+  const rows = event.participants.map(p => ({ ...p, score: 0, rank: 0 }));
   for (const bye of event.projection.byes ?? []) if (bye.awarded && bye.round <= round)
     rows.find(p => p.id === bye.participantId)!.score += bye.vp;
   for (const match of event.projection.matches.filter(m => m.round <= round)) {
@@ -141,7 +141,7 @@ export function pairStandingsBeforeRound(event: ProjectionInput, round: number):
   const assignments = event.assignments.filter(a => a.round < round);
   const ids = new Set(assignments.map(a => a.id));
   const results = Object.fromEntries(Object.entries(event.results).filter(([, r]) => ids.has(r.assignmentId)));
-  return project({ ...event, assignments, results }).standings;
+  return project({ ...event, assignments, results, penalties: {} }).standings;
 }
 
 export function project(e: ProjectionInput): Projection {
