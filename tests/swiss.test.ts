@@ -58,6 +58,29 @@ function fill(e: BridgeEvent, round: number, except = new Set<string>(), strong 
     };
   }
 }
+test('first Swiss round pairs roster neighbors in both modes and gives last odd team the bye', () => {
+  for (const mode of ['current', 'delayed'] as const)
+    for (const n of [4, 5, 8]) {
+      const s = setup(n, mode);
+      const ids = s.e.participants.map((p) => p.id);
+      const expected = Array.from({ length: Math.floor(n / 2) }, (_, i) => [
+        ids[i * 2],
+        ids[i * 2 + 1],
+      ]);
+      for (const partial of [false, true]) {
+        const p = swissPreview(s.e, 1, partial);
+        assert.deepEqual(p.pairs, expected);
+        assert.equal(p.bye, n % 2 ? ids[n - 1] : undefined);
+      }
+      s.apply({ action: 'swiss-publish', round: 1, partial: false });
+      assert.deepEqual(
+        s.e.assignments.filter((a) => a.room === 'open').map((a) => [a.ns, a.ew]),
+        expected,
+      );
+      assert.equal(swissPreview(s.e, 1, false).pairs.length, 0);
+    }
+});
+
 test('Swiss is director-only and excludes pairs/interleaved, preserves legacy movement', () => {
   const s = setup();
   const c = mutationSchema.parse({

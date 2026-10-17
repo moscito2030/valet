@@ -107,7 +107,7 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
   const fixed = event.assignments.filter((a) => a.round === round);
   const fixedBye = event.swiss.publications.find((p) => p.round === round && p.bye)?.bye;
   const occupied = new Set(fixed.flatMap((a) => [a.ns, a.ew]).concat(fixedBye ? [fixedBye] : []));
-  // Initial seed order is stable, derived from the event UUID and participant ID.
+  // Later-round tie order is stable, derived from the event UUID and participant ID.
   const seed = (id: string) => {
     let h = 2166136261;
     for (const c of event.id + id) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
@@ -122,7 +122,16 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
     event.assignments.filter((a) => a.round < round).map((a) => edgeKey(a.ns, a.ew)),
   );
   let candidate: { pairs: [string, string][]; cost: number; bye?: string } | null = null;
-  if (ids.length % 2) {
+  if (round === 1 && occupied.size === 0) {
+    const ordered = event.participants.map((p) => p.id);
+    const pairs: [string, string][] = [];
+    for (let i = 0; i + 1 < ordered.length; i += 2) pairs.push([ordered[i], ordered[i + 1]]);
+    candidate = {
+      pairs,
+      cost: 0,
+      ...(ordered.length % 2 ? { bye: ordered[ordered.length - 1] } : {}),
+    };
+  } else if (ids.length % 2) {
     const byeCount = (id: string) =>
       event.swiss!.publications.filter((p) => p.round < round && p.bye === id).length;
     const eligible = [...remaining].sort(

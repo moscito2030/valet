@@ -88,7 +88,8 @@ export function SwissPanel({
             </label>
           </div>
           <p className="footnote">
-            首圈採固定抽籤順序；隔圈安排的前兩圈不依本圈成績，仍避免重複對手。輪空優先給輪空次數較少、累計
+            首圈依名單順序 1–2、3–4
+            配對，奇數隊由最後一隊輪空；隔圈安排第二圈不依首圈成績，仍避免重複對手。後續輪空優先給輪空次數較少、累計
             VP 較低的隊伍。
           </p>
           {(playerBoardError(rounds, boards) || playerBoardWarning(rounds, boards)) && (
@@ -192,7 +193,9 @@ export function SwissPanel({
                 依據：
                 {preview.sourceRound
                   ? `第 ${preview.sourceRound} 圈及之前成績`
-                  : '賽前固定抽籤順序'}{' '}
+                  : round === 1
+                    ? '名單順序 1–2、3–4'
+                    : '賽前同分配對（避免重複對手）'}{' '}
                 · 本圈牌號 {boardRange(plannedBoards)}
               </p>
               <div className="table-scroll">
