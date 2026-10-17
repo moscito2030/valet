@@ -3,6 +3,7 @@ import type { Assignment, BridgeEvent, SwissPublication } from './model';
 import { project } from './scoring';
 import { isInterleaved } from './team-movement';
 import { DomainError } from './domain-error';
+import { clubAccepted } from './club-confirmation';
 
 type Source = Pick<
   BridgeEvent,
@@ -19,6 +20,7 @@ type Source = Pick<
   | 'byeVp'
   | 'swiss'
   | 'teamMovement'
+  | 'club'
 >;
 export function assertSwissTeams(event: Source) {
   if (event.kind !== 'teams' || event.teamMovement || isInterleaved(event.assignments))
@@ -78,6 +80,11 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
   const projection = project(event);
   const relevant = projection.matches.filter((m) => m.round <= sourceRound);
   const byes = (projection.byes ?? []).filter((b) => b.round <= sourceRound);
+  const readyMatch = (id: string) =>
+    !event.club?.enabled ||
+    event.assignments
+      .filter((a) => a.matchId === id)
+      .every((a) => event.club!.finalized.includes(a.round) || clubAccepted(event, a));
   const scores = event.participants.map((p) => {
     let score = 0,
       ready = true,
@@ -85,9 +92,10 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
     for (let r = 1; r <= sourceRound; r++) {
       const match = relevant.find((m) => m.round === r && (m.a === p.id || m.b === p.id));
       const bye = byes.find((b) => b.round === r && b.participantId === p.id);
-      if (match && match.completed === match.total)
+      if (match && match.completed === match.total && readyMatch(match.id))
         score += (match.a === p.id ? match.vpA : match.vpB) ?? 0;
-      else if (bye?.awarded) score += bye.vp;
+      else if (bye?.awarded && (!event.club?.enabled || event.club.finalized.includes(r)))
+        score += bye.vp;
       else {
         ready = false;
         unresolved++;
@@ -96,10 +104,10 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
     return { id: p.id, score, ready, low: score, high: score + 20 * unresolved };
   });
   const basis = relevant
-    .filter((m) => m.completed === m.total)
+    .filter((m) => m.completed === m.total && readyMatch(m.id))
     .map((m) => ({ id: m.id, vpA: m.vpA, vpB: m.vpB }));
   const byeBasis = byes
-    .filter((b) => b.awarded)
+    .filter((b) => b.awarded && (!event.club?.enabled || event.club.finalized.includes(b.round)))
     .map(({ round, participantId, vp }) => ({ round, participantId, vp }));
   const settled = scores.every((s) => s.ready);
   if (!partial && !settled)

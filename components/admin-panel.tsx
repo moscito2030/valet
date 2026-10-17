@@ -295,7 +295,7 @@ export function AdminPanel({
           ['publish', event.canDirect ? '圈次與發布設定' : '賽事設定'],
           ['penalty', '判罰調整'],
           ...(event.canDirect ? [['audit', '操作紀錄']] : []),
-          ...(event.canDirect && event.kind === 'pairs' ? [['club', '俱樂部收分']] : []),
+          ...(event.canDirect ? [['club', '裝置收分']] : []),
         ].map(([k, v]) => (
           <button
             key={k}
@@ -310,7 +310,7 @@ export function AdminPanel({
         ))}
       </div>
       <div className="admin-content">
-        {section === 'club' && event.canDirect && event.kind === 'pairs' && (
+        {section === 'club' && event.canDirect && (
           <ClubAdmin event={event} reload={load} />
         )}
         {section === 'publish' && event.canDirect && (

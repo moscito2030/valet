@@ -17,13 +17,16 @@ export function clubRoles(event: Pick<BridgeEvent, 'club'>, assignment: Assignme
 export function clubReviewVersion(event: Pick<BridgeEvent, 'club' | 'results'>, assignment: Assignment) {
   return JSON.stringify([assignment.id, clubRoles(event, assignment), assignment.boards.map(b => {
     const r = event.results[resultKey(assignment.id, b)];
-    return r ? [b, r.level, r.strain, r.declarer, r.doubled, r.tricks, r.lead, r.status, r.nsScore, r.updatedAt] : [b];
+    return r ? [b, r.level, r.strain, r.declarer, r.doubled, r.tricks, r.lead, r.status, r.nsScore, r.updatedAt, ...(r.split ? [r.split] : [])] : [b];
   })]);
 }
 
+export function clubConfirmationKey(event: Pick<BridgeEvent, 'club'>, assignment: Assignment) {
+  return event.club?.mode === 'table' ? `table:${assignment.id}` : `${assignment.round}:${clubRoles(event, assignment).confirmPair}`;
+}
+
 export function clubAccepted(event: Pick<BridgeEvent, 'club' | 'results'>, assignment: Assignment) {
-  const { confirmPair } = clubRoles(event, assignment);
-  const confirmation = event.club?.confirmations[`${assignment.round}:${confirmPair}`];
+  const confirmation = event.club?.confirmations[clubConfirmationKey(event, assignment)];
   return assignment.boards.every(b => !!event.results[resultKey(assignment.id, b)]) &&
     confirmation?.reviewVersion === clubReviewVersion(event, assignment);
 }

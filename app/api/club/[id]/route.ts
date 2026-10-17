@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const tokenHash = hash(request);
     const { event } = await getEvent((await params).id);
     const pair = Object.entries(event.club?.tokens ?? {}).find(([, h]) => h === tokenHash)?.[0];
-    if (!event.club?.enabled || !pair) throw new DomainError('連結已失效或俱樂部模式未開啟', 403);
+    if (!event.club?.enabled || !pair) throw new DomainError('連結已失效或收分模式未開啟', 403);
     return NextResponse.json(clubView(event, pair), { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) { return errorResponse(e); }
 }

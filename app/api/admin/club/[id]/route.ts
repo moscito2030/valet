@@ -9,8 +9,9 @@ export const dynamic = 'force-dynamic';
 const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('input-rule'), inputRule: z.enum(['ns', 'ew', 'lower', 'higher']), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('input-table'), assignmentId: z.string().min(1), inputPair: z.string().min(1).nullable(), revision: z.number().int() }).strict(),
-  z.object({ action: z.literal('enable'), enabled: z.boolean(), revision: z.number().int() }).strict(),
+  z.object({ action: z.literal('enable'), enabled: z.boolean(), mode: z.enum(['pair','table']).optional(), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('issue'), pair: z.string().min(1), revision: z.number().int() }).strict(),
+  z.object({ action: z.literal('issue-table'), deviceKey: z.string().min(1).max(300), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('finalize'), round: z.number().int().min(1), force: z.boolean(), reason: z.string().trim().min(2).max(200), revision: z.number().int() }).strict(),
 ]);
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,13 +21,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const input = schema.parse(await readJson(request));
     const id = (await params).id;
     const { event } = await getEvent(id);
-    const meta = { revision: input.revision, requestId: randomUUID(), reason: '設定俱樂部模式' };
+    const meta = { revision: input.revision, requestId: randomUUID(), reason: '設定收分模式' };
     let token: string | undefined;
     if (input.action === 'finalize') {
       await mutateEvent(id, { ...meta, action: 'club-finalize', round: input.round, force: input.force, reason: input.reason });
     } else {
-      token = input.action === 'issue' ? randomBytes(32).toString('hex') : undefined;
+      token = input.action === 'issue' || input.action === 'issue-table' ? randomBytes(32).toString('hex') : undefined;
       await mutateEvent(id, { ...meta, action: 'club-config', enabled: input.action === 'enable' ? input.enabled : !!event.club?.enabled,
+        ...(input.action === 'enable' && input.mode ? { mode: input.mode } : {}),
+        ...(input.action === 'issue-table' ? { deviceKey: input.deviceKey, tokenHash: createHash('sha256').update(token!).digest('hex') } : {}),
         ...(input.action === 'input-rule' ? { inputRule: input.inputRule } : {}),
         ...(input.action === 'input-table' ? { assignmentId: input.assignmentId, inputPair: input.inputPair } : {}),
         ...(input.action === 'issue' ? { participantId: input.pair, tokenHash: createHash('sha256').update(token!).digest('hex') } : {}),

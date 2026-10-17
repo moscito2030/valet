@@ -3,7 +3,8 @@ import { playerBoardError } from './schedule-limits';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { boardGroups } from './board-groups';
-import { clubAccepted,clubReviewVersion,clubRoles } from './club-confirmation';
+import { clubAccepted,clubReviewVersion,clubRoles,clubConfirmationKey } from './club-confirmation';
+import { deviceAssignment, tableDevices, validDeviceSchedule } from './table-device';
 import { DomainError } from './domain-error';
 import { exportMovement,parseMovement,parsePbn,parseResultsCsv,parseByeVp } from './imports';
 import {
@@ -198,8 +199,14 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     e.venue = command.venue;
     detail = '修改賽事共用名稱、前綴與地點';
   } else if (command.action === 'club-config') {
-    if (e.kind !== 'pairs') throw new DomainError('俱樂部模式僅支援雙人賽');
+    const mode = command.mode ?? e.club?.mode ?? 'pair';
+    if (e.kind !== 'pairs' && mode !== 'table') throw new DomainError('隊制賽請使用大賽收分模式');
+    if (mode === 'table' && !validDeviceSchedule(e)) throw new DomainError('同圈同桌有多筆安排，請先修正桌號／開閉室');
+    if (mode !== (e.club?.mode ?? 'pair') && (Object.keys(e.results).length || e.club?.finalized.length)) throw new DomainError('收分後不可切換裝置綁定模式');
+    if (mode !== (e.club?.mode ?? 'pair') && e.club?.enabled && command.enabled) throw new DomainError('請先停用裝置收分再切換模式');
     e.club ??= { enabled: false, tokens: {}, confirmations: {}, finalized: [] };
+    if (mode !== (e.club.mode ?? 'pair')) { e.club.tokens = {}; e.club.confirmations = {}; }
+    e.club.mode = mode;
     e.club.enabled = command.enabled;
     if (command.inputRule !== undefined || command.assignmentId !== undefined) {
       if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
@@ -223,6 +230,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       for (const a of e.assignments) {
         if (e.club.finalized.includes(a.round)) continue;
         if (previous.get(a.id) !== clubRoles(e, a).inputPair) {
+          delete e.club.confirmations[clubConfirmationKey(e, a)];
           delete e.club.confirmations[`${a.round}:${a.ns}`];
           delete e.club.confirmations[`${a.round}:${a.ew}`];
         }
@@ -230,31 +238,38 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       detail = command.assignmentId ? `設定桌次 ${command.assignmentId} 輸入方：${command.inputPair ?? '依全局規則'}` : `設定輸入規則：${command.inputRule}`;
     }
     if (command.participantId) {
+      if (mode !== 'pair') throw new DomainError('大賽模式請簽發桌次連結');
       if (!e.participants.some(p => p.id === command.participantId) || !command.tokenHash) throw new DomainError('搭檔或連結無效');
       e.club.tokens[command.participantId] = command.tokenHash;
       detail = '重新簽發 ' + command.participantId + ' 輸入連結；舊連結失效';
     }
+    if (command.deviceKey) {
+      if (mode !== 'table' || !command.tokenHash || !tableDevices(e).some(d => d.key === command.deviceKey)) throw new DomainError('桌次連結無效，請先公布賽程');
+      e.club.tokens[command.deviceKey] = command.tokenHash;
+      detail = '重新簽發桌次 ' + command.deviceKey + ' 收分連結；舊連結失效';
+    }
   } else if (command.action === 'club-play') {
     const club = e.club;
     const pair = Object.entries(club?.tokens ?? {}).find(([, hash]) => hash === command.tokenHash)?.[0];
-    if (!club?.enabled || !pair) throw new DomainError('連結無效或俱樂部模式未開啟', 403);
+    if (!club?.enabled || !pair) throw new DomainError('連結無效或收分模式未開啟', 403);
     if (e.status !== 'live' || command.round !== e.currentRound || e.roundPhase === 'break' || club.finalized.includes(command.round)) throw new DomainError('目前不開放此圈輸入', 409);
-    const a = e.assignments.find(a => a.round === command.round && (a.ns === pair || a.ew === pair));
-    if (!a) throw new DomainError('本圈輪空，無需提交');
+    const tableMode = club.mode === 'table';
+    const a = tableMode ? deviceAssignment(e, pair, command.round) : e.assignments.find(a => a.round === command.round && (a.ns === pair || a.ew === pair));
+    if (!a) throw new DomainError(tableMode ? '本圈尚無可收分安排，請等待裁判' : '本圈輪空或尚未安排，無需提交');
     const { inputPair, confirmPair } = clubRoles(e, a);
-    const confirmation = command.round + ':' + confirmPair;
+    const confirmation = clubConfirmationKey(e, a);
     if (clubAccepted(e, a)) throw new DomainError('本桌已確認，本圈輸入已鎖定', 403);
     if (command.confirm) {
-      if (pair !== confirmPair) throw new DomainError('輸入方不可確認，請由對方確認', 403);
+      if (!tableMode && pair !== confirmPair) throw new DomainError('輸入方不可確認，請由對方確認', 403);
       if (command.result) throw new DomainError('確認不可同時提交成績');
       if (a.boards.some(b => !e.results[resultKey(a.id, b)])) throw new DomainError('尚有未輸入的牌，請完成後確認');
       if (command.reviewVersion !== clubReviewVersion(e, a)) throw new DomainError('本桌成績或分工已更新，請重新檢查後確認', 409);
       club.confirmations[confirmation] = { at, forced: false, reviewVersion: command.reviewVersion };
       detail = pair + ' 確認第 ' + command.round + ' 圈';
     } else {
-      if (pair !== inputPair) throw new DomainError('只能由指定輸入方輸入成績', 403);
+      if (!tableMode && pair !== inputPair) throw new DomainError('只能由指定輸入方輸入成績', 403);
       const r = command.result;
-      if (!r || r.assignmentId !== a.id || !a.boards.includes(r.board)) throw new DomainError('只能輸入本搭檔當圈成績', 403);
+      if (!r || r.assignmentId !== a.id || !a.boards.includes(r.board)) throw new DomainError('只能輸入本收分卡當圈成績', 403);
       const b = e.boards.find(b => b.number === r.board)!;
       const key = resultKey(a.id, b.number);
       if (e.results[key]?.split) throw new DomainError('請先由裁判撤銷不平衡合約，再更正原始成績', 403);
@@ -269,6 +284,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (!club?.enabled || e.status !== 'live' || command.round !== e.currentRound || club.finalized.includes(command.round)) throw new DomainError('此圈無法結算');
     const assignments = e.assignments.filter(a => a.round === command.round);
     if (!assignments.length) throw new DomainError('此圈尚未安排賽程');
+    if (e.swiss && !swissRoundComplete(e, command.round)) throw new DomainError('Swiss 本圈尚未完整公布，不能結算');
     for (const a of assignments) {
       const accepted = clubAccepted(e, a);
       if (!accepted && !command.force) throw new DomainError('尚有桌次未收齊成績或對方未確認');
@@ -281,11 +297,11 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
           e.results[key] = after;
         }
       }
-      if (!accepted) club.confirmations[`${command.round}:${clubRoles(e, a).confirmPair}`] = { at, forced: true, reviewVersion: clubReviewVersion(e, a) };
+      if (!accepted) club.confirmations[clubConfirmationKey(e, a)] = { at, forced: true, reviewVersion: clubReviewVersion(e, a) };
     }
     club.finalized.push(command.round);
     e.roundPhase = 'break';
-    if (command.force && command.round < e.rounds) {
+    if (command.force && command.round < e.rounds && e.assignments.some(a => a.round === command.round + 1) && (!e.swiss || swissRoundComplete(e, command.round + 1))) {
       e.currentRound = command.round + 1;
       e.roundPhase = 'playing';
     }
@@ -574,6 +590,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       throw new DomainError((error as Error).message);
     }
   }
+  if (e.club?.mode === 'table' && !validDeviceSchedule(e)) throw new DomainError('同圈同桌有多筆安排，無法綁定收分裝置');
   if (e.status === 'live' && !e.club?.enabled &&
       ['results', 'results-import', 'ruling', 'split-contract', 'round-control'].includes(command.action)) {
     if (command.action === 'results' || command.action === 'results-import') {
@@ -601,8 +618,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'lineups-import': '匯入入座名單',
       'clear-results': '清除所有成績',
       'table-lineup': '桌次上場名單',
-      'club-config': '俱樂部模式設定',
-      'club-play': '搭檔提交／確認',
+      'club-config': '裝置收分設定',
+      'club-play': '收分卡提交／確認',
       'club-finalize': '圈次結算',
       results: '收分／更正',
       'results-import': '匯入成績',
