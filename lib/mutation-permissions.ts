@@ -8,6 +8,8 @@ const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
   'results-import': 'director',
   'round-times-import': 'director',
   'movement-plan': 'director',
+  'swiss-config': 'director',
+  'swiss-publish': 'director',
   'team-roster': 'director',
   'table-lineup': 'staff',
   'competition-settings': 'director',

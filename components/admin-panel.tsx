@@ -24,6 +24,7 @@ import { ClearResults } from './clear-results';
 import { ClubAdmin } from './club-admin';
 import { EditorPopover } from './editor-popover';
 import { MiniContractFields } from './mini-contract-fields';
+import { SwissPanel } from './swiss-panel';
 import { MovementPanel } from './movement-panel';
 import { RandomDealsPanel } from './random-deals-panel';
 import {
@@ -707,7 +708,8 @@ export function AdminPanel({
                 儲存最大牌號
               </button>
             </form>
-            {(
+            <SwissPanel key={`swiss-${event.id}-${event.revision}`} event={event as BridgeEvent} busy={busy} save={save} />
+            {!event.swiss && (
               <MovementPanel
                 key={`movement-${event.id}-${event.revision}`}
                 event={event as BridgeEvent}
@@ -737,7 +739,7 @@ export function AdminPanel({
                   <option value="results">成績 CSV</option>
                   <option value="pbn">完整牌型 PBN</option>
                   <option value="round-times">各圈時間區間 CSV</option>
-                  <option value="movement">賽程編排 CSV</option>
+                  {!event.swiss && <option value="movement">賽程編排 CSV</option>}
                   {event.kind === 'teams' && <option value="rosters">隊伍賽員名單 CSV</option>}
                   {event.kind === 'teams' && <option value="lineups">入座名單 CSV</option>}
                 </select>

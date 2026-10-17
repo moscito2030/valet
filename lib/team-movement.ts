@@ -28,9 +28,10 @@ export function validateInterleavedLineups(assignments: Assignment[]) {
 
 // A bye is a scheduled absence, never a fabricated table or board result.
 export function teamByes(
-  event: Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'byeVp'>,
+  event: Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'byeVp' | 'swiss'>,
 ) {
   if (event.kind !== 'teams' || event.participants.length % 2 === 0) return [];
+  if (event.swiss) return event.swiss.publications.filter(p => p.bye).map(p => ({ round: p.round, participantId: p.bye!, vp: event.byeVp ?? 12 }));
   return [...new Set(event.assignments.map((a) => a.round))]
     .sort((a, b) => a - b)
     .flatMap((round) => {

@@ -1,3 +1,5 @@
+import { assertSwissTeams, publishSwiss, swissRoundComplete } from './swiss';
+import { playerBoardError } from './schedule-limits';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { boardGroups } from './board-groups';
@@ -172,6 +174,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   const e = structuredClone(stored.event),
     at = new Date().toISOString();
   e.results = normalizeResults(e.results);
+  if (e.swiss && ['movement','movement-plan'].includes(command.action)) throw new DomainError('Swiss 賽程請使用逐圈配對，不能以整場編排覆寫');
   if (!e.rounds && (['results', 'results-import', 'club-play', 'club-finalize', 'round-control', 'movement', 'pbn', 'ruling', 'split-contract'].includes(command.action) || (command.action === 'settings' && command.status === 'finished')))
     throw new DomainError('待設定賽程，請先選擇賽程編排並設定圈數與每圈牌數');
   const changes: { key: string; before: Result | null; after: Result | null }[] = [];
@@ -312,6 +315,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     }
   } else if (command.action === 'round-control') {
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
+    if (e.swiss && command.round > 0 && command.phase === 'playing' && !swissRoundComplete(e, command.round)) throw new DomainError('請先完整公布這一圈對戰與輪空');
     if (command.round > e.rounds) throw new DomainError('圈數超過賽程範圍');
     if (command.round > 0 && !e.assignments.some((a) => a.round === command.round))
       throw new DomainError('請先安排這一圈的賽程');
@@ -344,6 +348,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     else delete e.roundTimes[command.round];
     detail = `第 ${command.round} 圈：${command.startAt ?? '未設定'} — ${command.endAt ?? '未設定'}`;
   } else if (command.action === 'settings') {
+    if (command.status === 'finished' && e.swiss && Array.from({length:e.rounds},(_,i)=>i+1).some(r=>!swissRoundComplete(e,r)))
+      throw new DomainError('Swiss 尚有圈次未完整公布，不能結束賽事。');
     if (
       command.status === 'finished' &&
       new Set(e.assignments.map((a) => a.round)).size !== e.rounds
@@ -441,6 +447,21 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     changes.push({ key, before: e.results[key] ?? null, after });
     e.results[key] = after;
     detail = `${key}: ${command.cancelled ? 'Cancelled' : '恢復合約'}`;
+  } else if (command.action === 'swiss-config') {
+    assertSwissTeams(e);
+    if (e.status !== 'live' || Object.keys(e.results).length || e.swiss?.publications.length) throw new DomainError('Swiss 模式須在收分與公布對戰前設定');
+    const error = playerBoardError(command.rounds, command.boardsPerRound);
+    if (error) throw new DomainError(error);
+    const maxRounds = e.participants.length % 2 ? e.participants.length : e.participants.length - 1;
+    if(command.rounds > maxRounds) throw new DomainError(`不重複對手的 Swiss 最多 ${maxRounds} 圈`);
+    e.rounds=command.rounds; e.boardsPerRound=command.boardsPerRound; e.byeVp=command.byeVp;
+    e.swiss={mode:command.mode,publications:[]}; e.assignments=[];
+    e.boards=Array.from({length:e.rounds*e.boardsPerRound},(_,i)=>e.boards.find(b=>b.number===i+1) ?? {...makeBoard(i+1),deal:{N:[],E:[],S:[],W:[]},published:false});
+    e.currentRound=0; e.roundPhase='break'; e.roundTimes={}; e.movementImported=true;
+    e.movementDescription=`Swiss · ${command.mode==='current'?'當圈安排':'隔圈安排'} · 依未扣判罰的累計 VP 配對，不重複對手`;
+    detail=e.movementDescription;
+  } else if (command.action === 'swiss-publish') {
+    detail=publishSwiss(e,command.round,command.partial,at);
   } else if (command.action === 'movement-plan') {
     if (e.status === 'finished' || Object.keys(e.results).length || e.club?.finalized.length)
       throw new DomainError('僅能在尚未收分且未結束的賽段套用賽程編排');
@@ -563,7 +584,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       }
     }
     const progress = roundProgress(e);
-    if (progress.expected > 0 && progress.received === progress.expected) {
+    if (progress.expected > 0 && progress.received === progress.expected && (!e.swiss || swissRoundComplete(e, progress.round))) {
       e.currentRound = progress.round;
       e.roundPhase = 'break';
       detail = [detail, `第 ${progress.round} 圈成績收齊，自動進入圈間休息`].filter(Boolean).join('；');
@@ -589,6 +610,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       pbn: '匯入牌型',
       movement: '匯入賽程編排',
       'movement-plan': '套用賽程編排',
+      'swiss-config': '設定 Swiss',
+      'swiss-publish': '公布 Swiss 對戰',
       'board-publication': '逐副公開設定',
       'round-control': '設定目前圈數',
       'round-timing': '設定圈次時間',

@@ -67,6 +67,14 @@ export type Audit = {
   detail?: string;
   changes?: { key: string; before: Result | null; after: Result | null }[];
 };
+export type SwissPublication = {
+  round: number; sourceRound: number; sourceRevision: number; at: string;
+  pairs: [string, string][]; bye?: string;
+  basis: { id: string; vpA: number | null; vpB: number | null }[];
+  byeBasis: { round: number; participantId: string; vp: number }[];
+  scores: { id: string; score: number; ready: boolean }[];
+};
+export type SwissConfig = { mode: 'current' | 'delayed'; publications: SwissPublication[] };
 export type BridgeEvent = {
   // A root record holds shared competition metadata and its original scoring session.
   parentEventId?: string;
@@ -98,6 +106,7 @@ export type BridgeEvent = {
   movementImported?: boolean;
   teamMovement?: 'interleaved';
   byeVp?: number;
+  swiss?: SwissConfig;
   currentRound?: number;
   roundPhase?: 'playing' | 'break';
   roundTimes?: Record<number, { startAt: string; endAt: string }>;
@@ -147,6 +156,9 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: '雙人賽至少四對' });
   });
 export const mutationSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('swiss-config'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), mode: z.enum(['current','delayed']), rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS), boardsPerRound: z.number().int().min(1).max(16), byeVp: z.number().min(0).max(20).multipleOf(0.01) }).strict(),
+  z.object({ action: z.literal('swiss-publish'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), round: z.number().int().min(1).max(MAX_PLAYER_BOARDS), partial: z.boolean() }).strict(),
+
   z.object({ action: z.literal('rosters-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入隊伍賽員名單'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('lineups-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入入座名單'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('clear-results'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), confirmName: z.string().min(1).max(80) }).strict(),

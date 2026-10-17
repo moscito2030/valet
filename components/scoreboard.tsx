@@ -961,6 +961,7 @@ export default function Scoreboard() {
                         <RoundSelect event={event} count={event.rounds} round={round} setRound={setRound} />
                       </div>
                       {event.teamMovement === 'interleaved' && <InterleavedRound event={event} round={round} onBoard={(b, a) => { setBoard(b); setSelectedResult(a); setTab('boards'); }} />}
+                      {event.swiss && <p className="footnote team-bye-note">Swiss：尚未出現在本圈對戰或輪空名單的隊伍，請等待裁判公布安排；未安排不代表輪空。</p>}
                       {event.projection.byes?.filter(b => b.round === round).map(b => <p key={b.participantId} className="footnote team-bye-note">{name(b.participantId)}：輪空，{number(b.vp)} VP（{b.awarded ? '已計入排名' : '本圈收分完成後計入'}）。不計 IMP 或實打牌數。</p>)}
                       {event.kind === 'teams' ? (
                         <div className="match-grid">

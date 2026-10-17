@@ -28,6 +28,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     movementImported: event.movementImported,
     teamMovement: event.teamMovement,
     byeVp: event.byeVp,
+    swiss: event.swiss,
     currentRound: event.currentRound,
     roundPhase: event.roundPhase,
     roundTimes: event.roundTimes,

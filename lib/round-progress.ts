@@ -1,9 +1,15 @@
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 
-export function allRoundsComplete(event: Pick<BridgeEvent, 'rounds' | 'assignments' | 'results' | 'club'>) {
+export function allRoundsComplete(event: Pick<BridgeEvent, 'rounds' | 'assignments' | 'results' | 'club'> & Partial<Pick<BridgeEvent, 'swiss' | 'participants'>>) {
   return event.rounds > 0 && Array.from({ length: event.rounds }, (_, i) => i + 1).every(round => {
     const tables = event.assignments.filter(a => a.round === round);
+    if (event.swiss) {
+      const ids = new Set(tables.flatMap(a => [a.ns, a.ew]));
+      const bye = event.swiss.publications.find(p => p.round === round && p.bye)?.bye;
+      if (bye) ids.add(bye);
+      if (!event.participants || ids.size !== event.participants.length) return false;
+    }
     return tables.length > 0 && tables.every(a => a.boards.length > 0 &&
       a.boards.every(b => !!event.results[resultKey(a.id, b)])) &&
       (!event.club?.enabled || event.club.finalized.includes(round));
