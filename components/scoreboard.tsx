@@ -425,6 +425,13 @@ export default function Scoreboard() {
     (a) => a.id === selectedResult && a.boards.includes(selectedBoard?.number ?? 0),
   );
   const activeNames = event ? tableNames(event.kind, event.participants, activeAssignment) : {};
+  const visibleStandings = event ? event.projection.standings.filter((s) => {
+    const participant = event.kind === 'teams'
+      ? event.participants.find(p => p.id === s.id)
+      : undefined;
+    return [s.name, participantNumber(s.id, event.kind), participant?.players, participant?.captain]
+      .some(value => value?.toLowerCase().includes(query.trim().toLowerCase()));
+  }) : [];
   const selectedRoundMatches = event?.projection.matches.filter((m) => event.teamMovement === 'interleaved' ? event.assignments.some(a => a.round === round && a.matchId === m.id) : m.round === round) ?? [];
   const playerBye = event?.projection.byes?.find(b => b.round === playerRound && b.participantId === playerId);
   const roundPairStandings = event?.kind === 'pairs' ? pairStandingsBeforeRound(event, round) : [];
@@ -813,14 +820,7 @@ export default function Scoreboard() {
                             </tr>
                           </thead>
                           <tbody>
-                            {event.projection.standings
-                              .filter((s) => {
-                                const participant = event.kind === 'teams'
-                                  ? event.participants.find(p => p.id === s.id)
-                                  : undefined;
-                                return [s.name, participantNumber(s.id, event.kind), participant?.players, participant?.captain]
-                                  .some(value => value?.toLowerCase().includes(query.trim().toLowerCase()));
-                              })
+                            {visibleStandings
                               .map((s) => (
                                 <tr
                                   key={s.id}
@@ -929,11 +929,7 @@ export default function Scoreboard() {
                               ))}
                           </tbody>
                         </table>
-                        {!event.projection.standings.some(
-                          (s) =>
-                            s.name.toLowerCase().includes(query.toLowerCase()) ||
-                            participantNumber(s.id, event.kind).toLowerCase().includes(query.toLowerCase()),
-                        ) && <div className="empty compact">沒有符合的參賽者</div>}
+                        {visibleStandings.length === 0 && <div className="empty compact">沒有符合的參賽者</div>}
                       </div>
                       <div className="table-footer">
                         <span>
