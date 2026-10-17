@@ -190,3 +190,18 @@ test('guide handles breaks, first round, bye, last round and absent schedule', (
   e.currentRound=0; e.rounds=0; e.assignments=[];
   assert.deepEqual(clubView(e,pair).guide,{kind:'pending'});
 });
+
+test('unpaired future rounds stay pending until seats or a complete bye are known', () => {
+  const s = setup(7), e = s.state.event;
+  e.roundPhase = 'break';
+  const future = e.assignments.filter(a => a.round === 2);
+  e.assignments = e.assignments.filter(a => a.round !== 2);
+  const pair = future[1].ns;
+  assert.deepEqual(clubView(e,pair).guide,{kind:'pending'});
+  e.assignments.push(future[0]);
+  assert.deepEqual(clubView(e,pair).guide,{kind:'pending'});
+  e.assignments.push(...future.slice(1));
+  assert.equal(clubView(e,pair).guide?.kind,'table');
+  const bye = e.participants.find(p => !future.some(a => a.ns === p.id || a.ew === p.id))!;
+  assert.deepEqual(clubView(e,bye.id).guide,{kind:'bye',round:2});
+});

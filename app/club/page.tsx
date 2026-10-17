@@ -76,7 +76,7 @@ export default function ClubPage() {
         </> : data.guide.kind === 'bye' ? <>
           <h2>第 {data.guide.round} 圈輪空</h2><p>下一圈沒有對手與牌組，無需登分或確認。請依裁判指示休息。</p>
         </> : data.guide.kind === 'pending' ? <>
-          <h2>等待賽程安排</h2><p>裁判設定賽程後，這裡會顯示入座資訊。</p>
+          <h2>等待裁判公布下一圈安排</h2><p>下一圈對手或桌次尚未確定，請先等候。安排公布後，這裡會自動更新入座資訊。</p>
         </> : <><h2>沒有下一圈</h2><p>本賽段賽程已到最後，請依裁判指示結束。</p></>}
       </section>}
       <section className="panel club-section">
