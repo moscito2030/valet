@@ -94,9 +94,8 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                 <table>
                   <thead>
                     <tr>
-                      <th>隊伍</th>
-                      <th>{pairs ? '賽員 1' : '賽員'}</th>
-                      {pairs && <th>賽員 2</th>}
+                      <th className="butler-player" scope="col">{pairs ? '賽員 1' : '賽員'}</th>
+                      {pairs && <th className="butler-player butler-player-second" scope="col">賽員 2</th>}
                       <th>有效牌數</th>
                       {pairs && (
                         <>
@@ -119,11 +118,8 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                   <tbody>
                     {rows.map((r) => (
                       <tr key={r.key}>
-                        <td>
-                          {event.participants.find((p) => p.id === r.teamId)?.name ?? r.teamId}
-                        </td>
-                        <th scope="row">{r.names[0]}</th>
-                        {pairs && <td>{r.names[1]}</td>}
+                        <th className="butler-player" scope="row">{r.names[0]}</th>
+                        {pairs && <td className="butler-player butler-player-second">{r.names[1]}</td>}
                         <td>{r.boards}</td>
                         {pairs && (
                           <>
