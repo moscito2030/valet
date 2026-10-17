@@ -22,6 +22,7 @@ import { ArrowDownToLine, Check } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { ClearResults } from './clear-results';
 import { ClubAdmin } from './club-admin';
+import { PairNames } from './pair-names';
 import { EditorPopover } from './editor-popover';
 import { MiniContractFields } from './mini-contract-fields';
 import { SwissPanel } from './swiss-panel';
@@ -940,6 +941,7 @@ export function AdminPanel({
         )}
         {section === 'publish' && (
           <>
+            {event.canDirect && event.kind === 'pairs' && <PairNames participants={event.participants} busy={busy} save={save} />}
             {event.canDirect && (
               <form
                 className="event-identity-form"

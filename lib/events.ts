@@ -619,6 +619,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'clear-results': '清除所有成績',
       'table-lineup': '桌次上場名單',
       'club-config': '裝置收分設定',
+      'pair-name': '修改搭檔名稱',
       'club-play': '收分卡提交／確認',
       'club-finalize': '圈次結算',
       results: '收分／更正',

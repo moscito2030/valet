@@ -5,16 +5,22 @@ import { parseRosters } from './roster-import';
 import { parseLineups, lineupRosterAdditions } from './lineup-import';
 type RosterMutation = Extract<
   Mutation,
-  { action: 'lineups-import' | 'rosters-import' | 'team-roster' | 'table-lineup' }
+  { action: 'lineups-import' | 'rosters-import' | 'team-roster' | 'table-lineup' | 'pair-name' }
 >;
 export function isRosterMutation(command: Mutation): command is RosterMutation {
-  return ['lineups-import', 'rosters-import', 'team-roster', 'table-lineup'].includes(
+  return ['lineups-import', 'rosters-import', 'team-roster', 'table-lineup', 'pair-name'].includes(
     command.action,
   );
 }
 export function applyRosterMutation(e: BridgeEvent, command: RosterMutation) {
   let detail = '';
-  if (command.action === 'lineups-import') {
+  if (command.action === 'pair-name') {
+    const pair = e.participants.find(p => p.id === command.participantId);
+    if (e.kind !== 'pairs' || !pair) throw new DomainError('找不到雙人賽搭檔');
+    if (e.participants.some(p => p.id !== pair.id && p.name.trim() === command.name)) throw new DomainError('搭檔名稱不可重複');
+    detail = `${pair.id}：${JSON.stringify(pair.name)} → ${JSON.stringify(command.name)}`;
+    pair.name = command.name;
+  } else if (command.action === 'lineups-import') {
     try {
       const updates = parseLineups(command.csv, e);
       const additions = lineupRosterAdditions(updates, e);

@@ -157,6 +157,7 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: '雙人賽至少四對' });
   });
 export const mutationSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('pair-name'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), participantId: z.string().min(1).max(100), name: z.string().trim().min(1).max(60) }).strict(),
   z.object({ action: z.literal('swiss-config'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), mode: z.enum(['current','delayed']), rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS), boardsPerRound: z.number().int().min(1).max(16), byeVp: z.number().min(0).max(20).multipleOf(0.01) }).strict(),
   z.object({ action: z.literal('swiss-publish'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), round: z.number().int().min(1).max(MAX_PLAYER_BOARDS), partial: z.boolean() }).strict(),
 
