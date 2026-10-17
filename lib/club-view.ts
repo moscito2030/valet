@@ -66,10 +66,24 @@ export function clubView(event: BridgeEvent, pair: string) {
   const assignment = event.assignments.find(a => a.round === round && (a.ns === pair || a.ew === pair));
   const roles = assignment ? clubRoles(event, assignment) : null;
   const accepted = !!assignment && clubAccepted(event, assignment);
+  const showGuide = accepted || event.roundPhase === 'break' || (round > 0 && !assignment) || event.status === 'finished';
+  const nextRound = round + 1;
+  const next = event.assignments.find(a => a.round === nextRound && (a.ns === pair || a.ew === pair));
+  const opponentId = next ? (next.ns === pair ? next.ew : next.ns) : null;
+  const guide = !showGuide ? null : event.status === 'finished' || (event.rounds > 0 && nextRound > event.rounds)
+    ? { kind: 'complete' as const }
+    : event.rounds === 0 ? { kind: 'pending' as const }
+    : next ? {
+      kind: 'table' as const, round: nextRound, table: next.table,
+      direction: next.ns === pair ? 'NS' as const : 'EW' as const,
+      opponentId: opponentId!, opponentName: event.participants.find(p => p.id === opponentId)?.name ?? opponentId!,
+      boards: [...next.boards],
+    } : { kind: 'bye' as const, round: nextRound };
   return {
     id: event.id, gameMode: event.gameMode ?? 'bridge', name: [event.prefix, event.name].filter(Boolean).join(' '), pair,
     pairName: event.participants.find(p => p.id === pair)?.name ?? pair,
     round, phase: event.roundPhase, status: event.status,
+    guide,
     locked: accepted,
     accepted,
     role: roles ? (roles.inputPair === pair ? 'input' as const : 'confirm' as const) : null,

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ClubView } from '@/lib/club-view';
 import type { ResultInput } from '@/lib/model';
+import { boardRange } from '@/lib/board-groups';
 import { contractScore } from '@/lib/scoring';
 import { MiniContractFields } from '@/components/mini-contract-fields';
 
@@ -60,10 +61,24 @@ export default function ClubPage() {
   const board = data?.boards.find(b => b.number === draft?.board);
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
   return <main className="club-page">
-    <header><span className="eyebrow">CLUB SCORECARD</span><h1>{data?.pairName ?? '搭檔收分'}</h1><p>{data?.name}</p><a href="/manual/players.html">收分操作手冊</a></header>
+    <header><span className="eyebrow">CLUB SCORECARD · GUIDE CARD</span><h1>{data?.pairName ?? '搭檔收分'}</h1><p>{data?.name}</p><a href="/manual/players.html">收分操作手冊</a></header>
     {error && <div className="alert error" role="alert">{error}</div>}
     {notice && <div className="alert success" role="status">{notice}</div>}
     {!data ? <p>正在讀取專屬收分卡…</p> : <>
+      {data.guide && <section className="panel club-section" aria-label="下一圈 Guide card">
+        <span className="eyebrow">GUIDE CARD</span>
+        {data.guide.kind === 'table' ? <>
+          <h2>第 {data.guide.round} 圈 · 前往第 {data.guide.table} 桌</h2>
+          <p><strong>你的方向：{data.guide.direction === 'NS' ? '南北 NS' : '東西 EW'}</strong></p>
+          <p>對手：{data.guide.opponentName}（{data.guide.opponentId.toUpperCase()}）</p>
+          <p>牌號：{boardRange(data.guide.boards)}</p>
+          <p className="footnote">請依裁判指示移動，下一圈開放後再開始登分。</p>
+        </> : data.guide.kind === 'bye' ? <>
+          <h2>第 {data.guide.round} 圈輪空</h2><p>下一圈沒有對手與牌組，無需登分或確認。請依裁判指示休息。</p>
+        </> : data.guide.kind === 'pending' ? <>
+          <h2>等待賽程安排</h2><p>裁判設定賽程後，這裡會顯示入座資訊。</p>
+        </> : <><h2>沒有下一圈</h2><p>本賽段賽程已到最後，請依裁判指示結束。</p></>}
+      </section>}
       <section className="panel club-section">
         <h2>{data.pair.toUpperCase()} · {data.round ? `第 ${data.round} 圈` : '尚未開始'}</h2>
         {data.assignment ? <><p>桌 {data.assignment.table} · NS {data.names?.ns} ／ EW {data.names?.ew}</p>

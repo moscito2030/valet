@@ -151,3 +151,42 @@ test('legacy confirmations cannot approve new workflow and finalized tables cann
   assert.equal(clubRoles(s.state.event, s.state.event.assignments.find(a => a.round === 2)!).inputPair,
     s.state.event.assignments.find(a => a.round === 2)!.ew);
 });
+
+test('guide card appears for both sides after acceptance and follows actual next-round seats', () => {
+  const s = setup();
+  const a = s.state.event.assignments.find(a => a.round === 1)!;
+  assert.equal(clubView(s.state.event, a.ns).guide, null);
+  for (const b of a.boards) s.apply({action:'club-play',round:1,confirm:false,tokenHash:s.hash(a.ns),result:s.result(a.id,b)});
+  assert.equal(clubView(s.state.event, a.ns).guide, null);
+  s.apply({action:'club-play',round:1,confirm:true,tokenHash:s.hash(a.ew),reviewVersion:clubView(s.state.event,a.ew).reviewVersion});
+  for (const pair of [a.ns,a.ew]) {
+    const next = s.state.event.assignments.find(x => x.round === 2 && (x.ns === pair || x.ew === pair))!;
+    const guide = clubView(s.state.event,pair).guide;
+    assert.equal(guide?.kind,'table');
+    if (guide?.kind !== 'table') throw new Error('Missing guide');
+    assert.equal(guide.table,next.table);
+    assert.equal(guide.direction,next.ns === pair ? 'NS' : 'EW');
+    assert.equal(guide.opponentId,next.ns === pair ? next.ew : next.ns);
+    assert.deepEqual(guide.boards,next.boards);
+    assert.equal('deal' in guide,false);
+    assert.equal('results' in guide,false);
+  }
+});
+
+test('guide handles breaks, first round, bye, last round and absent schedule', () => {
+  const s = setup(5), e=s.state.event, pair=e.participants[0].id;
+  e.roundPhase='break';
+  assert.ok(clubView(e,pair).guide);
+  e.currentRound=0;
+  const first=e.assignments.find(a=>a.round===1)!;
+  const guide=clubView(e,first.ns).guide;
+  assert.equal(guide?.kind,'table');
+  if(guide?.kind==='table') assert.equal(guide.round,1);
+  const bye=e.participants.find(p=>!e.assignments.some(a=>a.round===2&&(a.ns===p.id||a.ew===p.id)))!;
+  e.currentRound=1;
+  assert.deepEqual(clubView(e,bye.id).guide,{kind:'bye',round:2});
+  e.currentRound=2;
+  assert.deepEqual(clubView(e,pair).guide,{kind:'complete'});
+  e.currentRound=0; e.rounds=0; e.assignments=[];
+  assert.deepEqual(clubView(e,pair).guide,{kind:'pending'});
+});
