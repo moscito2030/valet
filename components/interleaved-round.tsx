@@ -26,7 +26,7 @@ export function InterleavedRound({
     <div className="interleaved-round">
       <p className="footnote">
         交錯循環：南北／東西為各隊固定搭檔，請依桌號與牌號移動。兩桌分別在不同圈打牌，收齊後比較；VP
-        歸入第 {roundLabel(event, Math.ceil(round / 2) * 2)} 圈。
+        歸入兩桌之中較後的圈次。
       </p>
       <div className="table-scroll">
         <table aria-label="交錯循環實際入座">

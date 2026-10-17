@@ -385,7 +385,7 @@ test('mode selection and round labels distinguish 3- and 5-team groups and retai
     movementOptions(draft)
       .filter((p) => p.interleavedSize)
       .map((p) => p.interleavedSize),
-    [3, 5],
+    [3, 5, 5],
   );
   assert.ok(!movementOptions(fixture(6, 3, 1)).some((p) => p.interleavedSize));
   assert.ok(!movementOptions(fixture(7, 4, 1)).some((p) => p.interleavedSize));
@@ -429,4 +429,38 @@ test('new cycles isolate repeated-opponent scores and allow lineup direction cha
   const changed = event.assignments.find((a) => a.round === 4 && a.ew === 't1')!;
   changed.playerNames!.E = 't1-E';
   assert.throws(() => validateInterleavedLineups(event.assignments), /同一交錯循環/);
+});
+
+test('five-team rotation preserves symmetric matches in 1,3,4,2 order across regrouped cycles', () => {
+  for (const n of [5, 10, 15, 20, 25, 30]) {
+    const draft = fixture(n, 8, 2);
+    const groups = defaultInterleavedGroups(draft, 5);
+    const shifted = draft.participants.map(p => p.id);
+    shifted.push(shifted.shift()!);
+    groups[1] = Array.from({ length: n / 5 }, (_, g) => shifted.slice(g * 5, g * 5 + 5));
+    const options = movementOptions(draft).filter(o => o.interleavedSize === 5);
+    assert.equal(options[0].id, 'team-interleaved-5-rotation');
+    const original = buildMovement(draft, 'team-interleaved-5', groups);
+    const event = apply(store(draft), { action: 'movement-plan', plan: options[0].id, interleavedGroups: groups }).event;
+    assert.deepEqual(parseMovement(exportMovement(event), event), event.assignments);
+    for (const a of event.assignments) {
+      const oldRound = Math.floor((a.round - 1) / 4) * 4 + [1, 3, 4, 2][(a.round - 1) % 4];
+      const before = original.assignments.find(x => x.round === oldRound && x.table === a.table)!;
+      assert.deepEqual({ ...a, id: before.id, round: oldRound }, before);
+    }
+    for (const p of event.participants) for (const side of ['ns', 'ew'] as const) {
+      const boards = event.assignments.filter(a => a[side] === p.id).flatMap(a => a.boards);
+      assert.equal(new Set(boards).size, boards.length);
+    }
+    const matches = project(event).matches;
+    assert.ok(matches.every(m => [3, 4, 7, 8].includes(m.round)));
+    score(event, 1); score(event, 2);
+    assert.ok(project(event).matches.every(m => m.vpA === null));
+    score(event, 3);
+    assert.equal(project(event).matches.filter(m => m.vpA !== null).length, n);
+    score(event);
+    assert.ok(project(event).standings.every(s => s.score === 80));
+    assert.deepEqual(project(event).matches.map(m => [m.id, m.impsA, m.impsB, m.vpA, m.vpB]).sort(),
+      (() => { const symmetric = { ...event, assignments: original.assignments, results: {} }; score(symmetric); return project(symmetric).matches.map(m => [m.id, m.impsA, m.impsB, m.vpA, m.vpB]).sort(); })());
+  }
 });

@@ -78,7 +78,7 @@ export function validateInterleavedGroups(
     throw new Error('每個循環須完整分組，每隊恰好出現一次，且每組隊數符合所選模式');
 }
 
-// Infer the ring size from the first reciprocal round pair. This also supports
+// Infer the ring size from the connected teams in the first two rounds. This supports
 // legacy CSV schedules without adding metadata or changing numeric round IDs.
 export function interleavedSize(event: Pick<BridgeEvent, 'assignments'>): InterleavedSize {
   const rows = event.assignments.filter((a) => a.round <= 2);
@@ -107,9 +107,12 @@ export function interleavedAssignments(
   event: Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound'>,
   size: InterleavedSize,
   groups = defaultInterleavedGroups(event, size),
+  mode: 'rotation' | 'symmetric' = 'symmetric',
 ): Assignment[] {
   validateInterleavedGroups(event, size, groups);
-  const shifts = Array.from({ length: (size - 1) / 2 }, (_, i) => [i + 1, size - i - 1]).flat();
+  const shifts = size === 5 && mode === 'rotation'
+    ? [1, 2, 3, 4]
+    : Array.from({ length: (size - 1) / 2 }, (_, i) => [i + 1, size - i - 1]).flat();
   return groups.flatMap((cycle, c) =>
     shifts.flatMap((shift, r) =>
       cycle.flatMap((group, g) =>
@@ -203,11 +206,11 @@ export function validateInterleaved(
       open.ns !== closed.ew ||
       open.ew !== closed.ns ||
       open.round === closed.round ||
-      Math.ceil(open.round / 2) !== Math.ceil(closed.round / 2) ||
+      Math.ceil(open.round / (size - 1)) !== Math.ceil(closed.round / (size - 1)) ||
       [...open.boards].sort((a, b) => a - b).join() !==
         [...closed.boards].sort((a, b) => a - b).join()
     )
-      throw new Error('交錯循環每場須有相鄰兩圈、方向相反且牌組相同的兩桌');
+      throw new Error('交錯循環每場須有同一循環內不同圈、方向相反且牌組相同的兩桌');
     const cycle = Math.floor((open.round - 1) / (size - 1));
     const key = cycle + ':' + [open.ns, open.ew].sort().join(':');
     if (opponents.has(key)) throw new Error('交錯循環對手重複');

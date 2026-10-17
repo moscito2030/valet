@@ -2,7 +2,7 @@ import templates from './movement-templates.json';
 import type { Assignment, BridgeEvent } from './model';
 import { interleavedAssignments, teamByes, type InterleavedGroups, type InterleavedSize } from './team-movement';
 
-export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string; interleavedSize?: InterleavedSize };
+export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string; interleavedSize?: InterleavedSize; interleavedMode?: 'rotation' | 'symmetric' };
 type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
 export function movementOptions(event: Input): MovementPlan[] {
   if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 31 : 19)) return [];
@@ -14,8 +14,16 @@ export function movementOptions(event: Input): MovementPlan[] {
     for (const size of [3, 5] as const) if (n % size === 0 && event.rounds % (size - 1) === 0) {
       const cycles = event.rounds / (size - 1);
       options.push({ id: 'team-interleaved-' + size, interleavedSize: size,
-        label: (size === 3 ? '三' : '五') + '隊交錯循環（全員打牌）', groups: size * cycles,
-        note: n + ' 張實體桌，每循環 ' + (n / size) + ' 組、每組 ' + size + ' 隊，共 ' + cycles + ' 個循環。各循環可重新分組；循環內固定南北／東西搭檔，依預覽移動。每兩圈完成一批比較，每場按每圈牌數換算 20–0 VP；全賽每隊 ' + event.rounds + ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開／閉為比較方向，非固定房間。' });
+        label: (size === 3 ? '三' : '五') + '隊交錯循環（' + (size === 5 ? '對稱模式' : '全員打牌') + ')' , groups: size * cycles,
+        note: n + ' 張實體桌，每循環 ' + (n / size) + ' 組、每組 ' + size + ' 隊，共 ' + cycles + ' 個循環。各循環可重新分組；循環內固定南北／東西搭檔，依預覽移動。正反方向兩桌收齊後完成比較，每場按每圈牌數換算 20–0 VP；全賽每隊 ' + event.rounds + ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開／閉為比較方向，非固定房間。' });
+      if (size === 5) {
+        const symmetric = options[options.length - 1];
+        options.splice(options.length - 1, 0, {
+          ...symmetric, id: 'team-interleaved-5-rotation', interleavedMode: 'rotation',
+          label: '五隊交錯循環（輪轉模式，預設）',
+          note: '南北固定，東西與牌組每圈按固定方向輪轉。依對稱模式的第 1、3、4、2 小圈順序編排，再依實際順序標為 1、2、3、4。' + symmetric.note,
+        });
+      }
     }
     return options;
   }
@@ -66,7 +74,7 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
       boards: Array.from({ length: event.boardsPerRound }, (_, i) => (group - 1) * event.boardsPerRound + i + 1) });
   }
   if (option.interleavedSize) {
-    assignments.push(...interleavedAssignments(event, option.interleavedSize, groups));
+    assignments.push(...interleavedAssignments(event, option.interleavedSize, groups, option.interleavedMode));
   } else if (id.startsWith('howell-')) {
     const template = templates.find(t => `howell-${t.id}` === id)!;
     template.rows.forEach((row, r) => row.forEach(([ns, ew, group], t) => add(r + 1, t + 1, ns, ew, group)));
