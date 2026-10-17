@@ -971,7 +971,7 @@ export default function Scoreboard() {
                           {selectedRoundMatches.map((m) => (
                             <div className="match-card" key={m.id}>
                               <div className="match-meta">
-                                {event.teamMovement === 'interleaved' ? `第 ${roundLabel(event, Math.ceil(m.round / 2) * 2 - 1)}–${roundLabel(event, m.round)} 圈比較` : `第 ${event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌`}{' '}
+                                {event.teamMovement === 'interleaved' ? `與 ${roundLabel(event, event.assignments.find(a => a.matchId === m.id && a.round !== round)!.round)} 圈比較` : `第 ${event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌`}{' '}
                                 <span>
                                   {m.completed === m.total
                                     ? '已收齊'

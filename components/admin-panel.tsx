@@ -270,7 +270,7 @@ export function AdminPanel({
       } else {
         const rows = parseMovement(text, event as BridgeEvent);
         const byes = teamByes({ ...event, assignments: rows, byeVp: parseByeVp(text) ?? event.byeVp });
-        setPreview(`共 ${rows.length} 組桌次安排。${isInterleaved(rows) ? '交錯循環須完整匯入，已有成績後禁止重匯；每場跨相鄰兩圈比較。' : event.kind === 'teams' ? '僅更新所列圈次，未列出的圈次保持不變，已收分圈次不得改動。' : '首次匯入會取代尚未收分的預設賽程。'}${byes.length ? '\n輪空：' + byes.map(b => `第 ${b.round} 圈 ${event.participants.find(p => p.id === b.participantId)?.name}，${b.vp} VP`).join('；') : ''}`);
+        setPreview(`共 ${rows.length} 組桌次安排。${isInterleaved(rows) ? '交錯循環須完整匯入，已有成績後禁止重匯；每場依同一對戰的兩桌實際圈次比較。' : event.kind === 'teams' ? '僅更新所列圈次，未列出的圈次保持不變，已收分圈次不得改動。' : '首次匯入會取代尚未收分的預設賽程。'}${byes.length ? '\n輪空：' + byes.map(b => `第 ${b.round} 圈 ${event.participants.find(p => p.id === b.participantId)?.name}，${b.vp} VP`).join('；') : ''}`);
       }
     } catch (e) {
       setError((e as Error).message);
