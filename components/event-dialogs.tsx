@@ -1,4 +1,5 @@
 'use client';
+import { MAX_PLAYER_BOARDS, playerBoardError, playerBoardWarning } from '@/lib/schedule-limits';
 import type { Kind } from '@/lib/model';
 import { Info, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -48,6 +49,9 @@ export function CreateDialog({
   const [kind, setKind] = useState<Kind>('teams'),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
+  const [plannedRounds, setPlannedRounds] = useState(0);
+  const [plannedBoards, setPlannedBoards] = useState<number | null>(null);
+  const count = plannedBoards ?? (kind === 'teams' ? 8 : 2);
   const [method, setMethod] = useState('mp');
   const [movementPlan, setMovementPlan] = useState('');
   const [gameMode, setGameMode] = useState<'bridge' | 'minibridge'>('bridge');
@@ -135,18 +139,19 @@ export function CreateDialog({
             此賽段使用獨立日期、名單、賽制與成績。
           </p>
         )}
+        {(playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)) && <p role="alert">{playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)}</p>}
         <div className="segmented">
           <button
             type="button"
             className={kind === 'teams' ? 'selected' : ''}
-            onClick={() => setKind('teams')}
+            onClick={() => (setKind('teams'), setPlannedBoards(null))}
           >
             隊制賽 · IMP / VP
           </button>
           <button
             type="button"
             className={kind === 'pairs' ? 'selected' : ''}
-            onClick={() => setKind('pairs')}
+            onClick={() => (setKind('pairs'), setPlannedBoards(null))}
           >
             雙人賽
           </button>
@@ -253,12 +258,13 @@ export function CreateDialog({
           )}
           <label className="field">
             圈數（選填）
-            <input name="rounds" type="number" min={1} max={kind === 'pairs' ? 19 : 31} placeholder="稍後設定" />
+            <input name="rounds" type="number" min={1} max={MAX_PLAYER_BOARDS} onChange={e => setPlannedRounds(Number(e.target.value))} placeholder="稍後設定" />
           </label>
           <label className="field">
             每圈牌數（可稍後調整）
             <input
               name="boardsPerRound"
+              onChange={e => setPlannedBoards(Number(e.target.value))}
               type="number"
               min={1}
               max={16}

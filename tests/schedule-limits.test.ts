@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { createEvent, applyMutation } from '../lib/events';
+import { mutationSchema } from '../lib/model';
+import { project } from '../lib/scoring';
+import { buildMovement } from '../lib/movement-plans';
+import { playerBoardWarning, playerBoardError } from '../lib/schedule-limits';
+
+test('player limits count rounds including byes, not total deal sets', () => {
+  const input = { name: '牌數上限測試', kind: 'teams' as const, names: ['一隊','二隊','三隊','四隊','五隊'], rounds: 256, boardsPerRound: 4, date: '2026-10-17', venue: '' };
+  const event = createEvent(input);
+  const plan = buildMovement(event, 'team-interleaved-5-rotation');
+  assert.equal(plan.boardCount, 1280);
+  assert.equal(playerBoardError(256, 4), null);
+  assert.equal(playerBoardWarning(128, 4), null);
+  assert.match(playerBoardWarning(129, 4)!, /516/);
+  assert.ok(playerBoardWarning(256, 4));
+  assert.ok(playerBoardError(257, 4));
+  assert.throws(() => createEvent({...input, rounds: 257}), /1024/);
+  assert.throws(() => createEvent({...input, kind: 'pairs', rounds: 65, boardsPerRound: 16}), /1024/);
+  assert.equal(createEvent({...input, rounds: 1024, boardsPerRound: 1}).rounds, 1024);
+  assert.throws(() => buildMovement({...event, rounds: 260}, 'team-interleaved-5-rotation'), /1024/);
+  assert.throws(() => buildMovement({...event, rounds: 257}, 'team-round-robin'), /1024/);
+  const command = (extra: object) => mutationSchema.parse({action:'movement-plan',plan:'team-interleaved-5-rotation', revision:event.revision, requestId:randomUUID(), reason:'驗證上限', ...extra});
+  const updated = applyMutation({event, projection:project(event), requests:[]}, command({}));
+  assert.equal(updated.event.boards.length, 1280);
+  assert.throws(() => applyMutation({event, projection:project(event), requests:[]}, command({rounds:260})), /1024/);
+  assert.equal(mutationSchema.parse({action:'round-control', revision:1, requestId:randomUUID(), reason:'驗證圈數', round:1024, phase:'playing'}).action, 'round-control');
+});

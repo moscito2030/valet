@@ -1,4 +1,5 @@
 'use client';
+import { MAX_PLAYER_BOARDS, playerBoardError, playerBoardWarning } from '@/lib/schedule-limits';
 import { boardRange } from '@/lib/board-groups';
 
 import { useState } from 'react';
@@ -40,7 +41,7 @@ export function MovementPanel({
   const options = movementOptions(draft);
   const selectedOption = options.find((p) => p.id === choice);
   const size = selectedOption?.interleavedSize;
-  const boardError = selectedOption ? movementBoardError(boardsPerRound) : null;
+  const boardError = playerBoardError(rounds, boardsPerRound) ?? (selectedOption ? movementBoardError(boardsPerRound) : null);
   const groupKey = choice + ':' + rounds + ':' + event.participants.map((p) => p.id).join(',');
   const groups = size
     ? customGroups?.key === groupKey
@@ -76,7 +77,7 @@ export function MovementPanel({
           <input
             type="number"
             min={1}
-            max={event.kind === 'teams' ? 31 : 19}
+            max={MAX_PLAYER_BOARDS}
             value={rounds || ''}
             disabled={locked}
             onChange={(e) => {
@@ -130,6 +131,7 @@ export function MovementPanel({
           '3/4 Howell 的圈數依編排表而定，並非固定為完整 Howell 的四分之三。'}
       </p>
       {boardError && <p role="alert">{boardError}</p>}
+      {playerBoardWarning(rounds, boardsPerRound) && <p role="alert">{playerBoardWarning(rounds, boardsPerRound)}</p>}
       {plan && (
         <>
           <p>{plan.option.note}</p>

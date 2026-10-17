@@ -1,3 +1,4 @@
+import { MAX_PLAYER_BOARDS, playerBoardError } from './schedule-limits';
 import templates from './movement-templates.json';
 import type { Assignment, BridgeEvent } from './model';
 import { interleavedAssignments, teamByes, type InterleavedGroups, type InterleavedSize } from './team-movement';
@@ -5,7 +6,7 @@ import { interleavedAssignments, teamByes, type InterleavedGroups, type Interlea
 export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string; interleavedSize?: InterleavedSize; interleavedMode?: 'rotation' | 'symmetric' };
 type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
 export function movementOptions(event: Input): MovementPlan[] {
-  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > (event.kind === 'teams' ? 31 : 19)) return [];
+  if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > MAX_PLAYER_BOARDS) return [];
   if (event.kind === 'teams') {
     const n = event.participants.length;
     if (n < 3 || n > 32) return [];
@@ -54,6 +55,8 @@ export function movementBoardError(boardsPerRound: number): string | null {
 export function buildMovement(event: Input, id: string, groups?: InterleavedGroups) {
   // Preserve callers of the original single-ring plan.
   if (id === 'team-interleaved' && [3, 5].includes(event.participants.length)) id += '-' + event.participants.length;
+  const playerError = playerBoardError(event.rounds, event.boardsPerRound);
+  if (playerError) throw new Error(playerError);
   const option = movementOptions(event).find(option => option.id === id);
   if (!option) throw new Error('此桌數與圈數不適用所選賽程編排');
   const boardError = movementBoardError(event.boardsPerRound);
