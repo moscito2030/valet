@@ -1,4 +1,7 @@
-import type { Board } from './model';
+import { resultKey, type Board, type BridgeEvent } from './model';
+import { tableNames } from './table-names';
+
+export type ReviewContext = Pick<BridgeEvent, 'assignments' | 'results' | 'kind' | 'participants' | 'gameMode'>;
 
 export function reviewDestination(configured: string | undefined, current: string): URL {
   const origin = new URL(current);
@@ -12,14 +15,30 @@ export function reviewDestination(configured: string | undefined, current: strin
 }
 
 // Valet Review's version 1 share format: gzip JSON in a base64url fragment.
-export async function reviewUrl(board: Board, destination: URL): Promise<string> {
+export async function reviewUrl(board: Board, destination: URL, event?: ReviewContext, selectedAssignmentId?: string): Promise<string> {
   const id = `board:${board.number}`;
+  const results = event ? event.assignments.filter(a => a.boards.includes(board.number)).flatMap(a => {
+    const r = event.results[resultKey(a.id, board.number)];
+    if (!r) return [];
+    // Review currently has one raw score per table and cannot represent split adjustments.
+    if (r.split) throw new Error('此副含不平衡調整分，Valet Review 尚不支援匯入');
+    return [{
+      id: resultKey(a.id, board.number), boardId: id, assignmentId: a.id, board: board.number,
+      table: `第 ${a.round} 圈 · 第 ${a.table} 桌${a.room === 'pairs' ? '' : a.room === 'open' ? ' · 開室' : ' · 閉室'}`,
+      level: r.level, strain: r.strain, doubled: r.doubled, declarer: r.declarer, tricks: r.tricks,
+      lead: /^[SHDC][AKQJT98765432]$/.test(r.lead) ? r.lead : '',
+      status: r.status === 'cancelled' || r.status === 'average' ? 'cancelled' : 'played',
+      nsScore: r.nsScore, playerNames: tableNames(event.kind, event.participants, a),
+      updatedAt: r.updatedAt, miniBridge: r.miniBridge ?? event.gameMode === 'minibridge',
+    }];
+  }) : [];
   const data = {
     version: 1,
     title: `第 ${board.number} 副檢討`,
     boards: [{ id, number: board.number, dealer: board.dealer,
       vulnerability: board.vulnerability, deal: board.deal }],
-    results: [], selectedBoardId: id,
+    results, selectedBoardId: id,
+    selectedResultId: results.find(r => r.assignmentId === selectedAssignmentId)?.id,
   };
   const stream = new Blob([JSON.stringify(data)]).stream().pipeThrough(new CompressionStream('gzip'));
   const bytes = new Uint8Array(await new Response(stream).arrayBuffer());

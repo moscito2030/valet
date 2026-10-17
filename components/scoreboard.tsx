@@ -1153,7 +1153,7 @@ export default function Scoreboard() {
                               <ArrowDownToLine size={15} />
                               下載此副 PBN
                             </button>
-                            <ReviewExport board={selectedBoard} />
+                            <ReviewExport board={selectedBoard} event={event} selectedAssignmentId={selectedResult} />
                             </div>
                           )}
                         </section>

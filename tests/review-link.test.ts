@@ -1,7 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reviewDestination, reviewUrl } from '../lib/review-link';
-import type { Board } from '../lib/model';
+import type { Board, BridgeEvent, Result } from '../lib/model';
+
+test('Review export includes all recorded tables for this board and preserves selection', async () => {
+  const board: Board = { number: 1, dealer: 'N', vulnerability: 'None', deal: { N: [], E: [], S: [], W: [] } };
+  const result: Result = { assignmentId: 'open', board: 1, level: 4, strain: 'S', doubled: 1, declarer: 'N', tricks: 10, lead: 'HA', nsScore: 420, updatedAt: '' };
+  const event: Pick<BridgeEvent, 'assignments' | 'results' | 'kind' | 'participants' | 'gameMode'> = {
+    kind: 'teams', participants: [],
+    assignments: [
+      { id: 'open', round: 1, table: 1, room: 'open', ns: 't1', ew: 't2', boards: [1], matchId: 'm1', playerNames: { N: '北家' } },
+      { id: 'closed', round: 2, table: 1, room: 'closed', ns: 't2', ew: 't1', boards: [1], matchId: 'm1' },
+      { id: 'pending', round: 1, table: 2, room: 'open', ns: 't3', ew: 't4', boards: [1], matchId: 'm2' },
+      { id: 'other', round: 3, table: 1, room: 'open', ns: 't1', ew: 't2', boards: [2], matchId: 'm3' },
+    ],
+    results: { 'open:1': result, 'closed:1': { ...result, assignmentId: 'closed', status: 'cancelled' }, 'other:2': { ...result, assignmentId: 'other', board: 2 } },
+  };
+  const url = new URL(await reviewUrl(board, new URL('https://review.example'), event, 'closed'));
+  const bytes = Buffer.from(url.hash.slice(10), 'base64url');
+  const data = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+  assert.equal(data.results.length, 2);
+  assert.equal(data.results[0].nsScore, 420);
+  assert.equal(data.results[0].playerNames.N, '北家');
+  assert.equal(data.results[0].table, '第 1 圈 · 第 1 桌 · 開室');
+  assert.equal(data.results[1].table, '第 2 圈 · 第 1 桌 · 閉室');
+  assert.equal(data.results[1].status, 'cancelled');
+  assert.equal(data.selectedResultId, 'closed:1');
+  event.results['open:1'] = { ...result, split: { ns: result, ew: { ...result, nsScore: 450 } } };
+  await assert.rejects(reviewUrl(board, new URL('https://review.example'), event), /不平衡/);
+});
 
 test('Review export preserves the single board using the version 1 gzip share protocol', async () => {
   const board: Board = { number: 17, dealer: 'W', vulnerability: 'All',
