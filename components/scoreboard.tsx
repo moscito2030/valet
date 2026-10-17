@@ -1175,8 +1175,8 @@ export default function Scoreboard() {
                                 <thead>
                                   <tr>
                                     <th>對戰</th>
-                                    <th>我方合約</th>
-                                    <th>對方合約</th>
+                                    <th>我方合約 (NS)</th>
+                                    <th>對方合約 (EW)</th>
                                     <th>IMP</th>
                                   </tr>
                                 </thead>
