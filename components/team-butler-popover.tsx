@@ -97,6 +97,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                       <th className="butler-player" scope="col">{pairs ? '賽員 1' : '賽員'}</th>
                       {pairs && <th className="butler-player butler-player-second" scope="col">賽員 2</th>}
                       <th>有效牌數</th>
+                      <th>每牌 IMP</th>
                       {pairs && (
                         <>
                           <th>正平均 IMP</th>
@@ -106,7 +107,6 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                           <th>總 IMP 排名</th>
                         </>
                       )}
-                      <th>每牌 IMP</th>
                       <th>每牌 IMP 排名</th>
                       <th>正負 IMP 商數</th>
                       <th>IMP 商數排名</th>
@@ -121,6 +121,10 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                         <th className="butler-player" scope="row">{r.names[0]}</th>
                         {pairs && <td className="butler-player butler-player-second">{r.names[1]}</td>}
                         <td>{r.boards}</td>
+                        <td className={r.average < 0 ? 'butler-negative' : 'butler-positive'}>
+                          {signed(r.average)}
+                        </td>
+
                         {pairs && (
                           <>
                             <td>{signed(r.positiveAverage)}</td>
@@ -130,9 +134,6 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                             <td>{r.totalRank}</td>
                           </>
                         )}
-                        <td className={r.average < 0 ? 'butler-negative' : 'butler-positive'}>
-                          {signed(r.average)}
-                        </td>
                         <td>{r.averageRank}</td>
                         <td>{r.ratio === null ? '—' : decimal(r.ratio)}</td>
                         <td>{r.ratioRank ?? '—'}</td>
@@ -162,7 +163,7 @@ export function TeamButlerPopover({ event, teamId }: Props) {
                 </p>
               )}
               <p>
-                Butler：以{isInterleaved(event.assignments) ? '跨圈同牌' : '同圈同牌'}有效原始分平均，四捨五入至十位作為
+                Butler：以{isInterleaved(event.assignments) ? '跨圈同牌' : '同圈同牌'}各方向有效獲判分平均，四捨五入至十位作為
                 Datum，不去頭去尾。正／負平均各除以正／負分牌數；總平均與每牌 IMP 均為總 IMP ÷
                 有效牌數。商數＝正 IMP 總和 ÷ 負 IMP 總和絕對值（無負分且有正分為 ∞，全零為 —）。
               </p>

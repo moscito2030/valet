@@ -27,7 +27,11 @@ test('Review export includes all recorded tables for this board and preserves se
   assert.equal(data.results[1].status, 'cancelled');
   assert.equal(data.selectedResultId, 'closed:1');
   event.results['open:1'] = { ...result, split: { ns: result, ew: { ...result, nsScore: 450 } } };
-  await assert.rejects(reviewUrl(board, new URL('https://review.example'), event), /不平衡/);
+  const splitUrl = new URL(await reviewUrl(board, new URL('https://review.example'), event));
+  const splitBytes = Buffer.from(splitUrl.hash.slice(10), 'base64url');
+  const splitData = await new Response(new Blob([splitBytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+  assert.equal(splitData.results.length, 2);
+  assert.equal(splitData.results[0].split.ew.nsScore, 450);
 });
 
 test('Review export preserves the single board using the version 1 gzip share protocol', async () => {

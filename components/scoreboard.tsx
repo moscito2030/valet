@@ -1,7 +1,8 @@
 'use client';
+import { directionalDatum } from '@/lib/datum';
 import { boardRange } from '@/lib/board-groups';
 
-import { roundLabel } from '@/lib/team-movement';
+import { roundLabel, isInterleaved } from '@/lib/team-movement';
 import { InterleavedRound } from './interleaved-round';
 import { displayedBoardNumber,boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import {
@@ -325,16 +326,17 @@ export default function Scoreboard() {
       : openResult.status === 'average' || closedResult.status === 'average'
         ? 0
         : teamBoardImps(openResult, closedResult)[a.ns === playerId ? 0 : 1];
-    const scores = (event?.assignments ?? []).filter(other => other.boards.includes(b))
+    const scores = (event?.assignments ?? []).filter(other => other.boards.includes(b) && (isInterleaved(event!.assignments) || other.round === a.round))
       .map(other => event?.results[resultKey(other.id, b)])
       .filter(result => result && result.status !== 'cancelled' && result.status !== 'average')
-      .map(result => result!.nsScore);
-    const mean = scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
-    const datum = mean === null ? null : Math.sign(mean) * Math.round(Math.abs(mean) / 10) * 10;
+      .map(result => result!);
+    const datums = directionalDatum(scores);
     const calculateButlers = (opponent = false) => [a, closed].map(assignment => {
       const result = assignment ? event?.results[resultKey(assignment.id, b)] : undefined;
-      return result && assignment && result.status !== 'cancelled' && result.status !== 'average' && datum !== null
-        ? imps(awardedResult(result, (assignment.ns === playerId) !== opponent ? 'ns' : 'ew')!.nsScore - datum) * ((assignment.ns === playerId) !== opponent ? 1 : -1) : null;
+      return result && assignment && result.status !== 'cancelled' && result.status !== 'average' && datums.ns.datum !== null
+        ? ((assignment.ns === playerId) !== opponent
+          ? imps(awardedResult(result, 'ns')!.nsScore - datums.ns.datum!)
+          : imps(-awardedResult(result, 'ew')!.nsScore - datums.ew.datum!)) : null;
     });
     return { a, b, closed, impDiff, butlers: calculateButlers(), opponentButlers: calculateButlers(true) };
   });
@@ -366,26 +368,23 @@ export default function Scoreboard() {
   const completedBoardScores =
     event && selectedBoard
       ? event.assignments
-          .filter((a) => a.boards.includes(selectedBoard.number))
+          .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
           .map((a) => event.results[resultKey(a.id, selectedBoard.number)])
           .filter((r) => r && r.status !== 'cancelled' && r.status !== 'average')
-          .map((r) => r.nsScore)
+          .map((r) => r)
       : [];
-  const averageBoardScore = completedBoardScores.length
-    ? completedBoardScores.reduce((sum, score) => sum + score, 0) / completedBoardScores.length
-    : null;
+  const boardDatums = directionalDatum(completedBoardScores, event?.kind === 'pairs' && event.pairMethod === 'butler' ? event.trim : 'none');
   const pairMethod = event?.pairMethod ?? 'mp';
   const displayBoardNumber = (n: number) => displayedBoardNumber(n, event ?? undefined);
-  const butlerDatum = averageBoardScore === null ? null : Math.sign(averageBoardScore) * Math.round(Math.abs(averageBoardScore) / 10) * 10;
-  const butlerHint = (r?: Result) => r && r.status !== 'cancelled' && r.status !== 'average' && butlerDatum !== null
-    ? <span className="muted butler-imp" title="Butler IMP（NS 視角）">({signed(imps(r.nsScore - butlerDatum))})</span> : null;
+  const butlerHint = (r: Result | undefined, side: 'ns' | 'ew') => r && r.status !== 'cancelled' && r.status !== 'average' && boardDatums[side].datum !== null
+    ? <span className="muted butler-imp" title={`Butler IMP（${side.toUpperCase()} 視角）`}>({signed(imps(awardedResult(r, side)!.nsScore * (side === 'ns' ? 1 : -1) - boardDatums[side].datum!))})</span> : null;
   const scoreSide = event?.kind === 'pairs' ? travellerSide : 'ns';
   const sideSign = scoreSide === 'ns' ? 1 : -1;
   const sideLabel = scoreSide.toUpperCase();
   const traveller =
     event && selectedBoard
       ? event.assignments
-          .filter((a) => a.boards.includes(selectedBoard.number))
+          .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
           .sort((a, b) => {
             if (event.kind === 'teams') return String(a.table).localeCompare(String(b.table), 'en', { numeric: true });
             if (resultSort.startsWith('table'))
@@ -408,7 +407,7 @@ export default function Scoreboard() {
                       : null
                     : score;
               }
-              return r.nsScore * sideSign;
+              return awardedResult(r, scoreSide)!.nsScore * sideSign;
             };
             const x = value(a),
               y = value(b);
@@ -1120,9 +1119,10 @@ export default function Scoreboard() {
                               onManualTrial={() => setSelectedResult('')}
                               navigation={boardNavigation}
                               averageScore={
-                                averageBoardScore === null ? null : averageBoardScore * sideSign
+                                boardDatums[scoreSide].datum
                               }
                               scoreSide={sideLabel}
+                              datumDetails={{ ns: boardDatums.ns.mean, ew: boardDatums.ew.mean, split: boardDatums.split }}
                               validResults={completedBoardScores.length}
                             />
                           ) : (
@@ -1130,9 +1130,10 @@ export default function Scoreboard() {
                               <BoardInformation
                                 number={selectedBoard.number}
                                 averageScore={
-                                  averageBoardScore === null ? null : averageBoardScore * sideSign
+                                  boardDatums[scoreSide].datum
                                 }
                                 scoreSide={sideLabel}
+                              datumDetails={{ ns: boardDatums.ns.mean, ew: boardDatums.ew.mean, split: boardDatums.split }}
                                 validResults={completedBoardScores.length}
                                 navigation={boardNavigation}
                               />
@@ -1228,7 +1229,7 @@ export default function Scoreboard() {
                                               {own?.status === 'average' ? '取消' : own && own.status !== 'cancelled'
                                                 ? signed(own.nsScore)
                                                 : '—'}
-                                              {butlerHint(own)}
+                                              {butlerHint(own, 'ns')}
                                             </small>
                                           </td>
                                           <td
@@ -1253,7 +1254,7 @@ export default function Scoreboard() {
                                               {opponent?.status === 'average' ? '取消' : opponent && opponent.status !== 'cancelled'
                                                 ? signed(opponent.nsScore)
                                                 : '—'}
-                                              {butlerHint(opponent)}
+                                              {butlerHint(opponent, 'ew')}
                                             </small>
                                           </td>
                                           <td className="accent mono">
@@ -1309,7 +1310,7 @@ export default function Scoreboard() {
                                 </thead>
                                 <tbody>
                                   {traveller
-                                    .filter((a) => a.boards.includes(selectedBoard.number))
+                                    .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
                                     .map((a) => {
                                       const key = resultKey(a.id, selectedBoard.number),
                                         r = event.results[key],
@@ -1354,7 +1355,7 @@ export default function Scoreboard() {
                                           </td>
                                           <td className="mono">
                                             {r && r.status !== 'cancelled'
-                                              ? signed(r.nsScore * sideSign)
+                                              ? signed(awardedResult(r, scoreSide)!.nsScore * sideSign)
                                               : '—'}
                                           </td>
                                           <td
@@ -1578,11 +1579,8 @@ export default function Scoreboard() {
                                 .filter((other) => other.boards.includes(b))
                                 .map((other) => event.results[resultKey(other.id, b)])
                                 .filter((result) => result && result.status !== 'cancelled')
-                                .map((result) => result.nsScore);
-                              const average = scores.length
-                                ? (scores.reduce((sum, score) => sum + score, 0) / scores.length) *
-                                  (ns ? 1 : -1)
-                                : null;
+                                .map((result) => result);
+                              const average = directionalDatum(scores)[ns ? 'ns' : 'ew'].mean;
                               const popupId = `player-${a.id}-${b}`;
                               const openBoard = () => {
                                 setSelectedResult('');
@@ -1653,7 +1651,7 @@ export default function Scoreboard() {
                                       onClick={(e) => positionDetail(e.currentTarget)}
                                     >
                                       {r && r.status !== 'cancelled'
-                                        ? signed(r.nsScore * (ns ? 1 : -1))
+                                        ? signed(awardedResult(r, ns ? 'ns' : 'ew')!.nsScore * (ns ? 1 : -1))
                                         : '—'}
                                     </button>
                                     <div

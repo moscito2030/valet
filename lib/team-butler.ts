@@ -1,3 +1,4 @@
+import { directionalDatum } from './datum';
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 import { awardedResult, imps } from './scoring';
@@ -117,13 +118,12 @@ export function teamButlerStats(event: Source) {
         .filter(({ r }) => r && r.status !== 'cancelled' && r.status !== 'average');
       if (entries.length < 2) continue;
       // Keep the same untrimmed, nearest-ten datum as the team board results.
-      const mean = entries.reduce((sum, { r }) => sum + r.nsScore, 0) / entries.length;
-      const datum = Math.sign(mean) * Math.round(Math.abs(mean) / 10) * 10;
+      const datums = directionalDatum(entries.map(({ r }) => r));
       for (const { a, r } of entries)
         for (const side of ['ns', 'ew'] as const) {
           const direction = side === 'ns' ? 1 : -1;
           const score = awardedResult(r, side)!.nsScore * direction;
-          const imp = imps(score - datum * direction);
+          const imp = imps(score - datums[side].datum!);
           // Compare each side's award to the other tables in that direction; exclude its own table.
           const mp = entries
             .filter((entry) => entry.a.id !== a.id)

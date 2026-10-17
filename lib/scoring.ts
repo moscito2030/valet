@@ -247,7 +247,7 @@ export function project(e: ProjectionInput): Projection {
           top <= 0
             ? null
             : entries.reduce(
-                (mp, x) => mp + (r.nsScore > x.r.nsScore ? 2 : r.nsScore === x.r.nsScore ? 1 : 0),
+                (mp, x) => mp + (awardedResult(r, 'ns')!.nsScore > awardedResult(x.r, 'ns')!.nsScore ? 2 : awardedResult(r, 'ns')!.nsScore === awardedResult(x.r, 'ns')!.nsScore ? 1 : 0),
                 -1,
               );
         const method = e.pairMethod ?? 'mp';
@@ -255,14 +255,16 @@ export function project(e: ProjectionInput): Projection {
           method === 'mp'
             ? undefined
             : impPairScore(
-                r.nsScore,
-                entries.map((x) => x.r.nsScore),
+                awardedResult(r, 'ns')!.nsScore,
+                entries.map((x) => awardedResult(x.r, 'ns')!.nsScore),
                 index,
                 method,
                 e.trim ?? 'none',
               );
         if (imp) ns = imp.value;
-        const ew = ns === null ? null : method === 'mp' ? top - ns : -ns;
+        const ew = ns === null ? null : method === 'mp'
+          ? entries.reduce((mp, x) => mp + (awardedResult(r, 'ew')!.nsScore < awardedResult(x.r, 'ew')!.nsScore ? 2 : awardedResult(r, 'ew')!.nsScore === awardedResult(x.r, 'ew')!.nsScore ? 1 : 0), -1)
+          : impPairScore(-awardedResult(r, 'ew')!.nsScore, entries.map(x => -awardedResult(x.r, 'ew')!.nsScore), index, method, e.trim ?? 'none').value;
         projection.pairScores[resultKey(a.id, board.number)] = {
           ns,
           ew,

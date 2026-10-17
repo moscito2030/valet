@@ -90,8 +90,8 @@ test('split contracts use independent awards; partnership seat order and names o
   };
   r.split = { ns: award(-100), ew: award(200) };
   const stats = teamButlerStats(e);
-  assert.equal(stats.pairs.find((r) => r.teamId === 't1')!.total, 6);
-  assert.equal(stats.pairs.find((r) => r.teamId === 't4')!.total, -14);
+  assert.equal(stats.pairs.find((r) => r.teamId === 't1')!.total, 8);
+  assert.equal(stats.pairs.find((r) => r.teamId === 't4')!.total, -13);
   assert.equal(stats.pairs.filter((r) => r.teamId === 't1').length, 1);
   e.assignments.forEach((a) => {
     a.playerNames = { N: '同名甲', S: '同名乙', E: '同名甲', W: '同名乙' };

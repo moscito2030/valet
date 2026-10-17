@@ -20,15 +20,13 @@ export async function reviewUrl(board: Board, destination: URL, event?: ReviewCo
   const results = event ? event.assignments.filter(a => a.boards.includes(board.number)).flatMap(a => {
     const r = event.results[resultKey(a.id, board.number)];
     if (!r) return [];
-    // Review currently has one raw score per table and cannot represent split adjustments.
-    if (r.split) throw new Error('此副含不平衡調整分，Valet Review 尚不支援匯入');
     return [{
       id: resultKey(a.id, board.number), boardId: id, assignmentId: a.id, board: board.number,
       table: `第 ${a.round} 圈 · 第 ${a.table} 桌${a.room === 'pairs' ? '' : a.room === 'open' ? ' · 開室' : ' · 閉室'}`,
       level: r.level, strain: r.strain, doubled: r.doubled, declarer: r.declarer, tricks: r.tricks,
       lead: /^[SHDC][AKQJT98765432]$/.test(r.lead) ? r.lead : '',
       status: r.status === 'cancelled' || r.status === 'average' ? 'cancelled' : 'played',
-      nsScore: r.nsScore, playerNames: tableNames(event.kind, event.participants, a),
+      nsScore: r.nsScore, split: r.split, playerNames: tableNames(event.kind, event.participants, a),
       updatedAt: r.updatedAt, miniBridge: r.miniBridge ?? event.gameMode === 'minibridge',
     }];
   }) : [];
