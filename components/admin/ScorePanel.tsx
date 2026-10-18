@@ -4,7 +4,7 @@ import { participantNumber } from '@/lib/participant-number';
 import { contractScore } from '@/lib/scoring';
 import { roundLabel } from '@/lib/team-movement';
 import { Check } from 'lucide-react';
-import { HcpFields } from '../hcp-fields';
+import { DeclarerWarning, HcpFields } from '../hcp-fields';
 import { MiniContractFields } from '../mini-contract-fields';
 import {
   AdminEvent,
@@ -316,6 +316,7 @@ export function ScorePanel({
             />
           </label>
           <div className="score-preview">
+            {event.gameMode === 'minibridge' && <DeclarerWarning value={input} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} />}
             <span>NS 原始分</span>
             <strong>
               {signed(

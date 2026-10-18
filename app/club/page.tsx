@@ -1,5 +1,5 @@
 'use client';
-import { HcpFields, HcpSummary } from '@/components/hcp-fields';
+import { DeclarerWarning, HcpFields, HcpSummary } from '@/components/hcp-fields';
 import { useEffect, useRef, useState } from 'react';
 import type { ClubView } from '@/lib/club-view';
 import type { ResultInput } from '@/lib/model';
@@ -106,7 +106,7 @@ export default function ClubPage() {
       {draft && editable && <form className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
         <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? '迷你橋牌 · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
         <div className="form-grid">
-          {data.gameMode === 'minibridge' ? <><HcpFields value={draft} onChange={setDraft} dealer={board?.dealer ?? 'N'} /><MiniContractFields value={draft} onChange={setDraft} /></> : <>
+          {data.gameMode === 'minibridge' ? <><HcpFields value={draft} onChange={setDraft} dealer={board?.dealer ?? 'N'} expected={board?.hcp} /><MiniContractFields value={draft} onChange={setDraft} /></> : <>
           <label className="field">線位<select value={draft.level} onChange={e => { const level = Number(e.target.value); setDraft({ ...draft, level, tricks: level ? level + 6 : 0, doubled: 1 }); }}>{Array.from({ length: 8 }, (_, n) => <option key={n} value={n}>{n || 'Pass'}</option>)}</select></label>
           <label className="field">合約花色<select disabled={!draft.level} value={draft.strain} onChange={e => setDraft({ ...draft, strain: e.target.value as ResultInput['strain'] })}>{['C','D','H','S','NT'].map((s,i) => <option key={s} value={s}>{['♣','♦','♥','♠','NT'][i]}</option>)}</select></label>
           </>}
@@ -117,7 +117,7 @@ export default function ClubPage() {
           <label className="field">實得墩數<select disabled={!draft.level} value={draft.tricks} onChange={e => setDraft({ ...draft, tricks: Number(e.target.value) })}>{Array.from({ length: 14 }, (_, n) => <option key={n} value={n}>{n}{draft.level ? `（${n - draft.level - 6 >= 0 ? '+' : ''}${n - draft.level - 6}）` : ''}</option>)}</select></label>
           <label className="field">首引（選填，如 S2）<input maxLength={4} value={draft.lead} onChange={e => setDraft({ ...draft, lead: e.target.value.toUpperCase() })} /></label>
         </div>
-        <p className="score-preview">NS Score {board ? contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</p>
+        <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">NS 原始分 <b>{board ? contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} dealer={board?.dealer ?? 'N'} />}</div>
         <div className="button-row"><button className="button primary" disabled={busy}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
       </form>}
       {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 {data.roles?.confirmPair.toUpperCase()} 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}

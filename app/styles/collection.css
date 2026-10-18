@@ -46,3 +46,11 @@
 .club-board-result small { margin-left: auto; white-space: nowrap; }
 .club-admin .field small { overflow-wrap: anywhere; }
 
+
+.hcp-cross input[aria-invalid="true"] { border-color: #a4323e; background: #fff0f1; }
+.score-preview .declarer-warning { background: #fbe3e5; color: #8c2430; border: 1px solid #d98e98; border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.6; }
+.club-score-preview { align-items: center; text-align: center; padding: 20px; gap: 10px; border-radius: 12px; background: #f8faf7; }
+.club-score-preview > strong { font-size: clamp(20px, 5vw, 28px); color: var(--forest); }
+.club-score-preview > span { font-size: 12px; letter-spacing: 0.08em; }
+.score-preview-value { font-size: 16px; color: var(--ink); }
+.score-preview-value b { font-size: 28px; margin-left: 8px; font-variant-numeric: tabular-nums; }

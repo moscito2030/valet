@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { recordedHcpSchema, hcpDeclarer } from '../lib/recorded-hcp';
+import { recordedHcpSchema, hcpDeclarer, dealHcp, hcpMismatches } from '../lib/recorded-hcp';
 import { createEvent, applyMutation } from '../lib/events';
 import { project } from '../lib/scoring';
 import { resultSchema } from '../lib/model';
@@ -35,4 +35,23 @@ test('HCP persists per result, roundtrips CSV, invalidates confirmation and stay
   e.club.finalized=[1];
   assert.deepEqual(Object.values(audienceEvent(e).results)[0].hcp,r.hcp);
   assert.throws(()=>parseResultsCsv('assignmentId,board,level,strain,doubled,declarer,tricks,hcpN,hcpE,hcpS,hcpW\na,1,1,NT,1,N,7,1,1,1,1'));
+});
+
+test('database HCP checks partial entries without treating missing deals or blank seats as zero', () => {
+  const deal = { N: 'AKQJT98765432'.split('').map(r => 'S'+r), E: 'AKQJT98765432'.split('').map(r => 'H'+r), S: 'AKQJT98765432'.split('').map(r => 'D'+r), W: 'AKQJT98765432'.split('').map(r => 'C'+r) };
+  assert.deepEqual(dealHcp(deal), {N:10,E:10,S:10,W:10});
+  assert.equal(dealHcp({N:[],E:[],S:[],W:[]}), undefined);
+  assert.equal(dealHcp({...deal, E:deal.N}), undefined);
+  assert.deepEqual(hcpMismatches({}, dealHcp(deal)), []);
+  assert.deepEqual(hcpMismatches({N:0,E:10}, dealHcp(deal)), ['N']);
+  assert.deepEqual(hcpMismatches({N:12}), []);
+  const event=createEvent({name:'HCP view',kind:'pairs',gameMode:'minibridge',names:['A','B','C','D'],rounds:1,boardsPerRound:2,date:'2026-10-18',venue:''});
+  event.currentRound=1;
+  event.boards[0].deal=deal;
+  const a=event.assignments[0];
+  const view=clubView(event,a.ns);
+  assert.deepEqual(view.boards.find(b => b.number === 1)?.hcp, {N:10,E:10,S:10,W:10});
+  assert.ok(view.boards.every(b => !('deal' in b)));
+  event.gameMode='bridge';
+  assert.ok(clubView(event,a.ns).boards.every(b => !('hcp' in b)));
 });

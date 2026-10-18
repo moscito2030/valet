@@ -1,3 +1,4 @@
+import { dealHcp } from './recorded-hcp';
 import { clubAccepted, clubReviewVersion, clubRoles } from './club-confirmation';
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
@@ -114,6 +115,7 @@ export function clubView(event: BridgeEvent, pair: string) {
             number: b.number,
             dealer: b.dealer,
             vulnerability: b.vulnerability,
+            ...(event.gameMode === 'minibridge' ? { hcp: dealHcp(b.deal) } : {}),
             result: event.results[resultKey(assignment.id, b.number)] ?? null,
           }))
       : [],
