@@ -9,6 +9,8 @@ import { matchSwiss, swissPreview, swissRoundComplete, swissBasisChanged } from 
 import { teamByes } from '../lib/team-movement';
 import { canMutate } from '../lib/mutation-permissions';
 import { allRoundsComplete } from '../lib/round-progress';
+import { audienceEvent } from '../lib/club-view';
+import { clubConfirmationKey, clubReviewVersion } from '../lib/club-confirmation';
 function setup(n = 8, mode: 'current' | 'delayed' = 'current', rounds = 3) {
   const e = createEvent({
     name: 'Swiss test',
@@ -58,6 +60,44 @@ function fill(e: BridgeEvent, round: number, except = new Set<string>(), strong 
     };
   }
 }
+
+test('public Swiss schedules never expose scoring snapshots before or after club finalization', () => {
+  for (const mode of ['current', 'delayed'] as const) {
+    const s = setup(4, mode);
+    s.apply({ action: 'swiss-publish', round: 1, partial: false });
+    if (mode === 'delayed') s.apply({ action: 'swiss-publish', round: 2, partial: false });
+    fill(s.e, 1, new Set(), true);
+    s.e.club = { enabled: true, mode: 'table', tokens: {}, confirmations: {}, finalized: [] };
+    for (const a of s.e.assignments.filter(a => a.round === 1)) {
+      s.e.club.confirmations[clubConfirmationKey(s.e, a)] = {
+        reviewVersion: clubReviewVersion(s.e, a), at: '2026-10-18T00:00:00Z', forced: false,
+      };
+    }
+    s.apply({ action: 'swiss-publish', round: mode === 'current' ? 2 : 3, partial: false });
+    const privateSnapshot = structuredClone(s.e.swiss);
+    assert.ok(s.e.swiss!.publications.at(-1)!.basis.length);
+    const publicData = audienceEvent(s.e);
+    assert.equal(Object.keys(publicData.results).length, 0);
+    for (const p of publicData.swiss!.publications) {
+      assert.deepEqual(p.basis, []);
+      assert.deepEqual(p.byeBasis, []);
+      assert.deepEqual(p.scores, []);
+    }
+    assert.deepEqual(publicData.assignments.map(a => a.id), s.e.assignments.map(a => a.id));
+    assert.deepEqual(s.e.swiss, privateSnapshot, 'redaction must not mutate director snapshots');
+    s.e.club!.finalized = [1];
+    const finalized = audienceEvent(s.e);
+    assert.ok(Object.keys(finalized.results).length);
+    assert.ok(finalized.swiss!.publications.every(p => !p.scores.length && !p.basis.length && !p.byeBasis.length));
+  }
+  const odd = setup(5);
+  odd.apply({ action: 'swiss-publish', round: 1, partial: false });
+  fill(odd.e, 1);
+  odd.e.club = { enabled: true, tokens: {}, confirmations: {}, finalized: [1] };
+  const publicOdd = audienceEvent(odd.e);
+  assert.ok(publicOdd.swiss!.publications.some(p => p.bye));
+  assert.ok(publicOdd.projection.byes!.some(b => b.round === 1 && b.awarded));
+});
 test('first Swiss round pairs roster neighbors in both modes and gives last odd team the bye', () => {
   for (const mode of ['current', 'delayed'] as const)
     for (const n of [4, 5, 8]) {

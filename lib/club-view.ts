@@ -30,7 +30,11 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     movementImported: event.movementImported,
     teamMovement: event.teamMovement,
     byeVp: event.byeVp,
-    swiss: event.swiss,
+    // Publish schedules, never the director's potentially unpublished scoring snapshot.
+    swiss: event.swiss ? { mode: event.swiss.mode, publications: event.swiss.publications.map(p => ({
+      round: p.round, sourceRound: p.sourceRound, sourceRevision: p.sourceRevision, at: p.at,
+      pairs: p.pairs, bye: p.bye, basis: [], byeBasis: [], scores: [],
+    })) } : undefined,
     currentRound: event.currentRound,
     roundPhase: event.roundPhase,
     roundTimes: event.roundTimes,
