@@ -1,3 +1,4 @@
+import { knockoutRoundReady } from '../knockout';
 import {
   clubAccepted,
   clubConfirmationKey,
@@ -13,7 +14,10 @@ import { scoredInput } from './scored-input';
 
 export function applyCollectionCommand(
   context: MutationContext,
-  command: Extract<Mutation, { action: 'club-config' | 'club-play' | 'club-finalize' | 'club-complete-table' }>,
+  command: Extract<
+    Mutation,
+    { action: 'club-config' | 'club-play' | 'club-finalize' | 'club-complete-table' }
+  >,
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
@@ -141,22 +145,46 @@ export function applyCollectionCommand(
     }
   } else if (command.action === 'club-complete-table') {
     const club = e.club;
-    const a = e.assignments.find(a => a.id === command.assignmentId && a.round === command.round);
-    if (!club?.enabled || e.status !== 'live' || command.round !== e.currentRound || club.finalized.includes(command.round) || !a)
+    const a = e.assignments.find((a) => a.id === command.assignmentId && a.round === command.round);
+    if (
+      !club?.enabled ||
+      e.status !== 'live' ||
+      command.round !== e.currentRound ||
+      club.finalized.includes(command.round) ||
+      !a
+    )
       throw new DomainError('此桌無法取消剩餘牌並確認');
     if (clubAccepted(e, a)) throw new DomainError('本桌已認可');
     let cancelled = 0;
     for (const board of a.boards) {
       const key = resultKey(a.id, board);
       if (e.results[key]) continue;
-      const after: Result = { assignmentId: a.id, board, level: 0, strain: 'NT', doubled: 1, declarer: 'N', tricks: 0, lead: '', status: 'cancelled', nsScore: 0, updatedAt: at };
-      changes.push({key, before:null, after});
+      const after: Result = {
+        assignmentId: a.id,
+        board,
+        level: 0,
+        strain: 'NT',
+        doubled: 1,
+        declarer: 'N',
+        tricks: 0,
+        lead: '',
+        status: 'cancelled',
+        nsScore: 0,
+        updatedAt: at,
+      };
+      changes.push({ key, before: null, after });
       e.results[key] = after;
       cancelled++;
     }
-    club.confirmations[clubConfirmationKey(e,a)] = {at, forced:true, reviewVersion:clubReviewVersion(e,a)};
+    club.confirmations[clubConfirmationKey(e, a)] = {
+      at,
+      forced: true,
+      reviewVersion: clubReviewVersion(e, a),
+    };
     detail = `第 ${command.round} 圈桌次 ${a.id}：取消 ${cancelled} 副未輸入牌並由裁判確認；保留已有成績`;
   } else if (command.action === 'club-finalize') {
+    if (!knockoutRoundReady(e, command.round))
+      throw new DomainError('請先公布這一圈所有淘汰賽對局');
     const club = e.club;
     if (
       !club?.enabled ||
@@ -206,7 +234,8 @@ export function applyCollectionCommand(
       command.force &&
       command.round < e.rounds &&
       e.assignments.some((a) => a.round === command.round + 1) &&
-      (!e.swiss || swissRoundComplete(e, command.round + 1))
+      (!e.swiss || swissRoundComplete(e, command.round + 1)) &&
+      knockoutRoundReady(e, command.round + 1)
     ) {
       e.currentRound = command.round + 1;
       e.roundPhase = 'playing';

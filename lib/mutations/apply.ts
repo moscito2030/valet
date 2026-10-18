@@ -1,3 +1,4 @@
+import { assertKnockoutDecisions, knockoutRoundReady } from '../knockout';
 import { DomainError } from '../domain-error';
 import { Mutation, Result, StoredEvent } from '../model';
 import { normalizeResults } from '../result-status';
@@ -38,7 +39,10 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   const changes: { key: string; before: Result | null; after: Result | null }[] = [];
   let detail: string | undefined;
   const context: MutationContext = { event: e, at, changes };
+  if (e.knockout && ['movement', 'movement-plan', 'swiss-config'].includes(command.action))
+    throw new DomainError('淘汰賽請使用對戰表安排，不可覆寫為其他編排');
   dispatchMutation(context, command);
+  assertKnockoutDecisions(e);
   detail = context.detail;
   if (e.club?.mode === 'table' && !validDeviceSchedule(e))
     throw new DomainError('同圈同桌有多筆安排，無法綁定收分裝置');
@@ -60,7 +64,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (
       progress.expected > 0 &&
       progress.received === progress.expected &&
-      (!e.swiss || swissRoundComplete(e, progress.round))
+      (!e.swiss || swissRoundComplete(e, progress.round)) &&
+      knockoutRoundReady(e, progress.round)
     ) {
       e.currentRound = progress.round;
       e.roundPhase = 'break';
@@ -74,6 +79,10 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   e.audit.push({
     at,
     action: {
+      'knockout-config': '設定淘汰賽對戰表',
+      'knockout-publish': '公布淘汰賽對戰',
+      'knockout-decide': '確認淘汰賽勝負',
+      'knockout-reopen': '撤回淘汰賽勝負',
       'stage-archive': '賽段封存設定',
       'competition-settings': '賽事共用資訊',
       'team-roster': '隊伍賽員名單',

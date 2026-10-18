@@ -47,6 +47,18 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
           })),
         }
       : undefined,
+    knockout: event.knockout
+      ? {
+          nodes: event.knockout.nodes,
+          published: event.knockout.published,
+          decisions: Object.fromEntries(
+            Object.entries(event.knockout.decisions).map(([id, d]) => [
+              id,
+              { winner: d.winner, loser: d.loser, reason: d.reason },
+            ]),
+          ),
+        }
+      : undefined,
     currentRound: event.currentRound,
     roundPhase: event.roundPhase,
     roundTimes: event.roundTimes,

@@ -31,8 +31,16 @@
 .player-result-filters.pairs-result-filters {
   grid-template-columns: minmax(0, 1fr);
 }
-.player-round-context { width: 100%; min-width: 0; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
-.player-round-context small { color: var(--muted); }
+.player-round-context {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.player-round-context small {
+  color: var(--muted);
+}
 .player-results .panel-heading > div:first-child > p {
   margin-bottom: 0;
   line-height: 1.5;
@@ -122,8 +130,13 @@
 .import-export-section h4 {
   margin-bottom: 8px;
 }
-.import-export-section > p { margin: 12px 0 20px; line-height: 1.7; }
-.import-export-section .export-row { gap: 12px; }
+.import-export-section > p {
+  margin: 12px 0 20px;
+  line-height: 1.7;
+}
+.import-export-section .export-row {
+  gap: 12px;
+}
 .import-export-section > .button {
   margin-bottom: 16px;
 }
@@ -264,7 +277,8 @@
   text-align: left;
 }
 .contract-link:hover {
-  text-decoration: underline; text-decoration-color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
   text-underline-offset: 3px;
 }
 table .participant-link:hover,
@@ -274,7 +288,8 @@ table .text-button:focus-visible,
 table .contract-link:focus-visible,
 table a:hover,
 table a:focus-visible {
-  text-decoration: underline; text-decoration-color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
   text-underline-offset: 3px;
 }
 .contract-link:focus-visible {
@@ -288,7 +303,8 @@ table a:focus-visible {
 }
 .team-player-results .contract-link:hover > span,
 .team-player-results .contract-link:focus-visible > span {
-  text-decoration: underline; text-decoration-color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
   text-underline-offset: 3px;
 }
 .player-results th:nth-child(-n + 3),
@@ -407,7 +423,10 @@ table a:focus-visible {
   gap: 8px 20px;
   font-size: 12px;
 }
-.team-match-summary > :nth-child(odd) { text-align: center; color: var(--muted); }
+.team-match-summary > :nth-child(odd) {
+  text-align: center;
+  color: var(--muted);
+}
 .team-match-summary > :nth-child(even) {
   text-align: center;
   white-space: nowrap;
@@ -415,12 +434,31 @@ table a:focus-visible {
   font-size: 15px;
   font-weight: 600;
 }
-.vp-scale-popover { width: 320px; text-align: left; }
-.vp-scale-popover p { margin: 6px 0; font-size: 12px; }
-.vp-scale-scroll { max-height: min(340px, 45dvh); overflow: auto; margin-top: 12px; }
-.player-results .vp-scale-popover table tr > :nth-child(n) { padding: 7px 8px; font-size: 12px; }
-.vp-scale-popover thead th { position: sticky; top: 0; }
-.vp-scale-popover .vp-scale-current td { background: #e5eee8; font-weight: 700; }
+.vp-scale-popover {
+  width: 320px;
+  text-align: left;
+}
+.vp-scale-popover p {
+  margin: 6px 0;
+  font-size: 12px;
+}
+.vp-scale-scroll {
+  max-height: min(340px, 45dvh);
+  overflow: auto;
+  margin-top: 12px;
+}
+.player-results .vp-scale-popover table tr > :nth-child(n) {
+  padding: 7px 8px;
+  font-size: 12px;
+}
+.vp-scale-popover thead th {
+  position: sticky;
+  top: 0;
+}
+.vp-scale-popover .vp-scale-current td {
+  background: #e5eee8;
+  font-weight: 700;
+}
 .player-results tbody {
   display: table-row-group;
 }
@@ -484,5 +522,45 @@ table a:focus-visible {
   }
 }
 
-.win-awards { padding: 24px; border-top: 1px solid #e3e7df; }
-.win-awards h3 { margin: 0 0 12px; }
+.win-awards {
+  padding: 24px;
+  border-top: 1px solid #e3e7df;
+}
+.win-awards h3 {
+  margin: 0 0 12px;
+}
+
+.knockout-grid {
+  display: flex;
+  gap: 20px;
+  padding: 24px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+.knockout-stage {
+  flex: 1 0 240px;
+  min-width: 0;
+}
+.knockout-stage h3 {
+  margin-top: 0;
+}
+.knockout-card {
+  background: #f7f8f4;
+  border: 1px solid #e3e7df;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.knockout-card h4 {
+  margin: 0 0 12px;
+}
+@media (max-width: 600px) {
+  .knockout-grid {
+    flex-direction: column;
+  }
+  .knockout-stage {
+    flex: auto;
+    width: 100%;
+  }
+}

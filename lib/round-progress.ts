@@ -1,27 +1,45 @@
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 
-export function allRoundsComplete(event: Pick<BridgeEvent, 'rounds' | 'assignments' | 'results' | 'club'> & Partial<Pick<BridgeEvent, 'swiss' | 'participants'>>) {
-  return event.rounds > 0 && Array.from({ length: event.rounds }, (_, i) => i + 1).every(round => {
-    const tables = event.assignments.filter(a => a.round === round);
-    if (event.swiss) {
-      const ids = new Set(tables.flatMap(a => [a.ns, a.ew]));
-      const bye = event.swiss.publications.find(p => p.round === round && p.bye)?.bye;
-      if (bye) ids.add(bye);
-      if (!event.participants || ids.size !== event.participants.length) return false;
-    }
-    return tables.length > 0 && tables.every(a => a.boards.length > 0 &&
-      a.boards.every(b => !!event.results[resultKey(a.id, b)])) &&
-      (!event.club?.enabled || event.club.finalized.includes(round));
-  });
+export function allRoundsComplete(
+  event: Pick<BridgeEvent, 'rounds' | 'assignments' | 'results' | 'club'> &
+    Partial<Pick<BridgeEvent, 'swiss' | 'participants' | 'knockout'>>,
+) {
+  if (event.knockout && event.knockout.nodes.some((n) => !event.knockout!.decisions[n.id]))
+    return false;
+  return (
+    event.rounds > 0 &&
+    Array.from({ length: event.rounds }, (_, i) => i + 1).every((round) => {
+      const tables = event.assignments.filter((a) => a.round === round);
+      if (event.knockout && tables.length === 0) return true;
+      if (event.swiss) {
+        const ids = new Set(tables.flatMap((a) => [a.ns, a.ew]));
+        const bye = event.swiss.publications.find((p) => p.round === round && p.bye)?.bye;
+        if (bye) ids.add(bye);
+        if (!event.participants || ids.size !== event.participants.length) return false;
+      }
+      return (
+        tables.length > 0 &&
+        tables.every(
+          (a) => a.boards.length > 0 && a.boards.every((b) => !!event.results[resultKey(a.id, b)]),
+        ) &&
+        (!event.club?.enabled || event.club.finalized.includes(round))
+      );
+    })
+  );
 }
 
 export function roundProgress(
   event: Pick<BridgeEvent, 'currentRound' | 'assignments' | 'results'>,
 ) {
-  const round = event.currentRound || Math.max(0, ...event.assignments
-    .filter(a => a.boards.some(b => !!event.results[resultKey(a.id, b)]))
-    .map(a => a.round));
+  const round =
+    event.currentRound ||
+    Math.max(
+      0,
+      ...event.assignments
+        .filter((a) => a.boards.some((b) => !!event.results[resultKey(a.id, b)]))
+        .map((a) => a.round),
+    );
   const tables = event.assignments
     .filter((a) => a.round === round)
     .map((assignment) => {

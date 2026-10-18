@@ -78,7 +78,10 @@ export function TeamScoringSettings({
   busy,
   save,
 }: {
-  event: Pick<BridgeEvent, 'kind' | 'teamMethod' | 'bam' | 'results' | 'swiss' | 'status'>;
+  event: Pick<
+    BridgeEvent,
+    'kind' | 'teamMethod' | 'bam' | 'results' | 'swiss' | 'knockout' | 'status'
+  >;
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 }) {
@@ -86,6 +89,7 @@ export function TeamScoringSettings({
   const locked =
     Object.keys(event.results).length > 0 ||
     !!event.swiss?.publications.length ||
+    !!(event.knockout && Object.keys(event.knockout.published).length) ||
     event.status === 'finished';
   return (
     <form

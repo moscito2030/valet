@@ -33,6 +33,7 @@ export function clubView(event: BridgeEvent, pair: string) {
     nextTables.length === Math.floor(event.participants.length / 2) &&
     scheduledPairs.size === event.participants.length - 1 &&
     event.participants.some((p) => p.id === pair) &&
+    !event.knockout &&
     !scheduledPairs.has(pair);
   const opponentId = next ? (next.ns === pair ? next.ew : next.ns) : null;
   const guide =

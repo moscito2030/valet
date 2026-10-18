@@ -28,10 +28,16 @@ export function validateInterleavedLineups(assignments: Assignment[]) {
 
 // A bye is a scheduled absence, never a fabricated table or board result.
 export function teamByes(
-  event: Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'byeVp' | 'swiss'>,
+  event: Pick<
+    BridgeEvent,
+    'kind' | 'participants' | 'assignments' | 'byeVp' | 'swiss' | 'knockout'
+  >,
 ) {
-  if (event.kind !== 'teams' || event.participants.length % 2 === 0) return [];
-  if (event.swiss) return event.swiss.publications.filter(p => p.bye).map(p => ({ round: p.round, participantId: p.bye!, vp: event.byeVp ?? 12 }));
+  if (event.knockout || event.kind !== 'teams' || event.participants.length % 2 === 0) return [];
+  if (event.swiss)
+    return event.swiss.publications
+      .filter((p) => p.bye)
+      .map((p) => ({ round: p.round, participantId: p.bye!, vp: event.byeVp ?? 12 }));
   return [...new Set(event.assignments.map((a) => a.round))]
     .sort((a, b) => a - b)
     .flatMap((round) => {
@@ -111,9 +117,10 @@ export function interleavedAssignments(
   mode: 'rotation' | 'symmetric' = 'symmetric',
 ): Assignment[] {
   validateInterleavedGroups(event, size, groups);
-  const shifts = size === 5 && mode === 'rotation'
-    ? [1, 2, 3, 4]
-    : Array.from({ length: (size - 1) / 2 }, (_, i) => [i + 1, size - i - 1]).flat();
+  const shifts =
+    size === 5 && mode === 'rotation'
+      ? [1, 2, 3, 4]
+      : Array.from({ length: (size - 1) / 2 }, (_, i) => [i + 1, size - i - 1]).flat();
   return groups.flatMap((cycle, c) =>
     shifts.flatMap((shift, r) =>
       cycle.flatMap((group, g) =>

@@ -1,3 +1,4 @@
+import { KnockoutPanel } from '../knockout-panel';
 import {
   exportMovement,
   exportPbn,
@@ -151,13 +152,21 @@ export function ImportPanel({
           儲存最大牌號
         </button>
       </form>
-      <SwissPanel
-        key={`swiss-${event.id}-${event.revision}`}
+      <KnockoutPanel
+        key={`knockout-${event.id}-${event.revision}`}
         event={event as BridgeEvent}
         busy={busy}
         save={save}
       />
-      {!event.swiss && (
+      {!event.knockout && (
+        <SwissPanel
+          key={`swiss-${event.id}-${event.revision}`}
+          event={event as BridgeEvent}
+          busy={busy}
+          save={save}
+        />
+      )}
+      {!event.swiss && !event.knockout && (
         <MovementPanel
           key={`movement-${event.id}-${event.revision}`}
           event={event as BridgeEvent}

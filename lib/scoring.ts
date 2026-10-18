@@ -1,28 +1,43 @@
 import { bamBoardPoints, type TeamScoring } from './team-method';
 import {
-BridgeEvent,
-Projection,
-Result,
-ResultInput,
-Standing,
-Trim,
-Vulnerability,
-resultKey,
+  BridgeEvent,
+  Projection,
+  Result,
+  ResultInput,
+  Standing,
+  Trim,
+  Vulnerability,
+  resultKey,
 } from './model';
 import { normalizeResults } from './result-status';
 import { teamByes } from './team-movement';
 // Assigned scores remain in NS coordinates; the side selects the awarded contract.
 export function awardedResult(result: Result | undefined, side: 'ns' | 'ew'): Result | undefined {
   return result?.split && result.status !== 'cancelled' && result.status !== 'average'
-    ? { ...result, ...result.split[side] } : result;
+    ? { ...result, ...result.split[side] }
+    : result;
 }
 export function teamBoardImps(open: Result, closed: Result): [number, number] {
-  if (open.status === 'cancelled' || closed.status === 'cancelled' || open.status === 'average' || closed.status === 'average') return [0, 0];
-  return [imps(awardedResult(open, 'ns')!.nsScore - awardedResult(closed, 'ew')!.nsScore),
-    imps(awardedResult(closed, 'ns')!.nsScore - awardedResult(open, 'ew')!.nsScore)];
+  if (
+    open.status === 'cancelled' ||
+    closed.status === 'cancelled' ||
+    open.status === 'average' ||
+    closed.status === 'average'
+  )
+    return [0, 0];
+  return [
+    imps(awardedResult(open, 'ns')!.nsScore - awardedResult(closed, 'ew')!.nsScore),
+    imps(awardedResult(closed, 'ns')!.nsScore - awardedResult(open, 'ew')!.nsScore),
+  ];
 }
-export function teamBoardPoints(open: Result, closed: Result, event: TeamScoring): [number, number] {
-  return event.teamMethod === 'bam' ? bamBoardPoints(open, closed, event) : teamBoardImps(open, closed);
+export function teamBoardPoints(
+  open: Result,
+  closed: Result,
+  event: TeamScoring,
+): [number, number] {
+  return event.teamMethod === 'bam'
+    ? bamBoardPoints(open, closed, event)
+    : teamBoardImps(open, closed);
 }
 export function trimScores(values: number[], trim: Trim = 'none') {
   const ordered = [...values].sort((a, b) => a - b);
@@ -40,13 +55,14 @@ export function teamStandingsThroughRound(
   event: Pick<BridgeEvent, 'participants' | 'penalties'> & { projection: Projection },
   round: number,
 ) {
-  const rows = event.participants.map(p => ({ ...p, score: 0, rank: 0 }));
-  for (const bye of event.projection.byes ?? []) if (bye.awarded && bye.round <= round)
-    rows.find(p => p.id === bye.participantId)!.score += bye.vp;
-  for (const match of event.projection.matches.filter(m => m.round <= round)) {
+  const rows = event.participants.map((p) => ({ ...p, score: 0, rank: 0 }));
+  for (const bye of event.projection.byes ?? [])
+    if (bye.awarded && bye.round <= round)
+      rows.find((p) => p.id === bye.participantId)!.score += bye.vp;
+  for (const match of event.projection.matches.filter((m) => m.round <= round)) {
     if (match.vpA === null || match.vpB === null) continue;
-    rows.find(p => p.id === match.a)!.score += match.vpA;
-    rows.find(p => p.id === match.b)!.score += match.vpB;
+    rows.find((p) => p.id === match.a)!.score += match.vpA;
+    rows.find((p) => p.id === match.b)!.score += match.vpB;
   }
   rows.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, 'zh-Hant'));
   rows.forEach((row, i) => {
@@ -82,7 +98,11 @@ export function imps(difference: number) {
 export function miniGameLevel(strain: ResultInput['strain']) {
   return strain === 'NT' ? 3 : strain === 'H' || strain === 'S' ? 4 : 5;
 }
-export function contractScore(r: ResultInput, vulnerability: Vulnerability, miniBridge = r.miniBridge ?? false): number {
+export function contractScore(
+  r: ResultInput,
+  vulnerability: Vulnerability,
+  miniBridge = r.miniBridge ?? false,
+): number {
   if (miniBridge && (r.doubled !== 1 || (r.level !== 1 && r.level !== miniGameLevel(r.strain)))) {
     throw new Error('迷你橋牌 僅接受一線或成局合約，不可 Pass、加倍或再加倍');
   }
@@ -139,12 +159,29 @@ export function vp(margin: number, boards: number): number {
   const win = table[Math.min(Math.abs(margin), table.length - 1)] / 100;
   return margin >= 0 ? win : Math.round((20 - win) * 100) / 100;
 }
-type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'teamMethod' | 'bam' | 'pairMethod' | 'neuberg' | 'trim' | 'penalties' | 'byeVp' | 'swiss'> & { boards: { number: number }[] };
+type ProjectionInput = Pick<
+  BridgeEvent,
+  | 'kind'
+  | 'participants'
+  | 'assignments'
+  | 'results'
+  | 'teamMethod'
+  | 'bam'
+  | 'pairMethod'
+  | 'neuberg'
+  | 'trim'
+  | 'penalties'
+  | 'byeVp'
+  | 'swiss'
+  | 'knockout'
+> & { boards: { number: number }[] };
 
 export function pairStandingsBeforeRound(event: ProjectionInput, round: number): Standing[] {
-  const assignments = event.assignments.filter(a => a.round < round);
-  const ids = new Set(assignments.map(a => a.id));
-  const results = Object.fromEntries(Object.entries(event.results).filter(([, r]) => ids.has(r.assignmentId)));
+  const assignments = event.assignments.filter((a) => a.round < round);
+  const ids = new Set(assignments.map((a) => a.id));
+  const results = Object.fromEntries(
+    Object.entries(event.results).filter(([, r]) => ids.has(r.assignmentId)),
+  );
   return project({ ...event, assignments, results, penalties: {} }).standings;
 }
 
@@ -168,9 +205,11 @@ export function project(e: ProjectionInput): Projection {
   };
   for (const a of e.assignments) for (const id of [a.ns, a.ew]) byId[id].total += a.boards.length;
   if (e.kind === 'teams') {
-    projection.byes = teamByes(e).map(bye => {
-      const tables = e.assignments.filter(a => a.round === bye.round);
-      const awarded = tables.length > 0 && tables.every(a => a.boards.every(b => !!e.results[resultKey(a.id, b)]));
+    projection.byes = teamByes(e).map((bye) => {
+      const tables = e.assignments.filter((a) => a.round === bye.round);
+      const awarded =
+        tables.length > 0 &&
+        tables.every((a) => a.boards.every((b) => !!e.results[resultKey(a.id, b)]));
       if (awarded) byId[bye.participantId].score! += bye.vp;
       return { ...bye, awarded };
     });
@@ -182,7 +221,7 @@ export function project(e: ProjectionInput): Projection {
         round: Math.max(open.round, closed.round),
         a: open.ns,
         b: open.ew,
-        ...(e.teamMethod === 'bam' ? {bamA:0,bamB:0} : {}),
+        ...(e.teamMethod === 'bam' ? { bamA: 0, bamB: 0 } : {}),
         impsA: 0,
         impsB: 0,
         marginA: 0,
@@ -206,7 +245,8 @@ export function project(e: ProjectionInput): Projection {
         const [imp, otherImp] = teamBoardImps(x, y);
         if (e.teamMethod === 'bam') {
           const [a, b] = bamBoardPoints(x, y, e);
-          match.bamA! += a; match.bamB! += b;
+          match.bamA! += a;
+          match.bamB! += b;
         }
         match.marginA += imp;
         match.marginB += otherImp;
@@ -217,8 +257,14 @@ export function project(e: ProjectionInput): Projection {
       }
       for (const id of [match.a, match.b]) byId[id].played += match.completed;
       if (match.completed === match.total && cancelled < match.total) {
-        match.vpA = e.teamMethod === 'bam' ? Math.round(match.bamA! * 100) / 100 : vp(match.marginA, match.total);
-        match.vpB = e.teamMethod === 'bam' ? Math.round(match.bamB! * 100) / 100 : vp(match.marginB, match.total);
+        match.vpA =
+          e.teamMethod === 'bam'
+            ? Math.round(match.bamA! * 100) / 100
+            : vp(match.marginA, match.total);
+        match.vpB =
+          e.teamMethod === 'bam'
+            ? Math.round(match.bamB! * 100) / 100
+            : vp(match.marginB, match.total);
         byId[match.a].score! += match.vpA;
         byId[match.b].score! += match.vpB;
         byId[match.a].secondary += e.teamMethod === 'bam' ? match.vpA - match.vpB : match.marginA;
@@ -232,10 +278,11 @@ export function project(e: ProjectionInput): Projection {
       standing.map((s) => [s.id, { mp: 0, top: 0 }]),
     );
     const scheduledCounts = new Map<number, number>();
-    for (const a of e.assignments) for (const board of a.boards)
-      scheduledCounts.set(board, (scheduledCounts.get(board) ?? 0) + 1);
-    const neubergTarget = e.neuberg && (e.pairMethod ?? 'mp') === 'mp'
-      ? Math.max(0, ...scheduledCounts.values()) : 0;
+    for (const a of e.assignments)
+      for (const board of a.boards)
+        scheduledCounts.set(board, (scheduledCounts.get(board) ?? 0) + 1);
+    const neubergTarget =
+      e.neuberg && (e.pairMethod ?? 'mp') === 'mp' ? Math.max(0, ...scheduledCounts.values()) : 0;
     for (const board of e.boards) {
       const assignments = e.assignments.filter((a) => a.boards.includes(board.number));
       const entries = assignments
@@ -262,7 +309,13 @@ export function project(e: ProjectionInput): Projection {
           rawTop <= 0
             ? null
             : entries.reduce(
-                (mp, x) => mp + (awardedResult(r, 'ns')!.nsScore > awardedResult(x.r, 'ns')!.nsScore ? 2 : awardedResult(r, 'ns')!.nsScore === awardedResult(x.r, 'ns')!.nsScore ? 1 : 0),
+                (mp, x) =>
+                  mp +
+                  (awardedResult(r, 'ns')!.nsScore > awardedResult(x.r, 'ns')!.nsScore
+                    ? 2
+                    : awardedResult(r, 'ns')!.nsScore === awardedResult(x.r, 'ns')!.nsScore
+                      ? 1
+                      : 0),
                 -1,
               );
         const method = e.pairMethod ?? 'mp';
@@ -277,12 +330,30 @@ export function project(e: ProjectionInput): Projection {
                 e.trim ?? 'none',
               );
         if (imp) ns = imp.value;
-        let ew = ns === null ? null : method === 'mp'
-          ? entries.reduce((mp, x) => mp + (awardedResult(r, 'ew')!.nsScore < awardedResult(x.r, 'ew')!.nsScore ? 2 : awardedResult(r, 'ew')!.nsScore === awardedResult(x.r, 'ew')!.nsScore ? 1 : 0), -1)
-          : impPairScore(-awardedResult(r, 'ew')!.nsScore, entries.map(x => -awardedResult(x.r, 'ew')!.nsScore), index, method, e.trim ?? 'none').value;
+        let ew =
+          ns === null
+            ? null
+            : method === 'mp'
+              ? entries.reduce(
+                  (mp, x) =>
+                    mp +
+                    (awardedResult(r, 'ew')!.nsScore < awardedResult(x.r, 'ew')!.nsScore
+                      ? 2
+                      : awardedResult(r, 'ew')!.nsScore === awardedResult(x.r, 'ew')!.nsScore
+                        ? 1
+                        : 0),
+                  -1,
+                )
+              : impPairScore(
+                  -awardedResult(r, 'ew')!.nsScore,
+                  entries.map((x) => -awardedResult(x.r, 'ew')!.nsScore),
+                  index,
+                  method,
+                  e.trim ?? 'none',
+                ).value;
         if (neubergTarget && ns !== null && ew !== null) {
-          ns = (ns + 1) * neubergTarget / entries.length - 1;
-          ew = (ew + 1) * neubergTarget / entries.length - 1;
+          ns = ((ns + 1) * neubergTarget) / entries.length - 1;
+          ew = ((ew + 1) * neubergTarget) / entries.length - 1;
         }
         projection.pairScores[resultKey(a.id, board.number)] = {
           ns,
@@ -305,7 +376,9 @@ export function project(e: ProjectionInput): Projection {
         ? e.pairMethod && e.pairMethod !== 'mp'
           ? t.mp
           : (100 * t.mp) / t.top
-        : e.pairMethod && e.pairMethod !== 'mp' ? 0 : 50;
+        : e.pairMethod && e.pairMethod !== 'mp'
+          ? 0
+          : 50;
       row.secondary = t.mp;
     }
   }
@@ -314,14 +387,29 @@ export function project(e: ProjectionInput): Projection {
     if (row.score !== null) row.score -= row.penalty;
   }
   // Fixed-direction events rank each group independently; legacy events stay combined.
-  const grouped = e.kind === 'pairs' && standing.length > 0 && standing.every(s => s.group);
-  const groups = grouped ? ['NS', 'EW'] as const : [undefined];
-  projection.standings = groups.flatMap(group => {
-    const rows = standing.filter(s => !grouped || s.group === group).sort((a, b) =>
-      (a.score === null ? (b.score === null ? 0 : 1) : b.score === null ? -1 : b.score - a.score) || a.name.localeCompare(b.name, 'zh-Hant'));
+  const grouped = e.kind === 'pairs' && standing.length > 0 && standing.every((s) => s.group);
+  const groups = grouped ? (['NS', 'EW'] as const) : [undefined];
+  projection.standings = groups.flatMap((group) => {
+    const rows = standing
+      .filter((s) => !grouped || s.group === group)
+      .sort(
+        (a, b) =>
+          (a.score === null
+            ? b.score === null
+              ? 0
+              : 1
+            : b.score === null
+              ? -1
+              : b.score - a.score) || a.name.localeCompare(b.name, 'zh-Hant'),
+      );
     rows.forEach((row, i) => {
       const previous = rows[i - 1];
-      row.rank = previous && (row.score === null) === (previous.score === null) && Math.abs((row.score ?? 0) - (previous.score ?? 0)) <= 1e-8 ? previous.rank : i + 1;
+      row.rank =
+        previous &&
+        (row.score === null) === (previous.score === null) &&
+        Math.abs((row.score ?? 0) - (previous.score ?? 0)) <= 1e-8
+          ? previous.rank
+          : i + 1;
     });
     return rows;
   });

@@ -22,12 +22,19 @@ export function applySettingsCommand(
   } else if (command.action === 'settings') {
     if (
       command.status === 'finished' &&
+      e.knockout &&
+      e.knockout.nodes.some((n) => !e.knockout!.decisions[n.id])
+    )
+      throw new DomainError('淘汰賽尚有未決對局，不能結束賽事');
+    if (
+      command.status === 'finished' &&
       e.swiss &&
       Array.from({ length: e.rounds }, (_, i) => i + 1).some((r) => !swissRoundComplete(e, r))
     )
       throw new DomainError('Swiss 尚有圈次未完整公布，不能結束賽事。');
     if (
       command.status === 'finished' &&
+      !e.knockout &&
       new Set(e.assignments.map((a) => a.round)).size !== e.rounds
     )
       throw new DomainError('尚有圈次未安排賽程，不能結束賽事。');
@@ -71,12 +78,18 @@ export function applySettingsCommand(
     }
     if (command.teamMethod !== undefined || command.bam !== undefined) {
       if (e.kind !== 'teams') throw new DomainError('隊制計分僅適用隊制賽');
-      if (Object.keys(e.results).length || e.swiss?.publications.length || e.status === 'finished') throw new DomainError('已有成績或已公布 Swiss 對戰，不能變更計分規則');
+      if (
+        Object.keys(e.results).length ||
+        e.swiss?.publications.length ||
+        (e.knockout && Object.keys(e.knockout.published).length) ||
+        e.status === 'finished'
+      )
+        throw new DomainError('已有成績或已公布 Swiss 對戰，不能變更計分規則');
       const method = command.teamMethod ?? e.teamMethod ?? 'imp';
       if (command.bam && method !== 'bam') throw new DomainError('請選擇 Board-A-Match 計分');
       if (method !== (e.teamMethod ?? 'imp')) e.byeVp = method === 'bam' ? 0 : 12;
       e.teamMethod = method;
-      if (method === 'bam') e.bam = command.bam ?? e.bam ?? {win:2,draw:1,loss:0};
+      if (method === 'bam') e.bam = command.bam ?? e.bam ?? { win: 2, draw: 1, loss: 0 };
       else delete e.bam;
     }
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;

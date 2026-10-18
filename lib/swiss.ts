@@ -21,11 +21,17 @@ type Source = Pick<
   | 'teamMethod'
   | 'bam'
   | 'swiss'
+  | 'knockout'
   | 'teamMovement'
   | 'club'
 >;
 export function assertSwissTeams(event: Source) {
-  if (event.kind !== 'teams' || event.teamMovement || isInterleaved(event.assignments))
+  if (
+    event.knockout ||
+    event.kind !== 'teams' ||
+    event.teamMovement ||
+    isInterleaved(event.assignments)
+  )
     throw new DomainError('Swiss 僅適用非交錯循環的隊制賽');
 }
 export function swissRoundComplete(

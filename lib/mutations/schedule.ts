@@ -1,3 +1,4 @@
+import { knockoutRoundReady } from '../knockout';
 import { DomainError } from '../domain-error';
 import { makeBoard } from '../domain/board-factory';
 import { exportMovement, parseByeVp, parseMovement } from '../imports';
@@ -28,6 +29,8 @@ export function applyScheduleCommand(
   const { event: e, at, changes } = context;
   let detail: string | undefined;
   if (command.action === 'round-control') {
+    if (!knockoutRoundReady(e, command.round))
+      throw new DomainError('請先公布這一圈所有淘汰賽對局');
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     if (
       e.swiss &&
@@ -74,7 +77,8 @@ export function applyScheduleCommand(
     detail = `第 ${command.round} 圈：${command.startAt ?? '未設定'} — ${command.endAt ?? '未設定'}`;
   } else if (command.action === 'swiss-config') {
     assertSwissTeams(e);
-    if (e.teamMethod !== 'bam' && command.byeVp > 20) throw new DomainError('IMP／VP 輪空分不可超過 20');
+    if (e.teamMethod !== 'bam' && command.byeVp > 20)
+      throw new DomainError('IMP／VP 輪空分不可超過 20');
     if (e.status !== 'live' || Object.keys(e.results).length || e.swiss?.publications.length)
       throw new DomainError('Swiss 模式須在收分與公布對戰前設定');
     const error = playerBoardError(command.rounds, command.boardsPerRound);
@@ -117,9 +121,17 @@ export function applyScheduleCommand(
           command.plan !== 'team-round-robin')
       )
         throw new Error('僅奇數隊輪空編排可設定輪空 VP');
-      if (command.byeVp !== undefined && e.teamMethod !== 'bam' && command.byeVp > 20) throw new DomainError('IMP／VP 輪空分不可超過 20');
+      if (command.byeVp !== undefined && e.teamMethod !== 'bam' && command.byeVp > 20)
+        throw new DomainError('IMP／VP 輪空分不可超過 20');
       if (command.byeVp !== undefined) e.byeVp = command.byeVp;
-      const plan = buildMovement(e, command.plan, command.interleavedGroups, command.arrowSwitchRound, command.movementFile, command.pairMovement);
+      const plan = buildMovement(
+        e,
+        command.plan,
+        command.interleavedGroups,
+        command.arrowSwitchRound,
+        command.movementFile,
+        command.pairMovement,
+      );
       e.boards = Array.from({ length: plan.boardCount }, (_, i) => {
         const old = e.boards.find((b) => b.number === i + 1);
         return {

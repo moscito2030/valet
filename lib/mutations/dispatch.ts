@@ -1,3 +1,4 @@
+import { applyKnockoutCommand } from './knockout';
 import type { Mutation } from '../model';
 import { applyRosterMutation, isRosterMutation } from '../roster-mutations';
 import { applyCollectionCommand } from './collection';
@@ -13,6 +14,11 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
     return;
   }
   switch (command.action) {
+    case 'knockout-config':
+    case 'knockout-publish':
+    case 'knockout-decide':
+    case 'knockout-reopen':
+      return applyKnockoutCommand(context, command);
     case 'clear-results':
     case 'results':
     case 'results-import':

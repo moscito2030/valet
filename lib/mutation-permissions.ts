@@ -2,6 +2,10 @@ import type { Mutation } from './model';
 import type { SessionRole } from './session-token';
 // Every mutation must declare its role requirement; new actions fail type checking until classified.
 const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
+  'knockout-config': 'director',
+  'knockout-publish': 'director',
+  'knockout-decide': 'director',
+  'knockout-reopen': 'director',
   'stage-archive': 'director',
   'pair-name': 'director',
   'rosters-import': 'director',
