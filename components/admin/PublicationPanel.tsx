@@ -43,9 +43,7 @@ export function PublicationPanel({
               action: 'settings',
               status: event.status,
               stageName: String(form.get('name')),
-              venueOverride: form.get('customVenue')
-                ? String(form.get('venueOverride') ?? '')
-                : null,
+              venueOverride: String(form.get('venueOverride') ?? '').trim() || null,
               date: String(form.get('date')),
               endDate: String(form.get('endDate')) || null,
               reason: '修改賽段資訊',
@@ -72,24 +70,16 @@ export function PublicationPanel({
             <input name="endDate" type="date" defaultValue={event.endDate ?? ''} />
           </label>
           <p className="footnote">單日賽段可將結束日期留空。</p>
-          <label>
-            <input
-              name="customVenue"
-              type="checkbox"
-              defaultChecked={event.venueOverride !== undefined}
-            />{' '}
-            此賽段另設地點
-          </label>
-          <label className="field">
+<label className="field">
             賽段地點
             <input
               name="venueOverride"
               maxLength={80}
               defaultValue={event.venueOverride ?? ''}
-              placeholder="留空表示此賽段地點未定"
+              placeholder="留空沿用賽事地點"
             />
           </label>
-          <p className="footnote">未勾選時沿用賽事地點：{event.competition?.venue || '未公布'}。</p>
+          <p className="footnote">留空時沿用賽事地點：{event.competition?.venue || '未公布'}。</p>
           <button className="button subtle" disabled={busy}>
             儲存賽段資訊
           </button>

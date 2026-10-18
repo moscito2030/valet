@@ -70,7 +70,6 @@ export function CreateDialog({
   const [method, setMethod] = useState('mp');
   const [rankingMode, setRankingMode] = useState<'single' | 'double'>('single');
   const [gameMode, setGameMode] = useState<'bridge' | 'minibridge'>('bridge');
-  const [customVenue, setCustomVenue] = useState(false);
   const [eventDate, setEventDate] = useState(() =>
     new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }),
   );
@@ -94,7 +93,7 @@ export function CreateDialog({
         date: form.get('date'),
         ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
         venue: competition?.venue ?? form.get('venue'),
-        ...(competition && customVenue ? { venueOverride: String(form.get('venueOverride') ?? '') } : {}),
+        ...(competition && String(form.get('venueOverride') ?? '').trim() ? { venueOverride: String(form.get('venueOverride')).trim() } : {}),
         names: grouped ? [...lines('nsNames'), ...lines('ewNames')] : lines('names'),
       };
       const res = await api<{ id: string }>(
@@ -257,8 +256,8 @@ export function CreateDialog({
             </label>
           )}
           {competition && <div className="field create-details-wide">
-            <label><input type="checkbox" checked={customVenue} onChange={e => setCustomVenue(e.target.checked)} /> 此賽段另設地點</label>
-            {customVenue ? <input aria-label="賽段地點" name="venueOverride" maxLength={80} placeholder="留空表示此賽段地點未定" /> : <span className="footnote">沿用賽事地點：{competition.venue || '未公布'}</span>}
+            <input aria-label="賽段地點" name="venueOverride" maxLength={80} placeholder="留空沿用賽事地點" />
+            <span className="footnote">留空時沿用賽事地點：{competition.venue || '未公布'}</span>
           </div>}
         </div>
         {kind === 'pairs' && <label className="field">排名方式
