@@ -76,13 +76,14 @@ export function RoundSelect({
     </label>
   );
 }
-export function DealDiagram({ board }: { board: PublicEvent['boards'][number] }) {
+export function DealDiagram({ board, onPreview, previewing }: { board: PublicEvent['boards'][number]; onPreview?: () => void; previewing?: boolean }) {
   if (!hasDeal(board) || board.deal.N.length !== 13)
     return (
       <div className="hidden-deal">
-        <LockKeyhole size={32} />
+        {onPreview ? <button type="button" className="button subtle" onClick={onPreview} disabled={previewing} aria-label="裁判私下檢視此副牌型"><LockKeyhole size={32} /></button> : <LockKeyhole size={32} />}
         <strong>{'deal' in board ? '尚未匯入牌型' : '牌型尚未公開'}</strong>
         <span>逐副合約與成績可在下方的單副成績表查詢。</span>
+        {onPreview && <span>{previewing ? '載入牌型中…' : '裁判可點鎖頭在此裝置檢視，不會公開牌型。'}</span>}
       </div>
     );
   return (

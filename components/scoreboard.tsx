@@ -10,6 +10,7 @@ exportPbn
 } from '@/lib/imports';
 import type {
 Assignment,
+Board,
 PublicEvent,
 Result
 } from '@/lib/model';
@@ -118,6 +119,26 @@ export default function Scoreboard() {
     [configured, setConfigured] = useState(false),
     [mode, setMode] = useState('demo');
   const [director, setDirector] = useState(false);
+  const [privateDeal, setPrivateDeal] = useState<{ eventId: string; board: Board } | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const previewGeneration = useRef(0);
+  useEffect(() => {
+    previewGeneration.current++;
+    setPrivateDeal(null);
+    setPreviewing(false);
+  }, [id, board, director, tab]);
+  async function previewDeal() {
+    const generation = ++previewGeneration.current;
+    setPreviewing(true);
+    try {
+      const data = await api<{ board: Board }>(`/api/admin/events/${id}/boards/${board}`);
+      if (generation === previewGeneration.current) setPrivateDeal({ eventId: id, board: data.board });
+    } catch (e) {
+      if (generation === previewGeneration.current) setError((e as Error).message);
+    } finally {
+      if (generation === previewGeneration.current) setPreviewing(false);
+    }
+  }
 
   const [refreshCooldown, setRefreshCooldown] = useState(false);
   const manualRefreshUntil = useRef(0);
@@ -361,6 +382,7 @@ export default function Scoreboard() {
       }))
     : [];
   const selectedBoard = event?.boards.find((b) => b.number === board) ?? event?.boards[0];
+  const displayBoard = director && privateDeal && privateDeal.eventId === event?.id && privateDeal.board.number === selectedBoard?.number ? privateDeal.board : selectedBoard;
   const boardRounds = event ? getBoardRounds(event) : [];
   const boardRound =
     boardRounds.find((r) => r.boards.includes(selectedBoard?.number ?? 0)) ?? boardRounds[0];
@@ -1104,10 +1126,11 @@ export default function Scoreboard() {
                       <div className="board-layout">
                         {activeResult?.split && <section className="panel"><div className="panel-heading"><h3>不平衡合約</h3><p className="footnote">下方牌局保留原始紀錄；判罰後各方分別依下列合約計分。</p>{(['ns','ew'] as const).map(side => <p key={side}>{side.toUpperCase()} 獲判：<Contract result={awardedResult(activeResult, side)} /> · <span className="mono">{signed(awardedResult(activeResult, side)!.nsScore * (side === 'ns' ? 1 : -1))}</span></p>)}</div></section>}
                         <section className="panel deal-panel">
-                          {hasDeal(selectedBoard) && selectedBoard.deal.N.length === 13 ? (
+                          {displayBoard !== selectedBoard && <div className="panel-heading"><p>裁判私下檢視 · 牌型仍未公開</p><button type="button" className="button subtle" onClick={() => setPrivateDeal(null)}>收起牌型</button></div>}
+                          {displayBoard && hasDeal(displayBoard) && displayBoard.deal.N.length === 13 ? (
                             <DealExplorer
                               key={`${event.id}:${selectedBoard.number}`}
-                              board={selectedBoard}
+                              board={displayBoard}
                               miniBridge={event.gameMode === 'minibridge'}
                               result={activeResult}
                               playerNames={activeNames}
@@ -1134,7 +1157,7 @@ export default function Scoreboard() {
                                 validResults={completedBoardScores.length}
                                 navigation={boardNavigation}
                               />
-                              <DealDiagram board={selectedBoard} />
+                              <DealDiagram board={selectedBoard} onPreview={director && !hasDeal(selectedBoard) ? previewDeal : undefined} previewing={previewing} />
                             </div>
                           )}
                           {hasDeal(selectedBoard) && selectedBoard.deal.N.length > 0 && (
