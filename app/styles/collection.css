@@ -1,0 +1,48 @@
+.club-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+.club-page header { margin-bottom: 24px; }
+.club-page h1 { font-size: 26px; }
+.club-page h2 { font-size: 20px; margin: 0 0 12px; }
+.club-section { padding: 20px; margin-bottom: 16px; }
+.club-section p { line-height: 1.7; }
+.club-board-list { display: grid; gap: 10px; margin: 16px 0; }
+.club-board-list > button { display: flex; justify-content: space-between; flex-wrap: wrap; min-height: 52px; }
+.club-page .field select, .club-page .field input { min-height: 48px; font-size: 16px; }
+.club-admin h4 { margin: 24px 0 12px; }
+.club-admin p { line-height: 1.6; }
+.club-pair-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: 8px; margin: 16px 0; }
+.club-pair-links button { width: 100%; height: 44px; min-width: 0; max-width: 100%; padding: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.club-pair-label { display: block; width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.club-link-card { display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid var(--line); padding: 16px; border-radius: 8px; }
+.club-link-card img { max-width: 100%; height: auto; }
+.club-link-card input { width: 100%; min-width: 0; }
+.club-progress-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+
+.score-actions .button { font-size: 14px; min-height: 44px; padding: 10px 12px; }
+.score-actions .button.danger { background: #f7efed; border-color: #e5d4d0; color: #895b56; }
+.score-actions .button.danger:hover { background: #f0e4e1; }
+
+.panel-heading.admin-panel-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 8px; }
+.admin-panel-heading > h3 { margin: 0; white-space: nowrap; }
+.admin-panel-heading > .button-row { flex-wrap: nowrap; }
+.admin-panel-heading .button { white-space: nowrap; }
+.admin-panel-heading > .admin-panel-description { grid-column: 1 / -1; margin: 0; }
+
+/* Keep result rows at one readable size; contract annotations stay smaller. */
+.player-results tbody tr > td:nth-child(n),
+.player-results tbody .text-button,
+.player-results tbody .contract-link,
+.player-results tbody .player-round,
+.player-results tbody .player-points-value,
+.player-results tbody .contract,
+.player-results tbody .cancelled-contract {
+  font-size: 13px;
+}
+
+.club-board-result { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; }
+.club-board-result small { margin-left: auto; white-space: nowrap; }
+.club-admin .field small { overflow-wrap: anywhere; }
+

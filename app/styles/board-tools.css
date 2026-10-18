@@ -1,0 +1,238 @@
+.traveler-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 20px 18px;
+}
+.selected-result {
+  background: #e5eee8 !important;
+  box-shadow: inset 4px 0 #285746;
+}
+.publication-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
+  gap: 10px;
+  margin: 20px 0 30px;
+}
+.director-controls {
+  background: #fff3e7;
+  border: 1px solid #c89760;
+  border-radius: 12px;
+  padding: 18px;
+  margin-top: 20px;
+}
+.director-controls p {
+  margin: 8px 0 16px;
+}
+.deal-explorer {
+  min-width: 0;
+}
+.deal-explorer .deal-diagram {
+  min-height: 360px;
+}
+.deal-explorer .suit-line > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.playing-card {
+  position: relative;
+  display: inline-grid;
+  justify-items: center;
+  min-width: 22px;
+  padding: 2px 3px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.playing-card:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.playing-card:not(:disabled) {
+  background: white;
+  border-color: #80a992;
+  cursor: pointer;
+}
+.playing-card small {
+  font:
+    10px ui-monospace,
+    monospace;
+  color: #285746;
+}
+.playing-card.opening-lead {
+  background: #ffe59a;
+  border: 2px solid #a16b00;
+  color: #392800;
+  box-shadow: 0 0 0 2px #fff1be;
+}
+.lead-note,
+.trick-strip {
+  padding: 10px;
+  background: #fff3cf;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.deal-explorer .button-row {
+  gap: 8px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.deal-explorer h4 {
+  margin: 20px 0 10px;
+}
+.dd-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.dd-table td,
+.dd-table th {
+  padding: 5px;
+  text-align: center;
+}
+.dd-table button {
+  width: 100%;
+  padding: 9px 3px;
+  border: 1px solid #c1d4c8;
+  border-radius: 6px;
+  background: #e8f0ea;
+  color: #173f31;
+  font:
+    700 16px ui-monospace,
+    monospace;
+  cursor: pointer;
+}
+.dd-table button:hover {
+  background: #cadfd0;
+}
+@media (max-width: 640px) {
+  .participant-picker {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .participant-picker select {
+    flex: 1;
+    min-width: 180px;
+    font-size: 14px;
+  }
+  .playing-card {
+    min-width: 19px;
+    padding: 1px;
+  }
+}
+
+table th[aria-sort='ascending'] > button,
+table th[aria-sort='descending'] > button {
+  text-decoration: underline; text-decoration-color: var(--muted);
+  text-underline-offset: 4px;
+}
+
+.round-pairs-table {
+  width: 100%;
+  table-layout: fixed;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.round-pairs-table th,
+.round-pairs-table td {
+  padding: 14px 6px;
+  text-align: center;
+}
+.round-pairs-table th:first-child {
+  width: 12%;
+}
+.round-pairs-table th:nth-child(2),
+.round-pairs-table th:nth-child(3) {
+  width: 29%;
+}
+.round-pairs-table th:nth-child(4) {
+  width: 17%;
+}
+.round-pairs-table th:last-child {
+  width: 13%;
+}
+.round-pairs-table .participant-link {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.round-pairs-table .participant-link > span {
+  min-width: 0;
+  text-align: left;
+}
+.round-pairs-table .round-pair-summary {
+  white-space: nowrap;
+  letter-spacing: 0;
+  font-size: clamp(8px, 2.2vw, 9px);
+}
+.round-pairs-table .text-button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  .round-pairs-table th,
+  .round-pairs-table td {
+    padding: 12px 3px;
+    font-size: 11px;
+  }
+  .round-pairs-table .participant-link {
+    font-size: 12px;
+  }
+}
+.ranking-table .participant-link > span {
+  text-align: left;
+}
+.ranking-table .participant-link small {
+  text-align: left;
+  min-height: 1.4em;
+}
+.ranking-table {
+  table-layout: auto;
+  white-space: normal;
+}
+.ranking-table th:nth-child(n),
+.ranking-table td:nth-child(n) {
+  width: auto;
+  padding: 16px 8px;
+  text-align: center;
+}
+.ranking-table .participant-link {
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.ranking-table .rank {
+  justify-content: center;
+}
+.ranking-table th:nth-child(3),
+.ranking-table td:nth-child(1),
+.ranking-table td:nth-child(3),
+.ranking-table td:nth-child(4) {
+  white-space: nowrap;
+}
+.ranking-table td.big-score {
+  font-size: clamp(16px, 2.2vw, 26px);
+}
+@media (max-width: 560px) {
+  .ranking-table th:nth-child(n),
+  .ranking-table td:nth-child(n) {
+    padding: 12px 4px;
+  }
+  .ranking-table .participant-link {
+    font-size: 12px;
+  }
+  .ranking-table .rank {
+    gap: 3px;
+    font-size: 12px;
+  }
+  .ranking-table .rank svg {
+    width: 11px;
+  }
+}

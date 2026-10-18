@@ -137,6 +137,7 @@ npm run build
 - components/admin-panel.tsx：裁判／賽務後台的載入與提交協調；各功能面板位於 components/admin/。
 - components/event-dialogs.tsx：建立賽事與對話框。
 - components/scoreboard-shared.tsx、scoreboard-widgets.tsx：顯示格式、共用元件與瀏覽器操作。
+- app/globals.css：依既有 cascade 順序載入 app/styles/ 的基礎、成績、牌局、後台、收分與賽事樣式。不要自動排序這些 import；功能樣式優先在對應檔案維護，跨功能覆寫仍須檢查桌面與手機。
 - lib/events.ts：既有呼叫端的相容入口；建立賽段與示範資料位於 lib/domain/。
 - lib/mutations/apply.ts：共同的版本檢查、工作副本、稽核與投影更新；dispatch.ts 按操作種類分派至計分、收分、編排、設定與牌型處理器，名單操作沿用 roster-mutations.ts。
 - lib/scoring.ts：純計分函式；舊 average 統一視為取消。
