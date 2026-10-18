@@ -7,7 +7,7 @@ import { boardRange } from '@/lib/board-groups';
 import { contractScore } from '@/lib/scoring';
 import { MiniContractFields } from '@/components/mini-contract-fields';
 
-const describeContract = (r: ResultInput) => r.level === 0 ? 'Pass' : `${r.miniBridge ? (r.level === 1 ? '一線 ' : '成局 ') : r.level}${r.strain}${r.doubled === 2 ? 'x' : r.doubled === 4 ? 'xx' : ''} ${r.declarer} · ${r.tricks} 墩`;
+const describeContract = (r: ResultInput) => r.level === 0 ? 'Pass' : `${r.level}${{ C: '♣', D: '♦', H: '♥', S: '♠', NT: 'NT' }[r.strain]}${r.doubled === 2 ? 'x' : r.doubled === 4 ? 'xx' : ''} ${r.declarer} · ${r.tricks} 墩`;
 
 export default function ClubPage() {
   const [data, setData] = useState<ClubView | null>(null);
