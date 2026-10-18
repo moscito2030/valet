@@ -9,7 +9,7 @@ export function MiniContractFields({ value, onChange }: { value: ResultInput; on
       onChange({ ...value, strain, level, doubled: 1, miniBridge: true, tricks: level + 6 });
     }}>
       {(['C', 'D', 'H', 'S', 'NT'] as const).flatMap((strain, i) => ['part', 'game'].map(target =>
-        <option key={`${strain}-${target}`} value={`${strain}-${target}`}>{['♣', '♦', '♥', '♠', 'NT'][i]} · {target === 'part' ? '一線（7 墩）' : `成局（${miniGameLevel(strain) + 6} 墩）`}</option>
+        <option key={`${strain}-${target}`} value={`${strain}-${target}`}>{target === 'part' ? 1 : miniGameLevel(strain)}{['♣', '♦', '♥', '♠', 'NT'][i]}</option>
       ))}
     </select>
   </label>;

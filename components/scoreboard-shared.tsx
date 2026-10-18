@@ -54,7 +54,6 @@ export function signed(n: number) {
   return n > 0 ? `+${n}` : String(n);
 }
 export function displayContract(r: ResultInput) {
-  if (r.miniBridge) return `${suitSymbols[r.strain]} ${r.level === 1 ? '一線' : '成局'}`;
   return r.level === 0
     ? 'PASS'
     : `${r.level}${suitSymbols[r.strain]}${r.doubled === 2 ? 'x' : r.doubled === 4 ? 'xx' : ''}`;
