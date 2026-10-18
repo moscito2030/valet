@@ -8,6 +8,7 @@ import { requireAdmin, errorResponse, readJson } from '@/lib/http';
 import { DomainError } from '@/lib/domain-error';
 export const dynamic = 'force-dynamic';
 const schema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('complete-table'), assignmentId: z.string().min(1), round: z.number().int().min(1), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('input-rule'), inputRule: z.enum(['ns', 'ew', 'lower', 'higher']), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('input-table'), assignmentId: z.string().min(1), inputPair: z.string().min(1).nullable(), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('enable'), enabled: z.boolean(), mode: z.enum(['pair','table']).optional(), revision: z.number().int() }).strict(),
@@ -24,7 +25,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { event } = await getEvent(id);
     const meta = { revision: input.revision, requestId: randomUUID(), reason: '設定收分模式' };
     let token: string | undefined;
-    if (input.action === 'finalize') {
+    if (input.action === 'complete-table') {
+      await mutateEvent(id, { ...meta, action: 'club-complete-table', assignmentId: input.assignmentId, round: input.round, reason: '裁判取消本桌剩餘牌局並確認輸入' });
+    } else if (input.action === 'finalize') {
       await mutateEvent(id, { ...meta, action: 'club-finalize', round: input.round, force: input.force, reason: input.reason });
     } else {
       token = input.action === 'issue' || input.action === 'issue-table' ? randomBytes(32).toString('hex') : undefined;

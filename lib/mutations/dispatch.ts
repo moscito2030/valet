@@ -22,6 +22,7 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
       return applyScoresCommand(context, command);
     case 'club-config':
     case 'club-play':
+    case 'club-complete-table':
     case 'club-finalize':
       return applyCollectionCommand(context, command);
     case 'round-control':

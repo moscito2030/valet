@@ -17,6 +17,7 @@ const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
   'club-config': 'club',
   'club-play': 'club',
   'club-finalize': 'club',
+  'club-complete-table': 'club',
   'round-control': 'director',
   'round-timing': 'director',
   'board-publication': 'director',

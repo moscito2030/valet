@@ -205,3 +205,25 @@ test('unpaired future rounds stay pending until seats or a complete bye are know
   const bye = e.participants.find(p => !future.some(a => a.ns === p.id || a.ew === p.id))!;
   assert.deepEqual(clubView(e,bye.id).guide,{kind:'bye',round:2});
 });
+
+test('director table completion cancels only missing boards and confirms without publishing or advancing', () => {
+  const f=setup();
+  const a=f.state.event.assignments[0];
+  f.apply({action:'results',results:[f.result(a.id,a.boards[0])]});
+  const saved=structuredClone(f.state.event.results[a.id+':'+a.boards[0]]);
+  const round=f.state.event.currentRound;
+  const beforeOther=Object.fromEntries(Object.entries(f.state.event.results).filter(([k])=>!k.startsWith(a.id+':')));
+  const done=f.apply({action:'club-complete-table',assignmentId:a.id,round});
+  assert.deepEqual(done.event.results[a.id+':'+a.boards[0]],saved);
+  assert.equal(done.event.results[a.id+':'+a.boards[1]].status,'cancelled');
+  assert.equal(clubView(done.event,a.ns).accepted,true);
+  assert.deepEqual(done.event.club!.finalized,[]);
+  assert.equal(done.event.currentRound,round);
+  assert.equal(done.event.roundPhase,'playing');
+  assert.deepEqual(audienceEvent(done.event).results,{});
+  assert.deepEqual(Object.fromEntries(Object.entries(done.event.results).filter(([k])=>!k.startsWith(a.id+':'))),beforeOther);
+  assert.equal(done.event.audit.at(-1)?.changes?.length,1);
+  assert.throws(()=>f.apply({action:'club-complete-table',assignmentId:a.id,round}));
+  assert.throws(()=>f.apply({action:'club-complete-table',assignmentId:'missing',round}));
+  assert.throws(()=>f.apply({action:'club-complete-table',assignmentId:a.id,round:2}));
+});
