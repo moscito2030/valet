@@ -72,7 +72,7 @@ export function CreateDialog({
   const [plannedBoards, setPlannedBoards] = useState<number | null>(null);
   const count = plannedBoards ?? (kind === 'teams' ? 8 : 2);
   const [method, setMethod] = useState('mp');
-  const [movementPlan, setMovementPlan] = useState('');
+  const [rankingMode, setRankingMode] = useState<'single' | 'double'>('single');
   const [gameMode, setGameMode] = useState<'bridge' | 'minibridge'>('bridge');
   const [customVenue, setCustomVenue] = useState(false);
   const [eventDate, setEventDate] = useState(() =>
@@ -85,12 +85,12 @@ export function CreateDialog({
     setError('');
     try {
       const lines = (field: string) => String(form.get(field) ?? '').split('\n').map(s => s.trim()).filter(Boolean);
-      const grouped = kind === 'pairs' && !!movementPlan;
+      const grouped = kind === 'pairs' && rankingMode === 'double';
       if (grouped && lines('nsNames').length !== lines('ewNames').length) throw new Error('NS 與 EW 組需有相同搭檔數');
       const stage = {
         kind,
         gameMode,
-        ...(grouped ? { movementPlan } : {}),
+        ...(kind === 'pairs' ? { rankingMode } : {}),
         pairMethod: kind === 'pairs' ? method : 'mp',
         trim: kind === 'pairs' && method !== 'mp' ? form.get('trim') : 'none',
         name: form.get('name'),
@@ -99,7 +99,7 @@ export function CreateDialog({
         ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
         venue: competition?.venue ?? form.get('venue'),
         ...(competition && customVenue ? { venueOverride: String(form.get('venueOverride') ?? '') } : {}),
-        rounds: form.get('rounds') ? Number(form.get('rounds')) : undefined,
+        rounds: kind === 'teams' && form.get('rounds') ? Number(form.get('rounds')) : undefined,
         boardsPerRound: form.get('boardsPerRound') ? Number(form.get('boardsPerRound')) : undefined,
         names: grouped ? [...lines('nsNames'), ...lines('ewNames')] : lines('names'),
       };
@@ -145,7 +145,7 @@ export function CreateDialog({
             此賽段使用獨立日期、名單、賽制與成績。
           </p>
         )}
-        {(playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)) && <p role="alert">{playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)}</p>}
+        {kind === 'teams' && (playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)) && <p role="alert">{playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)}</p>}
         <div className="segmented">
           <button
             type="button"
@@ -267,10 +267,10 @@ export function CreateDialog({
             <label><input type="checkbox" checked={customVenue} onChange={e => setCustomVenue(e.target.checked)} /> 此賽段另設地點</label>
             {customVenue ? <input aria-label="賽段地點" name="venueOverride" maxLength={80} placeholder="留空表示此賽段地點未定" /> : <span className="footnote">沿用賽事地點：{competition.venue || '未公布'}</span>}
           </div>}
-          <label className="field">
+          {kind === 'teams' && <label className="field">
             圈數（選填）
             <input name="rounds" type="number" min={1} max={MAX_PLAYER_BOARDS} onChange={e => setPlannedRounds(Number(e.target.value))} placeholder="稍後設定" />
-          </label>
+          </label>}
           <label className="field">
             每圈牌數
             <input
@@ -283,18 +283,16 @@ export function CreateDialog({
               key={kind}
             />
           </label>
-          <p className="footnote create-details-help">圈數可留空，稍後設定賽程；每圈牌數也可稍後調整。</p>
+          <p className="footnote create-details-help">{kind === 'teams' ? '圈數可留空，稍後設定賽程；每圈牌數也可稍後調整。' : '每圈牌數可先填，具體圈數與賽程於建立後設定。'}</p>
         </div>
-        {kind === 'pairs' && <label className="field">排名與編排
-          <select value={movementPlan} onChange={e => setMovementPlan(e.target.value)}>
-            <option value="">合併排名 · 全場同牌輪轉</option>
-            <option value="double-barometer">雙冠軍全場同牌 Mitchell</option>
-            <option value="double-mitchell">Double Winner Mitchell／Skip Mitchell</option>
-            <option value="double-mitchell-relay">Double Winner Mitchell（偶數桌共牌／中繼）</option>
+        {kind === 'pairs' && <label className="field">排名方式
+          <select value={rankingMode} onChange={e => setRankingMode(e.target.value as 'single' | 'double')}>
+            <option value="single">Single Winner（合併排名）</option>
+            <option value="double">Double Winner（NS／EW 分別排名）</option>
           </select>
-          <span className="footnote">雙冠軍支援 3–19 桌。全場同牌 Mitchell 最多桌數圈，NS 固定、EW 每圈往下一桌，不跳桌，各桌需準備複製牌。一般 Mitchell 奇數桌最多桌數圈；Skip Mitchell 最多桌數減一圈；共牌／中繼最多桌數圈。每圈最多 16 副，總牌數依編排計算。</span>
+          <span className="footnote">建立後再至裁判「匯入／匯出 → 指定賽程編排」選擇具體編排、圈數與每圈牌數。</span>
         </label>}
-        {kind === 'pairs' && movementPlan ? <div className="form-grid">
+        {kind === 'pairs' && rankingMode === 'double' ? <div className="form-grid">
           {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–19 組）
             <textarea name={group === 'NS' ? 'nsNames' : 'ewNames'} rows={5} required />
           </label>)}
@@ -311,9 +309,8 @@ export function CreateDialog({
             }
           />
         </label>}
-        <p className="footnote">圈數留空時僅建立名單，請至裁判「匯入／匯出」設定賽程編排後再開始收分。</p>
         <p className="footnote">
-          {kind === 'teams' ? '預設為兩室循環對戰；奇數隊每圈一隊輪空，預設 12 VP。隊數可被 3 或 5 整除時可採交錯循環，請在收分前至裁判「匯入／匯出」選擇，並可設定輪空 VP。' : kind === 'pairs' && movementPlan ? 'NS 固定、EW 依編排移動，各組獨立排名、同分並列。請在圈次與對戰中確認牌組流向；偶數桌共牌／中繼需安排共牌或複製牌。' : '預設建立固定循環對戰，各桌每圈打相同牌組。雙人賽需備妥重複牌組，或在收分前匯入自己的賽程編排。排名同分並列。'}
+          {kind === 'teams' ? '圈數留空時僅建立名單。預設為兩室循環對戰；奇數隊每圈一隊輪空，預設 12 VP。交錯循環與其他編排請至裁判「匯入／匯出」設定。' : '先建立名單與排名方式，不產生牌號或桌次；進入賽段後預覽並套用賽程，才能開始收分。'}
         </p>
         {error && (
           <p className="error-text" role="alert">
@@ -321,7 +318,7 @@ export function CreateDialog({
           </p>
         )}
         <button className="button primary full" disabled={busy}>
-          {busy ? '建立中…' : competition ? '建立賽段與賽程' : '建立賽事與賽程'}
+          {busy ? '建立中…' : competition ? '建立賽段' : '建立賽事'}
         </button>
       </form>
     </Modal>

@@ -91,7 +91,7 @@ export function createEvent(
     }
     rotation.splice(1, 0, rotation.pop()!);
   }
-  if (data.movementPlan && !data.rounds) {
+  if ((data.movementPlan || data.rankingMode === 'double') && !data.rounds) {
     e.participants = e.participants.map((p, i) => ({
       ...p,
       group: i < e.participants.length / 2 ? 'NS' : 'EW',

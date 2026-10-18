@@ -135,6 +135,7 @@ export const createSchema = z
     prefix: z.string().trim().max(80).optional(),
     kind: z.enum(['teams', 'pairs']),
     gameMode: z.enum(['bridge', 'minibridge']).optional(),
+    rankingMode: z.enum(['single', 'double']).optional(),
     movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay', 'double-barometer']).optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
     trim: z.enum(['none', 'one', 'ten-percent']).optional(),
@@ -148,6 +149,8 @@ export const createSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.rankingMode && (v.kind !== 'pairs' || v.movementPlan || v.rounds)) ctx.addIssue({ code: 'custom', message: '排名方式僅用於先建立雙人賽名單，賽程請於建立後設定' });
+    if (v.rankingMode === 'double' && (v.names.length < 6 || v.names.length % 2)) ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–19 組完整搭檔' });
     if (v.endDate && v.endDate < v.date) ctx.addIssue({ code: 'custom', path: ['endDate'], message: '結束日期不可早於開始日期' });
     if (v.kind === 'teams' && (v.names.length > 32 || v.movementPlan))
       ctx.addIssue({ code: 'custom', message: '隊制賽最多 32 隊，不適用雙冠軍編排' });
