@@ -39,7 +39,7 @@ export function movementOptions(event: Input): MovementPlan[] {
     options.push({ id: `howell-${template.id}`, label: rounds === tables * 2 - 1 ? '完整 Howell' : '部分 Howell', groups: Math.max(...template.rows.flat().map(cell => cell[2])),
       note: '搭檔依編排表輪換桌次與南北／東西方向；請依預覽的各圈桌次、方向與牌號移動。', source: template.source });
   }
-  if (event.participants.length % 2 === 0 && tables >= 3 && tables <= 32) {
+  if (event.participants.length % 2 === 0 && tables >= 3 && tables <= 40) {
     if (rounds <= tables) options.push({ id: 'double-barometer', label: '雙冠軍・全場共牌 Mitchell', groups: rounds,
       note: 'NS 固定，EW 每圈往下一桌（末桌回第 1 桌），不跳桌。每圈各桌打相同的新牌組，須準備各桌複製牌。名單前半為 NS 組、後半為 EW 組，各組獨立排名；最多桌數圈。' });
     for (const option of [...options].filter(o => o.id.startsWith('mitchell')))

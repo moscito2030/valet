@@ -147,21 +147,21 @@ export const createSchema = z
     endDate: dateSchema.optional(),
     venue: z.string().trim().max(80),
     venueOverride: z.string().trim().max(80).optional(),
-    names: z.array(z.string().trim().min(1).max(60)).min(3).max(64),
+    names: z.array(z.string().trim().min(1).max(60)).min(3).max(80),
     rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS).optional(),
     boardsPerRound: z.number().int().min(1).max(16).optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
     if (v.rankingMode && (v.kind !== 'pairs' || v.movementPlan || v.rounds)) ctx.addIssue({ code: 'custom', message: '排名方式僅用於先建立雙人賽名單，賽程請於建立後設定' });
-    if (v.rankingMode === 'double' && (v.names.length < 6 || v.names.length % 2)) ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–32 組完整搭檔' });
+    if (v.rankingMode === 'double' && (v.names.length < 6 || v.names.length % 2)) ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–40 組完整搭檔' });
     if (v.endDate && v.endDate < v.date) ctx.addIssue({ code: 'custom', path: ['endDate'], message: '結束日期不可早於開始日期' });
     if (v.kind === 'teams' && (v.names.length > 32 || v.movementPlan))
       ctx.addIssue({ code: 'custom', message: '隊制賽最多 32 隊，不適用雙冠軍編排' });
     const boardError = playerBoardError(v.rounds ?? 0, v.boardsPerRound ?? 0);
     if (boardError) ctx.addIssue({ code: 'custom', message: boardError });
     if (v.rounds && !v.boardsPerRound) ctx.addIssue({ code: 'custom', message: '設定圈數時請同時指定每圈牌數' });
-    if (v.movementPlan && (v.names.length < 6 || v.names.length % 2 || (v.movementPlan === 'double-mitchell-relay' && v.names.length % 4))) ctx.addIssue({ code: 'custom', message: '雙冠軍需 3–32 桌完整搭檔，共牌／中繼僅適用偶數桌' });
+    if (v.movementPlan && (v.names.length < 6 || v.names.length % 2 || (v.movementPlan === 'double-mitchell-relay' && v.names.length % 4))) ctx.addIssue({ code: 'custom', message: '雙冠軍需 3–40 桌完整搭檔，共牌／中繼僅適用偶數桌' });
     if (new Set(v.names).size !== v.names.length)
       ctx.addIssue({ code: 'custom', message: '名稱不可重複' });
     if (v.kind === 'pairs' && v.names.length < 4)

@@ -15,8 +15,8 @@ function make(tables: number, relay = tables % 2 === 0) {
     rounds: relay || tables % 2 ? tables : tables - 1, boardsPerRound: 1, date: '2026-10-17', venue: '' });
 }
 
-test('3–32 table double Mitchell variants keep groups fixed, opponents unique and boards unrepeated', () => {
-  for (let tables = 3; tables <= 32; tables++) {
+test('3–40 table double Mitchell variants keep groups fixed, opponents unique and boards unrepeated', () => {
+  for (let tables = 3; tables <= 40; tables++) {
     for (const relay of tables % 2 ? [false] : [false, true]) {
       const e = make(tables, relay);
       assert.equal(e.participants.filter(p => p.group === 'NS').length, tables);
@@ -37,7 +37,7 @@ test('3–32 table double Mitchell variants keep groups fixed, opponents unique 
 
 test('double winner rejects invalid sizes, rounds, board limits and direction-changing imports', () => {
   assert.throws(() => make(2));
-  assert.throws(() => make(33));
+  assert.throws(() => make(41));
   const e = make(4);
   assert.ok(!movementOptions({ ...e, rounds: 4 }).some(p => p.id === 'double-mitchell'));
   assert.ok(movementOptions({ ...e, boardsPerRound: 17 }).some(p => p.id.startsWith('double-')));
@@ -99,8 +99,8 @@ test('applying and leaving double winner updates groups atomically before scorin
   }
 });
 
-test('double barometer keeps NS stationary and advances EW without skips at 3–32 tables', () => {
-  for (let tables = 3; tables <= 32; tables++) {
+test('double barometer keeps NS stationary and advances EW without skips at 3–40 tables', () => {
+  for (let tables = 3; tables <= 40; tables++) {
     const e = createEvent({ name: 'Barometer Mitchell', kind: 'pairs', pairMethod: 'mp',
       movementPlan: 'double-barometer', names: Array.from({ length: tables * 2 }, (_, i) => `Pair ${i + 1}`),
       rounds: tables, boardsPerRound: 2, date: '2026-10-18', venue: '' });
