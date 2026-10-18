@@ -286,7 +286,7 @@ export function project(e: ProjectionInput): Projection {
         ? e.pairMethod && e.pairMethod !== 'mp'
           ? t.mp
           : (100 * t.mp) / t.top
-        : null;
+        : e.pairMethod && e.pairMethod !== 'mp' ? 0 : 50;
       row.secondary = t.mp;
     }
   }
