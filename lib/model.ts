@@ -10,6 +10,7 @@ export type Trim = 'none' | 'one' | 'ten-percent';
 export type Vulnerability = 'None' | 'NS' | 'EW' | 'All';
 export type Participant = { id: string; name: string; players: string; captain?: string; group?: 'NS' | 'EW' };
 export type CompetitionInfo = {
+  archived?: boolean;
   id: string;
   name: string;
   prefix: string;

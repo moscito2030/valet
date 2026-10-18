@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isAdmin, isDirector } from '@/lib/auth';
-import { deleteEvent, getEvent } from '@/lib/store';
+import { deleteEvent } from '@/lib/store';
+import { getAccessibleEvent as getEvent } from '@/lib/event-access';
 import { DomainError } from '@/lib/domain-error';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 export const dynamic = 'force-dynamic';

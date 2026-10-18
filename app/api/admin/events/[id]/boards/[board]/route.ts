@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isDirector } from '@/lib/auth';
-import { getEvent } from '@/lib/store';
+import { getAccessibleEvent as getEvent } from '@/lib/event-access';
 import { DomainError } from '@/lib/domain-error';
 import { errorResponse } from '@/lib/http';
 import { privateBoardPreview } from '@/lib/private-board-preview';

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getEvent, mutateEvent } from '@/lib/store';
+import { mutateEvent } from '@/lib/store';
+import { getAccessibleEvent as getEvent } from '@/lib/event-access';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 import { DomainError } from '@/lib/domain-error';
 import { resultSchema } from '@/lib/model';

@@ -9,6 +9,7 @@ export const competitionSchema = z.object({
   venue: z.string().trim().max(80).default(''),
 }).strict();
 export const competitionUpdateSchema = competitionSchema.extend({
+  archived: z.boolean().optional(),
   revision: z.number().int().positive(), requestId: z.string().uuid(),
 }).strict();
 export type StoredCompetition = { competition: CompetitionInfo & { updatedAt: string; audit: Audit[] }; requests: string[] };
@@ -54,7 +55,8 @@ export function advanceCompetition(previous: StoredCompetition, revision: number
 }
 export function updateCompetition(previous: StoredCompetition, input: z.infer<typeof competitionUpdateSchema>): StoredCompetition {
   if (previous.requests.includes(input.requestId)) return previous;
-  const next = advanceCompetition(previous, input.revision, '修改賽事共用資訊');
+  const next = advanceCompetition(previous, input.revision, input.archived === undefined ? '修改賽事共用資訊' : input.archived ? '封存賽事' : '解除封存賽事');
+  if (input.archived !== undefined) next.competition.archived = input.archived;
   Object.assign(next.competition, { name: input.name, prefix: input.prefix, venue: input.venue });
   next.requests = [...previous.requests, input.requestId].slice(-500);
   return next;

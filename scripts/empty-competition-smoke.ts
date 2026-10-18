@@ -90,6 +90,27 @@ try {
   assert.equal(overridden.venue, '再改總館');
   await req('/api/events/' + second.id, 'PATCH', { ...settings, venueOverride: '', revision: overridden.revision, requestId: randomUUID() });
   assert.equal((await req('/api/events/' + second.id)).venue, '');
+  // Archive is competition-wide and cannot be bypassed via stage or staff endpoints.
+  c = await catalog(id);
+  const archive = {name:c.name,prefix:c.prefix,venue:c.venue,revision:c.revision,requestId:randomUUID(),archived:true};
+  await req('/api/competitions/' + id,'PATCH',archive,401,'');
+  await req('/api/competitions/' + id,'PATCH',archive,403,staff);
+  await req('/api/competitions/' + id,'PATCH',archive);
+  await req('/api/competitions/' + id,'PATCH',archive); // idempotent
+  for (const auth of ['',staff]) {
+    assert.ok(!(await req('/api/competitions','GET',undefined,200,auth)).competitions.some((x:any)=>x.id===id));
+    assert.ok(!(await req('/api/events','GET',undefined,200,auth)).events.some((x:any)=>[first.id,second.id].includes(x.id)));
+    for (const stageId of [first.id,second.id]) await req('/api/events/'+stageId,'GET',undefined,404,auth);
+  }
+  await req('/api/admin/events/'+second.id,'GET',undefined,404,staff);
+  await req('/api/events/'+second.id,'PATCH',{action:'penalty',participantId:'t1',amount:1,reason:'test archive',revision:1,requestId:randomUUID()},404,staff);
+  const collection = await fetch(origin+'/api/club/'+second.id,{headers:{Authorization:'Bearer '+ 'a'.repeat(64)}});
+  assert.equal(collection.status,404);
+  assert.equal((await req('/api/events/'+second.id)).competition.archived,true);
+  assert.equal((await req('/api/admin/events/'+second.id)).competition.archived,true);
+  c = await catalog(id);
+  await req('/api/competitions/'+id,'PATCH',{...archive,archived:false,revision:c.revision,requestId:randomUUID()});
+  assert.equal((await req('/api/events/'+second.id,'GET',undefined,200,'')).competition.archived,false);
   await removeStage(first.id);
   assert.equal((await catalog(id)).stages.length, 1);
   await req('/api/events/' + second.id);

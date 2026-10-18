@@ -10,11 +10,13 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const [data, records] = await Promise.all([listEventIndex(), listCompetitionRecords()]);
+    const director = await isDirector();
     const roots = new Map(competitionCatalog(data, records).map(c => [c.id, c]));
     return NextResponse.json(
       {
         storage: storageMode(),
         events: [...data]
+          .filter(({ event }) => director || !roots.get(event.parentEventId ?? event.id)?.archived)
           .sort((a, b) => Date.parse(b.event.updatedAt) - Date.parse(a.event.updatedAt))
           .map(({ event: e, projection: p }) => ({
             id: e.id,

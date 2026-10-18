@@ -318,6 +318,7 @@ export default function Scoreboard() {
                     await api('/api/session', { method: 'DELETE' });
                     setAdmin(false);
                     setDirector(false);
+                    if (event?.competition?.archived) { setEvent(null); location.assign('/'); return; }
                     setTab('standings');
                   } catch (e) {
                     setError((e as Error).message);

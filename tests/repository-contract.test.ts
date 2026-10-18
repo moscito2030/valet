@@ -86,6 +86,26 @@ for (const kind of ['local', 'postgres'] as const)
   test(`${kind} repository contract`, async (t) => {
     const { repo, seedLegacy, close } = await harness(kind);
     try {
+      await t.test('archive persists across repositories, inherits to stages and survives metadata edits', async () => {
+        const root = await repo.insertCompetition(createCompetition({name:'Archive test',venue:'Hall'}));
+        const e = stage();
+        await repo.insertStage(root.competition.id,e,root.competition.revision);
+        const before = await repo.getEvent(e.id);
+        let c = (await repo.getCompetition(root.competition.id)).competition;
+        const input = {name:c.name,prefix:c.prefix,venue:c.venue,revision:c.revision,requestId:randomUUID(),archived:true};
+        await repo.mutateCompetition(c.id,input);
+        assert.equal((await repo.getEvent(e.id)).event.competition?.archived,true);
+        c = (await repo.getCompetition(c.id)).competition;
+        await repo.mutateCompetition(c.id,{name:'Renamed archive',prefix:c.prefix,venue:c.venue,revision:c.revision,requestId:randomUUID()});
+        assert.equal((await repo.getCompetition(c.id)).competition.archived,true);
+        c = (await repo.getCompetition(c.id)).competition;
+        await repo.mutateCompetition(c.id,{...input,revision:c.revision,requestId:randomUUID(),archived:false});
+        const after = await repo.getEvent(e.id);
+        assert.equal(after.event.competition?.archived,false);
+        assert.deepEqual(after.event.results,before.event.results);
+        assert.deepEqual(after.event.assignments,before.event.assignments);
+        assert.equal(after.event.revision,before.event.revision);
+      });
       await t.test(
         'score, audit and projection commit together; duplicate requests do not commit twice',
         async () => {

@@ -10,7 +10,12 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
     async (signal?: AbortSignal) => {
       if (!id) return;
       const generation = ++requestGeneration.current;
-      const data = await api<PublicEvent>(`/api/events/${encodeURIComponent(id)}`, { signal });
+      let data: PublicEvent;
+      try { data = await api<PublicEvent>(`/api/events/${encodeURIComponent(id)}`, { signal }); }
+      catch (error) {
+        if ([401, 403, 404].includes((error as { status?: number }).status ?? 0) && generation === requestGeneration.current) setEvent(null);
+        throw error;
+      }
       if (generation === requestGeneration.current) {
         setEvent(data);
         setError('');
@@ -29,7 +34,8 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
         try {
           await refreshEvent();
           failures = 0;
-        } catch {
+        } catch (error) {
+          if ([401, 403, 404].includes((error as { status?: number }).status ?? 0)) { setError('此賽事目前無法存取。'); return; }
           failures++;
           setError('更新失敗，保留上次成績。連線恢復後會重試。');
         }

@@ -72,7 +72,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             try {
               const response = await fetch('/api/session', { method: 'DELETE' });
               if (!response.ok) throw new Error('登出失敗，請再試一次。');
-              setSession({ admin: false, director: false }); setSessionExpanded(false); setCreating(false); setAddingStage(false); setEditing(false); setDeleting(false);
+              setCompetitions(previous => previous.filter(c => !c.archived)); setSession({ admin: false, director: false }); setSessionExpanded(false); setCreating(false); setAddingStage(false); setEditing(false); setDeleting(false);
             } catch (e) { setError((e as Error).message); }
           }} />
           {sessionExpanded && <div id="hub-account-menu" className="hub-account-menu">
@@ -92,9 +92,15 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
         {loading ? <div className="empty">載入賽事中…</div> : competitionId && !competition ? <div className="empty"><h2>找不到賽事</h2><a href="/" className="button subtle">瀏覽其他賽事</a></div> : competition ? <>
           <section className="competition-hero">
             {competition.prefix && <p className="competition-prefix">{competition.prefix}</p>}
-            <h1>{competition.name}</h1>
+            <h1>{competition.name}</h1>{competition.archived && <p role="status">已封存 · 僅裁判可見</p>}
             <div className="competition-facts"><span><CalendarDays size={17} />{competitionDateLabel(competition)}</span><span><MapPin size={17} />{competition.venue || '地點未公布'}</span></div>
-            <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />新增賽段</button></>}</div>
+            <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />新增賽段</button><button className="button subtle" disabled={busy} onClick={async () => {
+              setBusy(true); setError('');
+              try {
+                await request(`/api/competitions/${competition.id}`, { name: competition.name, prefix: competition.prefix, venue: competition.venue, revision: competition.revision, requestId: crypto.randomUUID(), archived: !competition.archived }, 'PATCH');
+                await load(); setNotice(competition.archived ? '已解除封存。' : '已封存，所有賽段僅裁判可見。');
+              } catch (e) { setError((e as Error).message); await load().catch(() => {}); } finally { setBusy(false); }
+            }}>{competition.archived ? '解除封存' : '封存賽事'}</button></>}</div>
           </section>
           {editing && session.director && <form className="panel hub-form" key={competition.revision} onSubmit={async e => {
             e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
@@ -125,7 +131,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
             <span className={`event-icon ${c.stages[0]?.kind ?? ''}`} aria-hidden="true"><Users size={23} /></span>
             <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{`${c.stages.length} 個賽段`}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
-            <span className="competition-status">{!c.stages.length ? '尚未安排賽段' : c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
+            <span className="competition-status">{c.archived ? '已封存 · 僅裁判可見' : !c.stages.length ? '尚未安排賽段' : c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}

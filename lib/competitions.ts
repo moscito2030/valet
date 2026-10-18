@@ -2,8 +2,8 @@ import type { StoredCompetition } from './competition-record';
 import type { EventIndex, IndexEvent } from './event-index';
 import type { BridgeEvent, CompetitionInfo, StoredEvent } from './model';
 
-export function competitionInfo(root: Pick<IndexEvent, 'id' | 'name' | 'prefix' | 'venue' | 'hasStages' | 'revision'>): CompetitionInfo {
-  return { id: root.id, name: root.name, prefix: root.prefix ?? '', venue: root.venue, hasStages: !!root.hasStages, revision: root.revision };
+export function competitionInfo(root: Pick<IndexEvent, 'id' | 'name' | 'prefix' | 'venue' | 'hasStages' | 'revision'> & { archived?: boolean }): CompetitionInfo {
+  return { id: root.id, name: root.name, prefix: root.prefix ?? '', venue: root.venue, hasStages: !!root.hasStages, revision: root.revision, ...(root.archived !== undefined ? { archived: root.archived } : {}) };
 }
 
 export function stageSummary(event: IndexEvent) {
@@ -23,6 +23,6 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
 
 export type Competition = ReturnType<typeof competitionCatalog>[number];
 
-export function inheritCompetition(stored: StoredEvent, root: Pick<BridgeEvent, 'id' | 'name' | 'prefix' | 'venue' | 'hasStages' | 'revision'>): StoredEvent {
+export function inheritCompetition(stored: StoredEvent, root: Pick<BridgeEvent, 'id' | 'name' | 'prefix' | 'venue' | 'hasStages' | 'revision'> & { archived?: boolean }): StoredEvent {
   return { ...stored, event: { ...stored.event, prefix: root.prefix ?? '', venue: stored.event.venueOverride ?? root.venue, competition: competitionInfo(root) } };
 }

@@ -71,7 +71,7 @@ export async function api<T>(url: string, options?: RequestInit): Promise<T> {
     },
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? '連線失敗');
+  if (!res.ok) throw Object.assign(new Error(json.error ?? '連線失敗'), { status: res.status });
   return json;
 }
 export function download(name: string, text: string, type = 'text/plain') {
