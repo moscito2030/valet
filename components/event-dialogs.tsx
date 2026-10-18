@@ -293,7 +293,7 @@ export function CreateDialog({
           <span className="footnote">建立後再至裁判「匯入／匯出 → 指定賽程編排」選擇具體編排、圈數與每圈牌數。</span>
         </label>}
         {kind === 'pairs' && rankingMode === 'double' ? <div className="form-grid">
-          {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–19 組）
+          {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–32 組）
             <textarea name={group === 'NS' ? 'nsNames' : 'ewNames'} rows={5} required />
           </label>)}
         </div> : <label className="field">

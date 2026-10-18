@@ -25,3 +25,15 @@ test('ranking-only creation rejects invalid groups and conflicting schedules', (
     {...base,kind:'teams',rankingMode:'double'},
   ]) assert.equal(createSchema.safeParse(input).success,false);
 });
+
+test('pair roster accepts 64 pairs and rejects 65 while teams remain capped at 32', () => {
+  const names = Array.from({length:64}, (_,i)=>`Pair ${i+1}`);
+  for (const rankingMode of ['single','double'] as const) {
+    const event = createEvent({...base,names,rankingMode});
+    assert.equal(event.participants.length,64);
+    assert.equal(event.assignments.length,0);
+    assert.equal(createSchema.safeParse({...base,names:[...names,'Extra'],rankingMode}).success,false);
+  }
+  assert.equal(createSchema.safeParse({...base,kind:'teams',names:names.slice(0,32)}).success,true);
+  assert.equal(createSchema.safeParse({...base,kind:'teams',names:names.slice(0,33)}).success,false);
+});
