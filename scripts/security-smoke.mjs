@@ -25,7 +25,10 @@ try {
   const preview=await fetch(previewUrl,{headers:{Cookie:directorCookie}});
   assert.equal(preview.status,200);
   assert.match(preview.headers.get('cache-control'),/no-store/);
-  assert.equal((await preview.json()).board.deal.N.length,13);
+  const privateData=await preview.json();
+  assert.equal(privateData.board.deal.N.length,13);
+  assert.ok(Object.keys(privateData.results).length>0);
+  assert.ok(Object.values(privateData.results).every(r=>r.board===1));
   const afterPreview=await (await fetch(origin+'/api/events/'+id)).json();
   assert.deepEqual(afterPreview.boards,beforePreview.boards,'private preview must not change public board data');
   assert.equal(afterPreview.publishBoards,beforePreview.publishBoards);

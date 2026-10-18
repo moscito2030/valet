@@ -3,6 +3,7 @@ import { isDirector } from '@/lib/auth';
 import { getEvent } from '@/lib/store';
 import { DomainError } from '@/lib/events';
 import { errorResponse } from '@/lib/http';
+import { privateBoardPreview } from '@/lib/private-board-preview';
 
 export const dynamic = 'force-dynamic';
 export async function GET(_: Request, { params }: { params: Promise<{ id: string; board: string }> }) {
@@ -12,8 +13,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const { event } = await getEvent(id);
     const board = event.boards.find(b => b.number === Number(number));
     if (!board) throw new DomainError('找不到此副牌', 404);
-    if (board.deal.N.length !== 13) throw new DomainError('尚未匯入牌型', 400);
-    return NextResponse.json({ board }, { headers: { 'Cache-Control': 'private, no-store' } });
+    return NextResponse.json(privateBoardPreview(event, board), { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) {
     return errorResponse(error);
   }

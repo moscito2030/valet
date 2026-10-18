@@ -119,7 +119,7 @@ export default function Scoreboard() {
     [configured, setConfigured] = useState(false),
     [mode, setMode] = useState('demo');
   const [director, setDirector] = useState(false);
-  const [privateDeal, setPrivateDeal] = useState<{ eventId: string; board: Board } | null>(null);
+  const [privateDeal, setPrivateDeal] = useState<{ eventId: string; board: Board; results: PublicEvent['results']; pairScores: PublicEvent['projection']['pairScores'] } | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const previewGeneration = useRef(0);
   useEffect(() => {
@@ -131,8 +131,8 @@ export default function Scoreboard() {
     const generation = ++previewGeneration.current;
     setPreviewing(true);
     try {
-      const data = await api<{ board: Board }>(`/api/admin/events/${id}/boards/${board}`);
-      if (generation === previewGeneration.current) setPrivateDeal({ eventId: id, board: data.board });
+      const data = await api<{ board: Board; results: PublicEvent['results']; pairScores: PublicEvent['projection']['pairScores'] }>(`/api/admin/events/${id}/boards/${board}`);
+      if (generation === previewGeneration.current) setPrivateDeal({ eventId: id, ...data });
     } catch (e) {
       if (generation === previewGeneration.current) setError((e as Error).message);
     } finally {
@@ -383,6 +383,9 @@ export default function Scoreboard() {
     : [];
   const selectedBoard = event?.boards.find((b) => b.number === board) ?? event?.boards[0];
   const displayBoard = director && privateDeal && privateDeal.eventId === event?.id && privateDeal.board.number === selectedBoard?.number ? privateDeal.board : selectedBoard;
+  const privatePreview = displayBoard !== selectedBoard ? privateDeal : null;
+  const boardResults = privatePreview?.results ?? event?.results ?? {};
+  const boardPairScores = privatePreview?.pairScores ?? event?.projection.pairScores ?? {};
   const boardRounds = event ? getBoardRounds(event) : [];
   const boardRound =
     boardRounds.find((r) => r.boards.includes(selectedBoard?.number ?? 0)) ?? boardRounds[0];
@@ -391,7 +394,7 @@ export default function Scoreboard() {
     event && selectedBoard
       ? event.assignments
           .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
-          .map((a) => event.results[resultKey(a.id, selectedBoard.number)])
+          .map((a) => boardResults[resultKey(a.id, selectedBoard.number)])
           .filter((r) => r && r.status !== 'cancelled' && r.status !== 'average')
           .map((r) => r)
       : [];
@@ -416,10 +419,10 @@ export default function Scoreboard() {
               );
             const value = (assignment: Assignment) => {
               const key = resultKey(assignment.id, selectedBoard.number),
-                r = event.results[key];
+                r = boardResults[key];
               if (!r || r.status === 'cancelled') return null;
               if (resultSort.startsWith('points')) {
-                const points = event.projection.pairScores[key];
+                const points = boardPairScores[key];
                 const score = points?.[scoreSide];
                 return score == null
                   ? null
@@ -442,7 +445,7 @@ export default function Scoreboard() {
                 : (x - y) * (resultSort.endsWith('desc') ? -1 : 1);
           })
       : [];
-  const activeResult = event?.results[resultKey(selectedResult, selectedBoard?.number ?? 0)];
+  const activeResult = boardResults[resultKey(selectedResult, selectedBoard?.number ?? 0)];
   const activeAssignment = event?.assignments.find(
     (a) => a.id === selectedResult && a.boards.includes(selectedBoard?.number ?? 0),
   );
@@ -1126,7 +1129,7 @@ export default function Scoreboard() {
                       <div className="board-layout">
                         {activeResult?.split && <section className="panel"><div className="panel-heading"><h3>不平衡合約</h3><p className="footnote">下方牌局保留原始紀錄；判罰後各方分別依下列合約計分。</p>{(['ns','ew'] as const).map(side => <p key={side}>{side.toUpperCase()} 獲判：<Contract result={awardedResult(activeResult, side)} /> · <span className="mono">{signed(awardedResult(activeResult, side)!.nsScore * (side === 'ns' ? 1 : -1))}</span></p>)}</div></section>}
                         <section className="panel deal-panel">
-                          {displayBoard !== selectedBoard && <div className="panel-heading"><p>裁判私下檢視 · 牌型仍未公開</p><button type="button" className="button subtle" onClick={() => setPrivateDeal(null)}>收起牌型</button></div>}
+                          {displayBoard !== selectedBoard && <div className="panel-heading"><p>裁判私下檢視 · 牌型與未發布成績僅在此裝置顯示</p><button type="button" className="button subtle" onClick={() => setPrivateDeal(null)}>關閉私下檢視</button><button type="button" className="button subtle" disabled={previewing} onClick={previewDeal}>更新私下成績</button></div>}
                           {displayBoard && hasDeal(displayBoard) && displayBoard.deal.N.length === 13 ? (
                             <DealExplorer
                               key={`${event.id}:${selectedBoard.number}`}
@@ -1212,9 +1215,9 @@ export default function Scoreboard() {
                                         (c) => c.matchId === a.matchId && c.room === 'closed',
                                       )!;
                                       const x =
-                                          event.results[resultKey(a.id, selectedBoard.number)],
+                                          boardResults[resultKey(a.id, selectedBoard.number)],
                                         y =
-                                          event.results[resultKey(closed.id, selectedBoard.number)];
+                                          boardResults[resultKey(closed.id, selectedBoard.number)];
                                       const own = awardedResult(awayPerspective ? y : x, 'ns');
                                       const opponent = awardedResult(awayPerspective ? x : y, 'ew');
                                       const ownTable = awayPerspective ? closed : a;
@@ -1333,8 +1336,8 @@ export default function Scoreboard() {
                                     .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
                                     .map((a) => {
                                       const key = resultKey(a.id, selectedBoard.number),
-                                        r = event.results[key],
-                                        mp = event.projection.pairScores[key];
+                                        r = boardResults[key],
+                                        mp = boardPairScores[key];
                                       return (
                                         <tr
                                           key={a.id}

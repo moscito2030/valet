@@ -83,7 +83,7 @@ export function DealDiagram({ board, onPreview, previewing }: { board: PublicEve
         {onPreview ? <button type="button" className="button subtle" onClick={onPreview} disabled={previewing} aria-label="裁判私下檢視此副牌型"><LockKeyhole size={32} /></button> : <LockKeyhole size={32} />}
         <strong>{'deal' in board ? '尚未匯入牌型' : '牌型尚未公開'}</strong>
         <span>逐副合約與成績可在下方的單副成績表查詢。</span>
-        {onPreview && <span>{previewing ? '載入牌型中…' : '裁判可點鎖頭在此裝置檢視，不會公開牌型。'}</span>}
+        {onPreview && <span>{previewing ? '載入牌型與成績中…' : '裁判可點鎖頭在此裝置檢視牌型與各桌成績，不會對外公開。'}</span>}
       </div>
     );
   return (
