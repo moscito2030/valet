@@ -31,19 +31,19 @@ export function movementOptions(event: Input): MovementPlan[] {
   const tables = Math.ceil(event.participants.length / 2), rounds = event.rounds;
   const options: MovementPlan[] = [{ id: 'barometer', label: '全場同牌輪轉', groups: rounds, note: '每圈各桌打相同牌組，須準備多份複製牌。' }];
   const max = tables % 2 ? tables : tables - 1;
-  if (rounds <= max) options.push({ id: 'mitchell', label: tables % 2 ? 'Mitchell' : 'Skip Mitchell', groups: tables,
+  if (rounds <= max) options.push({ id: 'mitchell', label: tables % 2 ? '南北固定輪轉（米契爾）' : '南北固定跳桌輪轉（跳桌米契爾）', groups: tables,
     note: tables % 2 ? '南北固定，東西每圈往下一桌，牌組反向移動。' : `南北固定，東西每圈往下一桌；第 ${tables / 2} 圈結束後跳過一桌。` });
-  if (tables % 2 === 0 && rounds <= tables) options.push({ id: 'mitchell-relay', label: 'Mitchell（共牌／中繼桌）', groups: tables,
+  if (tables % 2 === 0 && rounds <= tables) options.push({ id: 'mitchell-relay', label: '南北固定輪轉（共牌／中繼桌）', groups: tables,
     note: `南北固定、東西每圈往下一桌；第 1 與第 ${tables} 桌共用牌組，第 ${tables / 2} 與第 ${tables / 2 + 1} 桌之間設中繼牌桌。` });
   for (const template of templates.filter(t => t.tables === tables && t.rounds === rounds)) {
-    options.push({ id: `howell-${template.id}`, label: rounds === tables * 2 - 1 ? '完整 Howell' : '3/4 Howell（Reduced Howell）', groups: Math.max(...template.rows.flat().map(cell => cell[2])),
-      note: '請依預覽的各圈桌次、方向與牌號移動。', source: template.source });
+    options.push({ id: `howell-${template.id}`, label: rounds === tables * 2 - 1 ? '完整循環對戰（豪威爾）' : '縮短循環對戰（縮減豪威爾）', groups: Math.max(...template.rows.flat().map(cell => cell[2])),
+      note: '搭檔依編排表輪換桌次與南北／東西方向；請依預覽的各圈桌次、方向與牌號移動。', source: template.source });
   }
   if (event.participants.length % 2 === 0 && tables >= 3 && tables <= 32) {
-    if (rounds <= tables) options.push({ id: 'double-barometer', label: '雙冠軍全場同牌 Mitchell', groups: rounds,
+    if (rounds <= tables) options.push({ id: 'double-barometer', label: '雙冠軍全場同牌輪轉（南北固定）', groups: rounds,
       note: 'NS 固定，EW 每圈往下一桌（末桌回第 1 桌），不跳桌。每圈各桌打相同的新牌組，須準備各桌複製牌。名單前半為 NS 組、後半為 EW 組，各組獨立排名；最多桌數圈。' });
     for (const option of [...options].filter(o => o.id.startsWith('mitchell')))
-      options.push({ ...option, id: `double-${option.id}`, label: `Double Winner ${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
+      options.push({ ...option, id: `double-${option.id}`, label: `雙冠軍・${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
   }
   return options;
 }

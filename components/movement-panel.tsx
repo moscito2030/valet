@@ -128,7 +128,7 @@ export function MovementPanel({
       <p className="footnote">
         依本賽段人數、圈數列出適用選項。
         {event.kind === 'pairs' &&
-          '3/4 Howell 的圈數依編排表而定，並非固定為完整 Howell 的四分之三。'}
+          '縮短循環對戰的圈數依編排表而定，並非固定為完整循環的四分之三。'}
       </p>
       {boardError && <p role="alert">{boardError}</p>}
       {playerBoardWarning(rounds, boardsPerRound) && <p role="alert">{playerBoardWarning(rounds, boardsPerRound)}</p>}
