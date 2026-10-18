@@ -1,11 +1,13 @@
 import { MAX_PLAYER_BOARDS, playerBoardError } from './schedule-limits';
 import templates from './movement-templates.json';
+import acblMovements from './acbl-movements.json';
+import { parseAcblMovement, type AcblMovement } from './acbl-movement';
 import type { Assignment, BridgeEvent } from './model';
 import { interleavedAssignments, teamByes, type InterleavedGroups, type InterleavedSize } from './team-movement';
 
 export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string; interleavedSize?: InterleavedSize; interleavedMode?: 'rotation' | 'symmetric' };
 type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
-export function movementOptions(event: Input): MovementPlan[] {
+export function movementOptions(event: Input, external?: AcblMovement): MovementPlan[] {
   if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > MAX_PLAYER_BOARDS) return [];
   if (event.kind === 'teams') {
     const n = event.participants.length;
@@ -45,6 +47,27 @@ export function movementOptions(event: Input): MovementPlan[] {
     for (const option of [...options].filter(o => o.id.startsWith('mitchell')))
       options.push({ ...option, id: `double-${option.id}`, label: `雙冠軍・${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
   }
+  for (const movement of external ? [...acblMovements, external] : acblMovements) {
+    if (movement.pairCount !== event.participants.length || movement.rounds !== rounds) continue;
+    const family = movement.name === 'uploaded.MOV' ? '匯入編排'
+      : movement.name.startsWith('WBMP') ? '輪休 Web'
+      : movement.name.startsWith('W') ? 'Web 編排'
+      : movement.name.startsWith('SM') ? '交換方位 Mitchell'
+      : movement.name.startsWith('BL') ? 'Blackpool 編排'
+      : movement.name.includes('ROVER') ? '輪休 Howell'
+      : movement.name.startsWith('H') ? 'Howell 編排'
+      : movement.name.startsWith('M06') ? '剪式 Mitchell'
+      : movement.name.startsWith('M08') ? '交叉式 Mitchell' : '跨區 Mitchell';
+    const option = {
+      id: `acbl-${movement.name}`, label: movement.name === 'uploaded.MOV' ? family : `${family} · ${movement.name}`,
+      groups: movement.groups,
+      note: `${movement.name === 'uploaded.MOV' ? '匯入的 ACBLscore 編排。' : 'ACBLscore 8.33 隨附編排。'}共 ${movement.tables} 個桌位、${rounds} 圈，依預覽的桌次、方向與牌號移動；空桌不登分。${['M0612.MOV', 'H0310.MOV', 'H7ROVER.MOV', 'H8ROVER.MOV'].includes(movement.name) ? '原編排的半圈分別作為獨立圈次，請按每個半圈設定牌數與切換進度。' : ''}`,
+      source: movement.name === 'uploaded.MOV' ? undefined : 'https://www.acbl.org/getscore/',
+    };
+    options.push(option);
+    if (!movement.oneWinner) options.push({ ...option, id: `double-${option.id}`,
+      label: `雙冠軍・${option.label}`, note: option.note + ` 名單前 ${movement.nsCount} 對為 NS 組，其餘為 EW 組，各組獨立排名。` });
+  }
   return options;
 }
 
@@ -54,12 +77,14 @@ export function movementBoardError(boardsPerRound: number): string | null {
   return null;
 }
 
-export function buildMovement(event: Input, id: string, groups?: InterleavedGroups, arrowSwitchRound?: number) {
+export function buildMovement(event: Input, id: string, groups?: InterleavedGroups, arrowSwitchRound?: number, movementFile?: number[]) {
   // Preserve callers of the original single-ring plan.
   if (id === 'team-interleaved' && [3, 5].includes(event.participants.length)) id += '-' + event.participants.length;
   const playerError = playerBoardError(event.rounds, event.boardsPerRound);
   if (playerError) throw new Error(playerError);
-  const option = movementOptions(event).find(option => option.id === id);
+  if (movementFile && !['acbl-uploaded.MOV', 'double-acbl-uploaded.MOV'].includes(id)) throw new Error('匯入檔案與編排選項不符');
+  const external = movementFile ? parseAcblMovement(Uint8Array.from(movementFile), 'uploaded.MOV') : undefined;
+  const option = movementOptions(event, external).find(option => option.id === id);
   if (!option) throw new Error('此桌數與圈數不適用所選賽程編排');
   const boardError = movementBoardError(event.boardsPerRound);
   if (boardError) throw new Error(boardError);
@@ -67,9 +92,10 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   const doubleWinner = id.startsWith('double-');
   if (doubleWinner) id = id.slice(7);
   const tables = Math.ceil(event.participants.length / 2);
+  const acbl = id === 'acbl-uploaded.MOV' ? external : acblMovements.find(m => `acbl-${m.name}` === id);
   const participants = event.participants.map((p, i) => {
     const { group, ...rest } = p;
-    return { ...rest, ...(doubleWinner ? { group: i < tables ? 'NS' as const : 'EW' as const } : {}) };
+    return { ...rest, ...(doubleWinner ? { group: i < (acbl?.nsCount ?? tables) ? 'NS' as const : 'EW' as const } : {}) };
   });
   const switchable = !doubleWinner && event.kind === 'pairs' && (id === 'mitchell' || id === 'mitchell-relay');
   const switchRound = arrowSwitchRound ?? Math.floor(event.rounds / 2) + 1;
@@ -86,6 +112,10 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   }
   if (option.interleavedSize) {
     assignments.push(...interleavedAssignments(event, option.interleavedSize, groups, option.interleavedMode));
+  } else if (acbl) {
+    acbl.rows.forEach((row, r) => row.forEach((cell, t) => {
+      if (cell) add(r + 1, t + 1, cell[0], cell[1], cell[2]);
+    }));
   } else if (id.startsWith('howell-')) {
     const template = templates.find(t => `howell-${t.id}` === id)!;
     template.rows.forEach((row, r) => row.forEach(([ns, ew, group], t) => add(r + 1, t + 1, ns, ew, group)));

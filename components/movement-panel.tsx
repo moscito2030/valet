@@ -2,10 +2,11 @@
 import { MAX_PLAYER_BOARDS, playerBoardError, playerBoardWarning } from '@/lib/schedule-limits';
 import { boardRange } from '@/lib/board-groups';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import { defaultInterleavedGroups, roundLabel, type InterleavedGroups } from '@/lib/team-movement';
 import { buildMovement, movementOptions, movementBoardError } from '@/lib/movement-plans';
+import { parseAcblMovement } from '@/lib/acbl-movement';
 
 export function MovementPanel({
   event,
@@ -28,6 +29,9 @@ export function MovementPanel({
 }) {
   const [switchChoice, setSwitchChoice] = useState<number | null>(null);
   const [choice, setChoice] = useState('');
+  const [movementFile, setMovementFile] = useState<number[] | undefined>();
+  const [fileError, setFileError] = useState('');
+  const fileRead = useRef(0);
   const [preview, setPreview] = useState(false);
   const [rounds, setRounds] = useState(event.rounds || 3);
   const [boardsPerRound, setBoardsPerRound] = useState(
@@ -39,7 +43,8 @@ export function MovementPanel({
     groups: InterleavedGroups;
   } | null>(null);
   const draft = { ...event, rounds, boardsPerRound, byeVp };
-  const options = movementOptions(draft);
+  const external = movementFile ? parseAcblMovement(Uint8Array.from(movementFile), 'uploaded.MOV') : undefined;
+  const options = movementOptions(draft, external);
   const switchable = event.kind === 'pairs' && ['mitchell', 'mitchell-relay'].includes(choice);
   const arrowSwitchRound = switchChoice ?? Math.floor(rounds / 2) + 1;
   const selectedOption = options.find((p) => p.id === choice);
@@ -51,7 +56,8 @@ export function MovementPanel({
       ? customGroups.groups
       : defaultInterleavedGroups(draft, size)
     : undefined;
-  const plan = selectedOption && !boardError ? buildMovement(draft, choice, groups, switchable ? arrowSwitchRound : undefined) : null;
+  const isUploaded = choice.includes('acbl-uploaded.MOV');
+  const plan = selectedOption && !boardError ? buildMovement(draft, choice, groups, switchable ? arrowSwitchRound : undefined, isUploaded ? movementFile : undefined) : null;
   const previewEvent = {
     assignments: plan?.assignments ?? [],
     teamMovement: size ? ('interleaved' as const) : undefined,
@@ -105,6 +111,27 @@ export function MovementPanel({
           />
         </label>
       </div>
+      {event.kind === 'pairs' && <label className="field">
+        匯入 ACBLscore 雙人賽編排（.MOV）
+        <input type="file" accept=".mov" disabled={locked || busy} onChange={async e => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reading = ++fileRead.current;
+          setFileError(''); setPreview(false); setMovementFile(undefined);
+          try {
+            if (!/\.mov$/i.test(file.name) || file.size > 20000) throw new Error('請選擇 20 KB 以內的 .MOV 編排檔');
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            if (reading !== fileRead.current) return;
+            const parsed = parseAcblMovement(bytes, 'uploaded.MOV');
+            if (parsed.pairCount !== event.participants.length) throw new Error(`此編排需要 ${parsed.pairCount} 對搭檔，與目前名單不符`);
+            setMovementFile(Array.from(bytes)); setRounds(parsed.rounds);
+            setChoice(!parsed.oneWinner && event.participants.some(p => p.group) ? 'double-acbl-uploaded.MOV' : 'acbl-uploaded.MOV');
+            setSwitchChoice(null);
+          } catch (error) { if (reading === fileRead.current) setFileError((error as Error).message); }
+        }} />
+        <small>依檔案設定圈數與移動方式；每圈牌數由上方指定。先預覽再套用，已有成績時不能變更。</small>
+        {fileError && <span role="alert">{fileError}</span>}
+      </label>}
       {event.kind === 'teams' && [3, 5].some((n) => event.participants.length % n === 0) && (
         <p className="footnote">
           全員打牌的交錯循環：隊數須被 3 或 5 整除；三隊模式請設 2 的倍數圈，五隊模式請設 4
@@ -291,6 +318,7 @@ export function MovementPanel({
                       action: 'movement-plan',
                       ...(switchable ? { arrowSwitchRound } : {}),
                       plan: choice,
+                      ...(isUploaded ? { movementFile } : {}),
                       rounds,
                       boardsPerRound,
                       ...(groups ? { interleavedGroups: groups } : {}),
