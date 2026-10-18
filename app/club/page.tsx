@@ -3,6 +3,7 @@ import { DeclarerWarning, HcpFields, HcpSummary } from '@/components/hcp-fields'
 import { useEffect, useRef, useState } from 'react';
 import type { ClubView } from '@/lib/club-view';
 import type { ResultInput } from '@/lib/model';
+import { collectionScoreSide, collectionScoreLabel } from '@/lib/collection-score';
 import { boardRange } from '@/lib/board-groups';
 import { contractScore } from '@/lib/scoring';
 import { MiniContractFields } from '@/components/mini-contract-fields';
@@ -66,6 +67,7 @@ export default function ClubPage() {
   const active = !!data && data.status === 'live' && !data.locked && !data.finalized && data.phase !== 'break' && data.round > 0;
   const editable = active && (data?.role === 'input' || data?.role === 'shared') && !reviewing;
   const board = data?.boards.find(b => b.number === draft?.board);
+  const scoreSide = data ? collectionScoreSide(data, !!reviewing) : 'NS';
   const inputIsEW = !!data?.assignment && data.roles?.inputPair === data.assignment.ew;
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
   return <main className="club-page">
@@ -97,7 +99,7 @@ export default function ClubPage() {
           <p>{data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
             <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} ／ EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
-            {b.result && b.result.status !== 'cancelled' && <small>{b.result.split ? `NS ${b.result.split.ns.nsScore} ／ EW ${-b.result.split.ew.nsScore}` : `NS ${b.result.nsScore > 0 ? '+' : ''}${b.result.nsScore}`}</small>}
+            {b.result && b.result.status !== 'cancelled' && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
             {b.result && <HcpSummary hcp={b.result.hcp} />}
             {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} onClick={() => edit(b.number)}>{b.result ? '更正' : '輸入'}</button>}
           </div>)}</div>
