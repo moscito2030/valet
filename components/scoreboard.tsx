@@ -1,59 +1,39 @@
 'use client';
 import { AppVersion } from './app-version';
-import { HcpSummary } from './hcp-fields';
-import { directionalDatum } from '@/lib/datum';
-import { boardRange } from '@/lib/board-groups';
 
-import { roundLabel, isInterleaved } from '@/lib/team-movement';
-import { InterleavedRound } from './interleaved-round';
-import { displayedBoardNumber,boardRounds as getBoardRounds } from '@/lib/board-navigation';
-import {
-exportPbn
-} from '@/lib/imports';
-import type {
-Assignment,
-Board,
-PublicEvent,
-Result
-} from '@/lib/model';
-import { resultKey } from '@/lib/model';
 import { dateRangeLabel } from '@/lib/date-range';
-import { participantNumber } from '@/lib/participant-number';
-import { allRoundsComplete,roundProgress } from '@/lib/round-progress';
-import { awardedResult,imps,pairStandingsBeforeRound,teamBoardImps,teamStandingsThroughRound,vp } from '@/lib/scoring';
-import { tableNames } from '@/lib/table-names';
+import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
+import { roundLabel } from '@/lib/team-movement';
 import {
-Activity,
-ArrowDownToLine,
-ArrowLeft,
-ArrowRight,
-ChevronDown,
-ChevronRight,
-ClipboardList,
-Eye,
-EyeOff,
-Flag,
-LayoutDashboard,
-LoaderCircle,
-Search,
-Settings2,
-Spade,
-Star,
-Trophy,
-Users,
-X
+  Activity,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  Flag,
+  LayoutDashboard,
+  LoaderCircle,
+  Settings2,
+  Spade,
+  Trophy,
+  Users,
+  X,
 } from 'lucide-react';
-import { useCallback,useEffect,useRef,useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminPanel } from './admin-panel';
-import { ManualLink } from './manual-link';
 import { Breadcrumbs } from './breadcrumbs';
-import { BoardInformation,DealExplorer } from './deal-explorer';
 import { Modal } from './event-dialogs';
-import { ReviewExport } from './review-export';
-import { api,Contract,download,EventSummary,hasDeal,methodNames,number,pairTone,pairValue,signed,Tab } from './scoreboard-shared';
-import { DealDiagram,RoundSelect,Stat } from './scoreboard-widgets';
+import { ManualLink } from './manual-link';
+import { api, EventSummary, methodNames, Tab } from './scoreboard-shared';
+import { Stat } from './scoreboard-widgets';
+import { BoardsView } from './scoreboard/BoardsView';
+import { PlayersView } from './scoreboard/PlayersView';
+import { RoundsView } from './scoreboard/RoundsView';
+import { StandingsView } from './scoreboard/StandingsView';
+import { useEventResource } from './scoreboard/use-event-resource';
+import { usePrivatePreview } from './scoreboard/use-private-preview';
 import { SessionControl } from './session-control';
-import { TeamButlerPopover } from './team-butler-popover';
 export default function Scoreboard() {
   function positionDetail(trigger: HTMLButtonElement) {
     const target = trigger.getAttribute('popovertarget');
@@ -81,32 +61,8 @@ export default function Scoreboard() {
   const [awayPerspective, setAwayPerspective] = useState(false);
   const [selectedResult, setSelectedResult] = useState('');
   const [resultSelection, setResultSelection] = useState(0);
-  function chooseResult(id: string) {
-    setSelectedResult((current) => (current === id ? '' : id));
-    setResultSelection((value) => value + 1);
-  }
-  function sortHeading(key: 'table' | 'score' | 'points', label: string) {
-    const active = resultSort.startsWith(key);
-    const descending = resultSort.endsWith('desc');
-    return (
-      <th aria-sort={active ? (descending ? 'descending' : 'ascending') : 'none'}>
-        <button
-          type="button"
-          className="traveller-sort"
-          onClick={() =>
-            setResultSort(
-              `${key}-${active ? (descending ? 'asc' : 'desc') : key === 'table' ? 'asc' : 'desc'}`,
-            )
-          }
-        >
-          {label}
-        </button>
-      </th>
-    );
-  }
   const [events, setEvents] = useState<EventSummary[]>([]),
-    [id, setId] = useState(''),
-    [event, setEvent] = useState<PublicEvent | null>(null);
+    [id, setId] = useState('');
   const [tab, setTab] = useState<Tab>('standings'),
     [round, setRound] = useState(1),
     [board, setBoard] = useState(1),
@@ -121,27 +77,13 @@ export default function Scoreboard() {
     [configured, setConfigured] = useState(false),
     [mode, setMode] = useState('demo');
   const [director, setDirector] = useState(false);
-  const [privateDeal, setPrivateDeal] = useState<{ eventId: string; board: Board; results: PublicEvent['results']; pairScores: PublicEvent['projection']['pairScores'] } | null>(null);
-  const [previewing, setPreviewing] = useState(false);
-  const previewGeneration = useRef(0);
-  useEffect(() => {
-    previewGeneration.current++;
-    setPrivateDeal(null);
-    setPreviewing(false);
-  }, [id, board, director, tab]);
-  async function previewDeal() {
-    const generation = ++previewGeneration.current;
-    setPreviewing(true);
-    try {
-      const data = await api<{ board: Board; results: PublicEvent['results']; pairScores: PublicEvent['projection']['pairScores'] }>(`/api/admin/events/${id}/boards/${board}`);
-      if (generation === previewGeneration.current) setPrivateDeal({ eventId: id, ...data });
-    } catch (e) {
-      if (generation === previewGeneration.current) setError((e as Error).message);
-    } finally {
-      if (generation === previewGeneration.current) setPreviewing(false);
-    }
-  }
-
+  const { privateDeal, setPrivateDeal, previewing, previewDeal } = usePrivatePreview(
+    id,
+    board,
+    director,
+    tab,
+    setError,
+  );
   const [refreshCooldown, setRefreshCooldown] = useState(false);
   const manualRefreshUntil = useRef(0);
   useEffect(() => {
@@ -163,8 +105,8 @@ export default function Scoreboard() {
     [password, setPassword] = useState(''),
     [loginError, setLoginError] = useState(''),
     [loggingIn, setLoggingIn] = useState(false);
-  const requestGeneration = useRef(0),
-    firstLoad = useRef(true);
+  const { event, setEvent, requestGeneration, refreshEvent } = useEventResource(id, tab, setError);
+  const firstLoad = useRef(true);
   const refreshList = useCallback(async () => {
     const data = await api<{ events: EventSummary[]; storage: string }>('/api/events');
     setEvents(data.events);
@@ -186,7 +128,7 @@ export default function Scoreboard() {
         const params = new URLSearchParams(location.search),
           requested = params.get('event');
         setId(list.find((e) => e.id === requested)?.id ?? '');
-        if (!list.some(e => e.id === requested)) setError('找不到賽事或賽段，請返回賽事入口。');
+        if (!list.some((e) => e.id === requested)) setError('找不到賽事或賽段，請返回賽事入口。');
         const view = params.get('view');
         if (['standings', 'rounds', 'boards', 'players'].includes(view ?? '')) setTab(view as Tab);
         const b = Number(params.get('board'));
@@ -198,18 +140,6 @@ export default function Scoreboard() {
       setFollow(localStorage.getItem('bridge-follow') ?? '');
     } catch {}
   }, [refreshList]);
-  const refreshEvent = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!id) return;
-      const generation = ++requestGeneration.current;
-      const data = await api<PublicEvent>(`/api/events/${encodeURIComponent(id)}`, { signal });
-      if (generation === requestGeneration.current) {
-        setEvent(data);
-        setError('');
-      }
-    },
-    [id],
-  );
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
@@ -234,30 +164,6 @@ export default function Scoreboard() {
     if (tab === 'boards') params.set('board', String(board));
     history.replaceState(null, '', `?${params}`);
   }, [id, tab, board]);
-  useEffect(() => {
-    if (!event || event.status === 'finished' || tab === 'admin') return;
-    let alive = true,
-      timer: ReturnType<typeof setTimeout>,
-      failures = 0;
-    const tick = async () => {
-      if (!alive) return;
-      if (!document.hidden) {
-        try {
-          await refreshEvent();
-          failures = 0;
-        } catch {
-          failures++;
-          setError('更新失敗，保留上次成績。連線恢復後會重試。');
-        }
-      }
-      if (alive) timer = setTimeout(tick, Math.min(120000, 30000 * 2 ** failures));
-    };
-    timer = setTimeout(tick, 30000);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [event?.id, event?.status, tab, refreshEvent]);
   async function refresh() {
     setRefreshing(true);
     try {
@@ -309,202 +215,20 @@ export default function Scoreboard() {
       setLoggingIn(false);
     }
   }
-  const name = (pid: string) => event?.participants.find((p) => p.id === pid)?.name ?? pid;
   const currentProgress = event ? (event.collectionProgress ?? roundProgress(event)) : null;
   const progressRound = currentProgress?.round ?? event?.currentRound ?? 0;
-  const competitionComplete = event?.status === 'finished' || !!event && allRoundsComplete(event);
+  const competitionComplete = event?.status === 'finished' || (!!event && allRoundsComplete(event));
   const receivedResults = Object.values(event?.results ?? {});
-  const cancelledResults = receivedResults.filter(result => result.status === 'cancelled').length;
+  const cancelledResults = receivedResults.filter((result) => result.status === 'cancelled').length;
   const validResults = receivedResults.length - cancelledResults;
-  const roundOnBreak = event?.roundPhase === 'break' || (!event?.clubEnabled &&
-    !!currentProgress?.expected && currentProgress.received === currentProgress.expected);
+  const roundOnBreak =
+    event?.roundPhase === 'break' ||
+    (!event?.clubEnabled &&
+      !!currentProgress?.expected &&
+      currentProgress.received === currentProgress.expected);
   const currentTiming = event?.roundTimes?.[progressRound];
-  const playerId = person || event?.participants[0]?.id;
-  const playerMatch = event?.assignments.find(a => a.round === playerRound && a.room === 'open' && (a.ns === playerId || a.ew === playerId));
-  const previousStandings = event?.kind === 'teams' && playerRound > 1 ? teamStandingsThroughRound(event, playerRound - 1) : [];
-  let playerBand = 0;
-  const playerRows = (event?.assignments ?? [])
-    .filter((a) => a.ns === playerId || a.ew === playerId)
-    .filter((a) => event?.kind !== 'teams' || a.round === playerRound)
-    .flatMap((a) => a.boards.map((b) => ({ a, b })))
-    .sort((left, right) => {
-      if (playerSort === 'board') return left.b - right.b || left.a.round - right.a.round;
-      if (playerSort === 'opponent') {
-        const opponent = (a: typeof left.a) => (a.ns === playerId ? a.ew : a.ns);
-        const order = opponent(left.a).localeCompare(opponent(right.a), 'en', { numeric: true });
-        if (order) return order;
-      }
-      return left.a.round - right.a.round || left.b - right.b;
-    })
-    .map((row, index, rows) => {
-      if (index > 0 && row.a.round !== rows[index - 1].a.round) playerBand++;
-      return { ...row, shaded: playerBand % 2 === 1 };
-    });
-  const teamPlayerRows = playerRows.filter(({ a }) => a.room === 'open').map(({ a, b }) => {
-    const closed = event?.assignments.find(other => other.matchId === a.matchId && other.room === 'closed');
-    const openResult = event?.results[resultKey(a.id, b)];
-    const closedResult = closed ? event?.results[resultKey(closed.id, b)] : undefined;
-    const impDiff = !openResult || !closedResult || openResult.status === 'cancelled' || closedResult.status === 'cancelled'
-      ? null
-      : openResult.status === 'average' || closedResult.status === 'average'
-        ? 0
-        : teamBoardImps(openResult, closedResult)[a.ns === playerId ? 0 : 1];
-    const scores = (event?.assignments ?? []).filter(other => other.boards.includes(b) && (isInterleaved(event!.assignments) || other.round === a.round))
-      .map(other => event?.results[resultKey(other.id, b)])
-      .filter(result => result && result.status !== 'cancelled' && result.status !== 'average')
-      .map(result => result!);
-    const datums = directionalDatum(scores);
-    const calculateButlers = (opponent = false) => [a, closed].map(assignment => {
-      const result = assignment ? event?.results[resultKey(assignment.id, b)] : undefined;
-      return result && assignment && result.status !== 'cancelled' && result.status !== 'average' && datums.ns.datum !== null
-        ? ((assignment.ns === playerId) !== opponent
-          ? imps(awardedResult(result, 'ns')!.nsScore - datums.ns.datum!)
-          : imps(-awardedResult(result, 'ew')!.nsScore - datums.ew.datum!)) : null;
-    });
-    return { a, b, closed, impDiff, butlers: calculateButlers(), opponentButlers: calculateButlers(true) };
-  });
-  const playerButlers = teamPlayerRows.flatMap(row => row.butlers).filter((value): value is number => value !== null);
-  const opponentButlerTotal = teamPlayerRows.flatMap(row => row.opponentButlers).reduce<number>((sum, value) => sum + (value ?? 0), 0);
-  const playerButlerTotal = playerButlers.reduce((sum, value) => sum + value, 0);
-  const cumulativePlayerStandings = event?.kind === 'teams' ? teamStandingsThroughRound(event, playerRound) : [];
-  const playerImpTotal = teamPlayerRows.reduce((total, row) => total + (row.impDiff ?? 0), 0);
-  const playerImpFor = teamPlayerRows.reduce((total, row) => total + Math.max(0, row.impDiff ?? 0), 0);
-  const playerImpAgainst = teamPlayerRows.reduce((total, row) => total + Math.max(0, -(row.impDiff ?? 0)), 0);
-  const playerMatchScore = event?.projection.matches.find(match => match.id === playerMatch?.matchId);
-  const playerMatchVp = playerMatchScore
-    ? playerMatchScore.a === playerId ? playerMatchScore.vpA : playerMatchScore.vpB
-    : null;
-  const playerVpBoards = playerMatchScore?.total ?? teamPlayerRows.length;
-  const opponentMatchVp = playerMatchScore
-    ? playerMatchScore.a === playerId ? playerMatchScore.vpB : playerMatchScore.vpA
-    : null;
-  const playerVpScale = playerVpBoards > 0
-    ? Array.from({ length: Math.ceil(15 * Math.sqrt(playerVpBoards)) + 1 }, (_, margin) => ({
-        margin, winner: vp(margin, playerVpBoards), loser: vp(-margin, playerVpBoards),
-      }))
-    : [];
   const selectedBoard = event?.boards.find((b) => b.number === board) ?? event?.boards[0];
-  const displayBoard = director && privateDeal && privateDeal.eventId === event?.id && privateDeal.board.number === selectedBoard?.number ? privateDeal.board : selectedBoard;
-  const privatePreview = displayBoard !== selectedBoard ? privateDeal : null;
-  const boardResults = privatePreview?.results ?? event?.results ?? {};
-  const boardPairScores = privatePreview?.pairScores ?? event?.projection.pairScores ?? {};
-  const boardRounds = event ? getBoardRounds(event) : [];
-  const boardRound =
-    boardRounds.find((r) => r.boards.includes(selectedBoard?.number ?? 0)) ?? boardRounds[0];
-  const boardNumberInRound = boardRound?.boards.indexOf(selectedBoard?.number ?? 0) ?? 0;
-  const completedBoardScores =
-    event && selectedBoard
-      ? event.assignments
-          .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
-          .map((a) => boardResults[resultKey(a.id, selectedBoard.number)])
-          .filter((r) => r && r.status !== 'cancelled' && r.status !== 'average')
-          .map((r) => r)
-      : [];
-  const boardDatums = directionalDatum(completedBoardScores, event?.kind === 'pairs' && event.pairMethod === 'butler' ? event.trim : 'none');
   const pairMethod = event?.pairMethod ?? 'mp';
-  const displayBoardNumber = (n: number) => displayedBoardNumber(n, event ?? undefined);
-  const butlerHint = (r: Result | undefined, side: 'ns' | 'ew') => r && r.status !== 'cancelled' && r.status !== 'average' && boardDatums[side].datum !== null
-    ? <span className="muted butler-imp" title={`Butler IMP（${side.toUpperCase()} 視角）`}>({signed(imps(awardedResult(r, side)!.nsScore * (side === 'ns' ? 1 : -1) - boardDatums[side].datum!))})</span> : null;
-  const scoreSide = event?.kind === 'pairs' ? travellerSide : 'ns';
-  const sideSign = scoreSide === 'ns' ? 1 : -1;
-  const sideLabel = scoreSide.toUpperCase();
-  const traveller =
-    event && selectedBoard
-      ? event.assignments
-          .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
-          .sort((a, b) => {
-            if (event.kind === 'teams') return String(a.table).localeCompare(String(b.table), 'en', { numeric: true });
-            if (resultSort.startsWith('table'))
-              return (
-                (String(a.table).localeCompare(String(b.table), 'en', { numeric: true }) ||
-                  a.round - b.round) * (resultSort.endsWith('desc') ? -1 : 1)
-              );
-            const value = (assignment: Assignment) => {
-              const key = resultKey(assignment.id, selectedBoard.number),
-                r = boardResults[key];
-              if (!r || r.status === 'cancelled') return null;
-              if (resultSort.startsWith('points')) {
-                const points = boardPairScores[key];
-                const score = points?.[scoreSide];
-                return score == null
-                  ? null
-                  : pairMethod === 'mp'
-                    ? points.top > 0
-                      ? score / points.top
-                      : null
-                    : score;
-              }
-              return awardedResult(r, scoreSide)!.nsScore * sideSign;
-            };
-            const x = value(a),
-              y = value(b);
-            return x === null
-              ? y === null
-                ? 0
-                : 1
-              : y === null
-                ? -1
-                : (x - y) * (resultSort.endsWith('desc') ? -1 : 1);
-          })
-      : [];
-  const activeResult = boardResults[resultKey(selectedResult, selectedBoard?.number ?? 0)];
-  const activeAssignment = event?.assignments.find(
-    (a) => a.id === selectedResult && a.boards.includes(selectedBoard?.number ?? 0),
-  );
-  const activeNames = event ? tableNames(event.kind, event.participants, activeAssignment) : {};
-  const visibleStandings = event ? event.projection.standings.filter((s) => {
-    const participant = event.kind === 'teams'
-      ? event.participants.find(p => p.id === s.id)
-      : undefined;
-    return [s.name, participantNumber(s.id, event.kind), participant?.players, participant?.captain]
-      .some(value => value?.toLowerCase().includes(query.trim().toLowerCase()));
-  }) : [];
-  const selectedRoundMatches = event?.projection.matches.filter((m) => event.teamMovement === 'interleaved' ? event.assignments.some(a => a.round === round && a.matchId === m.id) : m.round === round) ?? [];
-  const playerBye = event?.projection.byes?.find(b => b.round === playerRound && b.participantId === playerId);
-  const roundPairStandings = event?.kind === 'pairs' ? pairStandingsBeforeRound(event, round) : [];
-  const roundTeamStandings = event?.kind === 'teams' ? teamStandingsThroughRound(event, round) : [];
-  function browseBoard(number: number) {
-    setSelectedResult('');
-    setBoard(number);
-  }
-  const boardNavigation =
-    event && selectedBoard ? (
-      <div className={`board-nav board-jump ${event.kind === 'pairs' ? 'pairs-board-jump' : ''}`}>
-        <button
-          className="icon-button"
-          aria-label="上一副"
-          disabled={selectedBoard.number <= 1}
-          onClick={() => browseBoard(selectedBoard.number - 1)}
-        >
-          <ArrowLeft size={18} />
-        </button>
-        <label className="board-number-picker">
-          <strong className="board-number" aria-hidden="true">{displayBoardNumber(selectedBoard.number)}</strong>
-          <select aria-label="選擇牌號" value={selectedBoard.number}
-            onChange={(e) => browseBoard(Number(e.target.value))}>
-            {event.kind === 'teams'
-              ? boardRounds.map((round) => (
-                  <optgroup key={round.round} label={'第 ' + roundLabel(event, round.round) + ' 圈'}>
-                    {round.boards.map((number, index) => (
-                      <option key={index} value={number}>牌號 {displayBoardNumber(number)}（圈內第 {index + 1} 牌）</option>
-                    ))}
-                  </optgroup>
-                ))
-              : event.boards.map((board) => (
-                  <option key={board.number} value={board.number}>牌號 {displayBoardNumber(board.number)}</option>
-                ))}
-          </select>
-        </label>
-        <button
-          className="icon-button"
-          aria-label="下一副"
-          disabled={selectedBoard.number >= event.boards.length}
-          onClick={() => browseBoard(selectedBoard.number + 1)}
-        >
-          <ArrowRight size={18} />
-        </button>
-      </div>
-    ) : null;
   const navItems: [Tab, string, typeof Trophy][] = [
     ['standings', '總排名', Trophy],
     ['rounds', '圈次與對戰', ClipboardList],
@@ -515,13 +239,19 @@ export default function Scoreboard() {
     <div className="app-shell">
       <aside className="sidebar">
         <a href="/" className="brand">
-          <span className="brand-symbol" aria-hidden="true">♦</span>
+          <span className="brand-symbol" aria-hidden="true">
+            ♦
+          </span>
           <span>
-            <span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small>
+            <span className="sidebar-wordmark">VALET</span>
+            <small>橋牌賽事記分</small>
           </span>
         </a>
         <div className="sidebar-label">賽事工作區</div>
-        <a className="workspace-button" href={`/?competition=${encodeURIComponent(event?.competition?.id ?? event?.parentEventId ?? id)}`}>
+        <a
+          className="workspace-button"
+          href={`/?competition=${encodeURIComponent(event?.competition?.id ?? event?.parentEventId ?? id)}`}
+        >
           <LayoutDashboard size={18} />
           <span>賽事主頁</span>
           <ChevronRight size={15} />
@@ -540,8 +270,14 @@ export default function Scoreboard() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-bottom"><ManualLink />
-          <button className="workspace-button" aria-label={admin && !director ? '賽務功能表' : '裁判功能表'} aria-expanded={tab === 'admin'} onClick={openAdmin}>
+        <div className="sidebar-bottom">
+          <ManualLink />
+          <button
+            className="workspace-button"
+            aria-label={admin && !director ? '賽務功能表' : '裁判功能表'}
+            aria-expanded={tab === 'admin'}
+            onClick={openAdmin}
+          >
             <Settings2 size={18} />
             <span>{admin && !director ? '賽務功能表' : '裁判功能表'}</span>
             <ChevronRight size={15} />
@@ -551,24 +287,43 @@ export default function Scoreboard() {
               ♠ <b>♥ ♦</b> ♣
             </span>
             <p>再怎麼說橋牌還是太 Creepy 了</p>
-            <small><AppVersion /></small>
+            <small>
+              <AppVersion />
+            </small>
           </div>
         </div>
       </aside>
       <div className="main-shell">
         <header className="topbar">
-          <Breadcrumbs items={event ? [
-            { label: event.competition?.name ?? event.name, href: `/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}` },
-            { label: event.stageName ?? '賽事成績' },
-          ] : [{ label: '賽事成績' }]} />
+          <Breadcrumbs
+            items={
+              event
+                ? [
+                    {
+                      label: event.competition?.name ?? event.name,
+                      href: `/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`,
+                    },
+                    { label: event.stageName ?? '賽事成績' },
+                  ]
+                : [{ label: '賽事成績' }]
+            }
+          />
           <div className="top-actions">
             {admin ? (
-              <SessionControl director={director} onMenu={openAdmin} onLogout={async () => {
-                try {
-                  await api('/api/session', { method: 'DELETE' });
-                  setAdmin(false); setDirector(false); setTab('standings');
-                } catch (e) { setError((e as Error).message); }
-              }} />
+              <SessionControl
+                director={director}
+                onMenu={openAdmin}
+                onLogout={async () => {
+                  try {
+                    await api('/api/session', { method: 'DELETE' });
+                    setAdmin(false);
+                    setDirector(false);
+                    setTab('standings');
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
+                }}
+              />
             ) : (
               <button className="session-role session-login" onClick={openAdmin}>
                 登入
@@ -608,7 +363,11 @@ export default function Scoreboard() {
                 <>
                   <section className="event-heading">
                     <div className="event-intro">
-                      {event.stageName && <div className="section-kicker">{event.competition?.name ?? event.name}</div>}
+                      {event.stageName && (
+                        <div className="section-kicker">
+                          {event.competition?.name ?? event.name}
+                        </div>
+                      )}
                       <h1>
                         <button
                           className="event-title-button"
@@ -630,7 +389,14 @@ export default function Scoreboard() {
                         popover="auto"
                         className="player-detail-popover event-information"
                       >
-                        <strong>{[event.competition?.prefix ?? event.prefix, event.competition?.name ?? event.name].filter(Boolean).join(' ')}</strong>
+                        <strong>
+                          {[
+                            event.competition?.prefix ?? event.prefix,
+                            event.competition?.name ?? event.name,
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        </strong>
                         <div>日期：{dateRangeLabel(event)}</div>
                         <div>地點：{event.venue || '線上記分'}</div>
                       </div>
@@ -639,7 +405,7 @@ export default function Scoreboard() {
                           {event.gameMode === 'minibridge' && 'MiniBridge · 無身價 · '}
                           {event.kind === 'teams'
                             ? 'IMP · WBF 20-0 VP'
-                            : `${methodNames[pairMethod]} · ${event.participants.every(p => p.group) ? 'NS／EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
+                            : `${methodNames[pairMethod]} · ${event.participants.every((p) => p.group) ? 'NS／EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
                         </span>
                       </div>
                     </div>
@@ -673,7 +439,9 @@ export default function Scoreboard() {
                           ? ' · 賽事已結束'
                           : progressRound
                             ? ` · 第 ${roundLabel(event, progressRound)}/${roundLabel(event, event.rounds)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
-                            : event.rounds ? ' · 尚未開始' : ' · 待設定賽程')}
+                            : event.rounds
+                              ? ' · 尚未開始'
+                              : ' · 待設定賽程')}
                     </span>
                     <ChevronDown size={15} className={dashboardCollapsed ? 'collapsed' : ''} />
                   </button>
@@ -714,14 +482,14 @@ export default function Scoreboard() {
                     />
                     <Stat
                       label={competitionComplete ? '有效成績 / 已收成績' : '本圈已收成績'}
-                      value={competitionComplete ? validResults : currentProgress?.received ?? 0}
-                      suffix={`/ ${competitionComplete ? receivedResults.length : currentProgress?.expected ?? 0} 筆`}
+                      value={competitionComplete ? validResults : (currentProgress?.received ?? 0)}
+                      suffix={`/ ${competitionComplete ? receivedResults.length : (currentProgress?.expected ?? 0)} 筆`}
                       progress={
                         competitionComplete
                           ? undefined
                           : currentProgress?.expected
-                          ? currentProgress.received / currentProgress.expected
-                          : 0
+                            ? currentProgress.received / currentProgress.expected
+                            : 0
                       }
                       popoverTarget="current-round-progress"
                       onClick={(e) => positionDetail(e.currentTarget)}
@@ -729,13 +497,24 @@ export default function Scoreboard() {
                   </div>
                   <div id="award-information" popover="auto" className="player-detail-popover">
                     <strong>給獎資訊</strong>
-                    <div>{(event.awardPlaces ?? 3) === 0 ? '不給獎' : '給獎範圍：前 ' + (event.awardPlaces ?? 3) + ' 名（同分並列）'}</div>
-                    <div className="description-text">{event.awardDescription || '尚未公布給獎內容'}</div>
+                    <div>
+                      {(event.awardPlaces ?? 3) === 0
+                        ? '不給獎'
+                        : '給獎範圍：前 ' + (event.awardPlaces ?? 3) + ' 名（同分並列）'}
+                    </div>
+                    <div className="description-text">
+                      {event.awardDescription || '尚未公布給獎內容'}
+                    </div>
                   </div>
                   <div id="movement-information" popover="auto" className="player-detail-popover">
                     <strong>賽程編排說明</strong>
-                    <div className="description-text">{event.movementDescription || '尚未提供詳細說明'}</div>
-                    <div>{event.rounds} 圈，每圈 {event.boardsPerRound} 牌；共 {event.boards.length} 副牌。</div>
+                    <div className="description-text">
+                      {event.movementDescription || '尚未提供詳細說明'}
+                    </div>
+                    <div>
+                      {event.rounds} 圈，每圈 {event.boardsPerRound} 牌；共 {event.boards.length}{' '}
+                      副牌。
+                    </div>
                     <div>實際對戰、牌組與輪空請見「圈次與對戰」。</div>
                   </div>
                   <div
@@ -745,9 +524,11 @@ export default function Scoreboard() {
                     className="player-detail-popover"
                   >
                     <strong>
-                      {competitionComplete ? '賽事已結束' : progressRound
-                        ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
-                        : '裁判尚未指定目前圈數'}
+                      {competitionComplete
+                        ? '賽事已結束'
+                        : progressRound
+                          ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
+                          : '裁判尚未指定目前圈數'}
                     </strong>
                     <div>
                       {currentTiming
@@ -780,11 +561,13 @@ export default function Scoreboard() {
                         {currentProgress.slowest.map(({ assignment, received, expected }) => (
                           <div key={assignment.id}>
                             桌 {assignment.table}
-                            {event.teamMovement ? '' : assignment.room === 'open'
-                              ? ' · 開室'
-                              : assignment.room === 'closed'
-                                ? ' · 閉室'
-                                : ''}
+                            {event.teamMovement
+                              ? ''
+                              : assignment.room === 'open'
+                                ? ' · 開室'
+                                : assignment.room === 'closed'
+                                  ? ' · 閉室'
+                                  : ''}
                             ：{received} / {expected}
                           </div>
                         ))}
@@ -803,915 +586,65 @@ export default function Scoreboard() {
                     ))}
                   </div>
                   {tab === 'standings' && (
-                    <section className="panel">
-                      <div className="panel-heading">
-                        <div>
-                          <h3>
-                            總排名{' '}
-                            <span className="badge">
-                              {competitionComplete ? '最終成績' : '暫定成績'}
-                            </span>
-                          </h3>
-                          <p>
-                            {event.kind === 'teams'
-                              ? 'VP 計入已完成對戰與已結算輪空；同分並列。'
-                              : '依有效結果暫時計分，排名包含罰分計算，同分並列。'}
-                          </p>
-                        </div>
-                        <label className="search">
-                          <Search size={17} />
-                          <input
-                            aria-label="搜尋參賽者"
-                            placeholder={event.kind === 'teams' ? '搜尋隊名、隊員或隊長…' : '搜尋姓名或搭檔…'}
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                          />
-                        </label>
-                      </div>
-                      <div className="table-scroll">
-                        <table className={`ranking-table${event.kind === 'teams' ? ' team-ranking-table' : ''}`}>
-                          <thead>
-                            <tr>
-                              <th className="rank-col">排名</th>
-                              {event.participants.some(p => p.group) && <th>組別</th>}
-                              <th>{event.kind === 'teams' ? '隊伍' : '搭檔'}</th>
-                              <th>完成／安排牌數</th>
-                              <th className="score-col">
-                                {event.kind === 'teams'
-                                  ? '累計 VP'
-                                  : pairMethod === 'mp'
-                                    ? '總百分比'
-                                    : '總 IMP'}
-                              </th>
-                              <th aria-label="追蹤" />
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {visibleStandings
-                              .map((s) => (
-                                <tr
-                                  key={s.id}
-                                  className={follow === `${id}:${s.id}` ? 'followed' : ''}
-                                >
-                                  <td>
-                                    <span className={`rank rank-${s.rank}`}>
-                                      {s.rank <= (event.awardPlaces ?? 3) ? (
-                                        <>
-                                          <Trophy size={13} />
-                                          {s.rank}
-                                        </>
-                                      ) : (
-                                        String(s.rank).padStart(2, '0')
-                                      )}
-                                    </span>
-                                  </td>
-                                  {event.participants.some(p => p.group) && <td>{s.group}</td>}
-                                  <td>
-                                    <button
-                                      className="participant-link"
-                                      onClick={() => {
-                                        setPerson(s.id);
-                                        setTab('players');
-                                      }}
-                                    >
-                                      <span>
-                                        <span className="standing-name" title={s.name}>{s.name}</span>
-                                        <small>
-                                          {participantNumber(s.id, event.kind)}{event.kind !== 'teams' && s.players && ` · ${s.players}`}
-                                        </small>
-                                      </span>
-                                    </button>
-                                  </td>
-                                  <td>
-                                    <span className="mono">
-                                      {s.played} <span className="muted">/ {s.total}</span>
-                                    </span>
-                                  </td>
-                                  <td className="big-score">
-                                    <button
-                                      className="contract-link"
-                                      popoverTarget={`standing-${s.id}`}
-                                      onClick={(e) => positionDetail(e.currentTarget)}
-                                      aria-label={`查看 ${s.name} 總分明細`}
-                                    >
-                                      {number(
-                                        s.score,
-                                        pairMethod === 'butler' &&
-                                          event.kind === 'pairs' &&
-                                          Number.isInteger(s.score)
-                                          ? 0
-                                          : 2,
-                                      )}
-                                      <small>
-                                        {event.kind === 'pairs' && pairMethod === 'mp' ? '%' : ''}
-                                      </small>
-                                    </button>
-                                    <div
-                                      id={`standing-${s.id}`}
-                                      popover="auto"
-                                      className="player-detail-popover"
-                                    >
-                                      <div>
-                                        {event.kind === 'teams'
-                                          ? '淨 IMP'
-                                          : pairMethod === 'mp'
-                                            ? '累計 MP'
-                                            : '累計 IMP'}
-                                        ：
-                                        {number(
-                                          s.secondary,
-                                          pairMethod === 'butler' && event.kind === 'pairs' ? 0 : 2,
-                                        )}
-                                      </div>
-                                      {event.projection.byes?.filter(b => b.participantId === s.id).map(b => <div key={b.round}>第 {b.round} 圈輪空：{number(b.vp)} VP（{b.awarded ? '已計入' : '待收齊'}）</div>)}
-                                      <div>
-                                        調整{' '}
-                                        {event.kind === 'teams'
-                                          ? 'VP'
-                                          : pairMethod === 'mp'
-                                            ? 'MP'
-                                            : 'IMP'}
-                                        ：
-                                        {number(
-                                          s.penalty ?? 0,
-                                          pairMethod === 'butler' &&
-                                            Number.isInteger(s.penalty ?? 0)
-                                            ? 0
-                                            : 2,
-                                        )}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <button
-                                      className={`icon-button follow-button ${follow === `${id}:${s.id}` ? 'on' : ''}`}
-                                      aria-label={`追蹤 ${s.name}`}
-                                      aria-pressed={follow === `${id}:${s.id}`}
-                                      onClick={() => toggleFollow(`${id}:${s.id}`)}
-                                    >
-                                      <Star size={17} />
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                        {visibleStandings.length === 0 && <div className="empty compact">沒有符合的參賽者</div>}
-                      </div>
-                      <div className="table-footer">
-                        <span>
-                          <i className="live-dot" />
-                          {event.status === 'finished' ? '賽事已結束' : '成績每 30 秒更新'} · v
-                          {event.revision}
-                        </span>
-                        <span>
-                          最後更新{' '}
-                          {new Date(event.updatedAt).toLocaleString('zh-TW', {
-                            timeZone: 'Asia/Taipei',
-                            hour12: false,
-                          })}
-                        </span>
-                      </div>
-                    </section>
+                    <StandingsView
+                      event={event}
+                      follow={follow}
+                      id={id}
+                      query={query}
+                      setPerson={setPerson}
+                      setQuery={setQuery}
+                      setTab={setTab}
+                      toggleFollow={toggleFollow}
+                    />
                   )}
                   {tab === 'rounds' && (
-                    <section className="panel">
-                      <div className="panel-heading">
-                        <div>
-                          <h3>圈次與對戰</h3>
-                          <p>
-                            {event.kind === 'teams'
-                              ? '查看各圈 IMP 比較與收分進度。'
-                              : '查看桌次、南北／東西搭檔與牌組安排。'}
-                          </p>
-                        </div>
-                        <RoundSelect event={event} count={event.rounds} round={round} setRound={setRound} />
-                      </div>
-                      {event.teamMovement === 'interleaved' && <InterleavedRound event={event} round={round} onBoard={(b, a) => { setBoard(b); setSelectedResult(a); setTab('boards'); }} />}
-                      {event.swiss && <p className="footnote team-bye-note">Swiss：尚未出現在本圈對戰或輪空名單的隊伍，請等待裁判公布安排；未安排不代表輪空。</p>}
-                      {event.projection.byes?.filter(b => b.round === round).map(b => <p key={b.participantId} className="footnote team-bye-note">{name(b.participantId)}：輪空，{number(b.vp)} VP（{b.awarded ? '已計入排名' : '本圈收分完成後計入'}）。不計 IMP 或實打牌數。</p>)}
-                      {event.kind === 'teams' ? (
-                        <div className="match-grid">
-                          {selectedRoundMatches.map((m) => (
-                            <div className="match-card" key={m.id}>
-                              <div className="match-meta">
-                                {event.teamMovement === 'interleaved' ? `與 ${roundLabel(event, event.assignments.find(a => a.matchId === m.id && a.round !== round)!.round)} 圈比較` : `第 ${event.assignments.find(a => a.matchId === m.id)?.table ?? '—'} 桌`}{' '}
-                                <span>
-                                  {m.completed === m.total
-                                    ? '已收齊'
-                                    : `已比對 ${m.completed} / ${m.total} 副`}
-                                </span>
-                              </div>
-                              {[m.a, m.b].map((id, index) => {
-                                const standing = roundTeamStandings.find(s => s.id === id);
-                                return (
-                                  <div className={`match-team ${index === 0 ? 'team-home' : 'team-away'}`} key={id}>
-                                    <button className="match-team-link" onClick={() => { setPerson(id); setTab('players'); }}>
-                                      <strong>{name(id)}</strong>
-                                      <small>{participantNumber(id, event.kind)} / {number(standing?.score ?? null)} VP{standing && ` / #${standing.rank}`}</small>
-                                    </button>
-                                    <b>{m.split ? `${signed(index === 0 ? m.marginA : m.marginB)} IMP 淨差` : index === 0 ? m.impsA : m.impsB}</b>
-                                  </div>
-                                );
-                              })}
-                              <div className="match-bottom">
-                                <span>
-                                  VP{' '}
-                                  <b>
-                                    <span className="team-home">{number(m.vpA)}</span> : <span className="team-away">{number(m.vpB)}</span>
-                                  </b>
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setBoard(
-                                      event.assignments.find((a) => a.matchId === m.id)!.boards[0],
-                                    );
-                                    setTab('boards');
-                                  }}
-                                >
-                                  逐副比較 <ArrowRight size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="table-scroll">
-                          <table className="round-pairs-table">
-                            <thead>
-                              <tr>
-                                <th>桌號</th>
-                                <th>南北 NS</th>
-                                <th>東西 EW</th>
-                                <th>牌號</th>
-                                <th>完成</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {event.assignments
-                                .filter((a) => a.round === round)
-                                .map((a) => (
-                                  <tr key={a.id}>
-                                    <td className="mono">{a.table}</td>
-                                    {[a.ns, a.ew].map((id) => {
-                                      const standing = roundPairStandings.find(
-                                        (s) => s.id === id,
-                                      );
-                                      const score = standing?.score;
-                                      return (
-                                        <td key={id}>
-                                          <button
-                                            className="participant-link"
-                                            onClick={() => {
-                                              setPerson(id);
-                                              setTab('players');
-                                            }}
-                                          >
-                                            <span>
-                                              {name(id)}
-                                              <small className="round-pair-summary">
-                                                {participantNumber(id, event.kind)} /{' '}
-                                                {score == null
-                                                  ? '—'
-                                                  : `${pairMethod !== 'mp' && score >= 0 ? '+' : ''}${number(score, pairMethod === 'butler' && Number.isInteger(score) ? 0 : 2)}${pairMethod === 'mp' ? '%' : ' IMP'}`}
-                                                {score != null && standing && ` / #${standing.rank}`}
-                                              </small>
-                                            </span>
-                                          </button>
-                                        </td>
-                                      );
-                                    })}
-                                    <td>
-                                      <button
-                                        className="text-button"
-                                        onClick={() => {
-                                          setBoard(a.boards[0]);
-                                          setTab('boards');
-                                        }}
-                                      >
-                                        {boardRange(a.boards)}
-                                      </button>
-                                    </td>
-                                    <td>
-                                      {
-                                        a.boards.filter((b) => event.results[resultKey(a.id, b)])
-                                          .length
-                                      }{' '}
-                                      / {a.boards.length}
-                                    </td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                          <div className="table-footer">
-                            {event.assignments.some((a) => a.round === round) ? (
-                              <>
-                                輪空：
-                                {event.participants
-                                  .filter(
-                                    (p) =>
-                                      !event.assignments.some(
-                                        (a) =>
-                                          a.round === round && (a.ns === p.id || a.ew === p.id),
-                                      ),
-                                  )
-                                  .map((p) => p.name)
-                                  .join('、') || '無'}
-                              </>
-                            ) : (
-                              '本圈賽程尚未安排'
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </section>
+                    <RoundsView
+                      event={event}
+                      round={round}
+                      setBoard={setBoard}
+                      setPerson={setPerson}
+                      setRound={setRound}
+                      setSelectedResult={setSelectedResult}
+                      setTab={setTab}
+                    />
                   )}
                   {tab === 'boards' && selectedBoard && (
-                    <>
-                      <div className="board-layout">
-                        {activeResult?.split && <section className="panel"><div className="panel-heading"><h3>不平衡合約</h3><p className="footnote">下方牌局保留原始紀錄；判罰後各方分別依下列合約計分。</p>{(['ns','ew'] as const).map(side => <p key={side}>{side.toUpperCase()} 獲判：<Contract result={awardedResult(activeResult, side)} /> · <span className="mono">{signed(awardedResult(activeResult, side)!.nsScore * (side === 'ns' ? 1 : -1))}</span></p>)}</div></section>}
-                        <section className="panel deal-panel">
-                          {activeResult?.hcp && <div className="panel-heading"><HcpSummary hcp={activeResult.hcp} /></div>}
-                          {displayBoard !== selectedBoard && <div className="panel-heading"><p>裁判私下檢視 · 牌型與未發布成績僅在此裝置顯示</p><button type="button" className="button subtle" onClick={() => setPrivateDeal(null)}>關閉私下檢視</button><button type="button" className="button subtle" disabled={previewing} onClick={previewDeal}>更新私下成績</button></div>}
-                          {displayBoard && hasDeal(displayBoard) && displayBoard.deal.N.length === 13 ? (
-                            <DealExplorer
-                              key={`${event.id}:${selectedBoard.number}`}
-                              board={displayBoard}
-                              miniBridge={event.gameMode === 'minibridge'}
-                              result={activeResult}
-                              playerNames={activeNames}
-                              resultSelection={resultSelection}
-                              tableSelected={!!activeAssignment}
-                              onManualTrial={() => setSelectedResult('')}
-                              navigation={boardNavigation}
-                              averageScore={
-                                boardDatums[scoreSide].datum
-                              }
-                              scoreSide={sideLabel}
-                              datumDetails={{ ns: boardDatums.ns.mean, ew: boardDatums.ew.mean, split: boardDatums.split }}
-                              validResults={completedBoardScores.length}
-                            />
-                          ) : (
-                            <div className="unpublished-board">
-                              <BoardInformation
-                                number={selectedBoard.number}
-                                averageScore={
-                                  boardDatums[scoreSide].datum
-                                }
-                                scoreSide={sideLabel}
-                              datumDetails={{ ns: boardDatums.ns.mean, ew: boardDatums.ew.mean, split: boardDatums.split }}
-                                validResults={completedBoardScores.length}
-                                navigation={boardNavigation}
-                              />
-                              <DealDiagram board={selectedBoard} onPreview={director && !hasDeal(selectedBoard) ? previewDeal : undefined} previewing={previewing} />
-                            </div>
-                          )}
-                          {hasDeal(selectedBoard) && selectedBoard.deal.N.length > 0 && (
-                            <div className="board-export-actions">
-                            <button
-                              className="button subtle"
-                              onClick={() =>
-                                download(
-                                  `board-${selectedBoard.number}.pbn`,
-                                  exportPbn({ boards: [selectedBoard] }),
-                                )
-                              }
-                            >
-                              <ArrowDownToLine size={15} />
-                              下載此副 PBN
-                            </button>
-                            <ReviewExport board={selectedBoard} event={event} selectedAssignmentId={selectedResult} />
-                            </div>
-                          )}
-                        </section>
-                        <section className="panel board-results">
-                          <div className="panel-heading">
-                            <div>
-                              <h3>{event.kind === 'teams' ? event.teamMovement ? '跨圈兩桌逐副比較' : '開閉兩室逐副比較' : '單副成績表'}</h3>
-                            </div>
-                            {event.kind === 'teams' && (
-                              <button type="button" className="button subtle" aria-pressed={awayPerspective} onClick={() => setAwayPerspective(value => !value)}>
-                                {awayPerspective ? '切換主隊視角' : '切換客隊視角'}
-                              </button>
-                            )}
-                          </div>
-                          <div className="table-scroll">
-                            {event.kind === 'teams' ? (
-                              <table>
-                                <thead>
-                                  <tr>
-                                    <th>對戰</th>
-                                    <th>我方合約 (NS)</th>
-                                    <th>對方合約 (EW)</th>
-                                    <th>IMP</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {traveller
-                                    .filter(
-                                      (a) =>
-                                        a.room === 'open' &&
-                                        a.boards.includes(selectedBoard.number),
-                                    )
-                                    .map((a) => {
-                                      const closed = event.assignments.find(
-                                        (c) => c.matchId === a.matchId && c.room === 'closed',
-                                      )!;
-                                      const x =
-                                          boardResults[resultKey(a.id, selectedBoard.number)],
-                                        y =
-                                          boardResults[resultKey(closed.id, selectedBoard.number)];
-                                      const own = awardedResult(awayPerspective ? y : x, 'ns');
-                                      const opponent = awardedResult(awayPerspective ? x : y, 'ew');
-                                      const ownTable = awayPerspective ? closed : a;
-                                      const opponentTable = awayPerspective ? a : closed;
-                                      return (
-                                        <tr
-                                          key={a.id}
-                                          className={
-                                            selectedResult === a.id || selectedResult === closed.id
-                                              ? 'selected-result selectable-result'
-                                              : 'selectable-result'
-                                          }
-                                          tabIndex={0}
-                                          role="button"
-                                          aria-pressed={selectedResult === ownTable.id}
-                                          onClick={() => chooseResult(ownTable.id)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                              e.preventDefault();
-                                              chooseResult(ownTable.id);
-                                            }
-                                          }}
-                                          aria-label={`選取第 ${a.table} 桌我方合約`}
-                                        >
-                                          <td>
-                                            <strong className="board-team-name" title={name(awayPerspective ? a.ew : a.ns)}>{name(awayPerspective ? a.ew : a.ns)}</strong>
-                                            <small className="block muted board-team-name" title={name(awayPerspective ? a.ns : a.ew)}>vs {name(awayPerspective ? a.ns : a.ew)}</small>
-                                          </td>
-                                          <td>
-                                            <Contract result={own} />
-                                            <small className="block mono team-raw-score">
-                                              {own?.status === 'average' ? '取消' : own && own.status !== 'cancelled'
-                                                ? signed(own.nsScore)
-                                                : '—'}
-                                              {butlerHint(own, 'ns')}
-                                            </small>
-                                          </td>
-                                          <td
-                                            tabIndex={0}
-                                            role="button"
-                                            aria-label={`選取第 ${a.table} 桌對方合約，查看首攻`}
-                                            aria-pressed={selectedResult === opponentTable.id}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              chooseResult(opponentTable.id);
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                chooseResult(opponentTable.id);
-                                              }
-                                            }}
-                                          >
-                                            <Contract result={opponent} />
-                                            <small className="block mono team-raw-score">
-                                              {opponent?.status === 'average' ? '取消' : opponent && opponent.status !== 'cancelled'
-                                                ? signed(opponent.nsScore)
-                                                : '—'}
-                                              {butlerHint(opponent, 'ew')}
-                                            </small>
-                                          </td>
-                                          <td className="accent mono">
-                                            {x?.status === 'cancelled' || y?.status === 'cancelled'
-                                              ? '取消'
-                                              : x && y
-                                                ? signed(x.status === 'average' || y.status === 'average' ? 0 : teamBoardImps(x, y)[awayPerspective ? 1 : 0])
-                                                : '—'}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                </tbody>
-                              </table>
-                            ) : (
-                              <table>
-                                <thead>
-                                  <tr>
-                                    {sortHeading('table', '桌／圈')}
-                                    <th>
-                                      <button
-                                        type="button"
-                                        className="traveller-sort side-switch"
-                                        aria-label={`目前 ${sideLabel}，切換為 ${travellerSide === 'ns' ? 'EW' : 'NS'}`}
-                                        onClick={() =>
-                                          setTravellerSide(travellerSide === 'ns' ? 'ew' : 'ns')
-                                        }
-                                      >
-                                        <span
-                                          className={
-                                            travellerSide === 'ns' ? 'side-active' : 'side-muted'
-                                          }
-                                        >
-                                          NS
-                                        </span>{' '}
-                                        /{' '}
-                                        <span
-                                          className={
-                                            travellerSide === 'ew' ? 'side-active' : 'side-muted'
-                                          }
-                                        >
-                                          EW
-                                        </span>
-                                      </button>
-                                    </th>
-                                    <th>合約</th>
-                                    {sortHeading('score', `${sideLabel} 分`)}
-                                    {sortHeading(
-                                      'points',
-                                      `${sideLabel} ${pairMethod === 'mp' ? 'MP%' : 'IMP'}`,
-                                    )}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {traveller
-                                    .filter((a) => a.boards.includes(selectedBoard.number) && (event.kind !== 'teams' || isInterleaved(event.assignments) || a.round === (event.assignments.find(x => x.id === selectedResult)?.round ?? boardRound?.round)))
-                                    .map((a) => {
-                                      const key = resultKey(a.id, selectedBoard.number),
-                                        r = boardResults[key],
-                                        mp = boardPairScores[key];
-                                      return (
-                                        <tr
-                                          key={a.id}
-                                          className={
-                                            selectedResult === a.id
-                                              ? 'selected-result selectable-result'
-                                              : 'selectable-result'
-                                          }
-                                          tabIndex={0}
-                                          role="button"
-                                          aria-label={`選取第 ${a.table} 桌，查看首攻`}
-                                          aria-pressed={selectedResult === a.id}
-                                          onClick={() => chooseResult(a.id)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                              e.preventDefault();
-                                              chooseResult(a.id);
-                                            }
-                                          }}
-                                        >
-                                          <td className="table-round">
-                                            {a.table} <small className="muted">/ R{roundLabel(event, a.round)}</small>
-                                          </td>
-                                          <td>
-                                            <span
-                                              className={`block ${travellerSide === 'ns' ? 'side-active' : 'side-muted'}`}
-                                            >
-                                              {name(a.ns)}
-                                            </span>
-                                            <span
-                                              className={`block ${travellerSide === 'ew' ? 'side-active' : 'side-muted'}`}
-                                            >
-                                              {name(a.ew)}
-                                            </span>
-                                          </td>
-                                          <td>
-                                            <Contract result={r} />
-                                          </td>
-                                          <td className="mono">
-                                            {r && r.status !== 'cancelled'
-                                              ? signed(awardedResult(r, scoreSide)!.nsScore * sideSign)
-                                              : '—'}
-                                          </td>
-                                          <td
-                                            className={`mono ${pairTone(mp?.[travellerSide], mp?.top ?? 0, pairMethod)}`}
-                                          >
-                                            {pairValue(
-                                              mp?.[travellerSide],
-                                              mp?.top ?? 0,
-                                              pairMethod,
-                                            )}
-                                            {mp?.provisional && (
-                                              <small className="block muted">暫定</small>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                </tbody>
-                              </table>
-                            )}
-                          </div>
-                          {event.kind === 'teams' && (
-                            <p className="footnote">
-                              {awayPerspective
-                                ? '目前為客隊視角：IMP 以左列第一支隊伍為正，閉室 NS 分減去開室 NS 分後換算。'
-                                : '目前為主隊視角：IMP 以左列第一支隊伍為正，開室 NS 分減去閉室 NS 分後換算。'}
-                            </p>
-                          )}
-                        </section>
-                      </div>
-                    </>
+                    <BoardsView
+                      awayPerspective={awayPerspective}
+                      board={board}
+                      director={director}
+                      event={event}
+                      previewDeal={previewDeal}
+                      previewing={previewing}
+                      privateDeal={privateDeal}
+                      resultSelection={resultSelection}
+                      resultSort={resultSort}
+                      selectedResult={selectedResult}
+                      setAwayPerspective={setAwayPerspective}
+                      setBoard={setBoard}
+                      setPrivateDeal={setPrivateDeal}
+                      setResultSelection={setResultSelection}
+                      setResultSort={setResultSort}
+                      setSelectedResult={setSelectedResult}
+                      setTravellerSide={setTravellerSide}
+                      travellerSide={travellerSide}
+                    />
                   )}
                   {tab === 'players' && (
-                    <section className="panel player-results">
-                      <div className="panel-heading">
-                        <div className="team-result-intro">
-                          <div>
-                          <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
-                          {event.kind === 'teams' && event.participants.find(p => p.id === (person || event.participants[0].id))?.captain && (
-                            <p>隊長：{event.participants.find(p => p.id === (person || event.participants[0].id))?.captain}</p>
-                          )}
-                          {event.kind === 'teams' && event.participants.find(p => p.id === (person || event.participants[0].id))?.players && (
-                            <p>隊員：{event.participants.find(p => p.id === (person || event.participants[0].id))?.players}</p>
-                          )}
-                          </div>
-                          {event.kind === 'teams' && <TeamButlerPopover event={event} teamId={person || event.participants[0].id} />}
-                        </div>
-                        <div className={`player-result-filters${event.kind === 'teams' ? '' : ' pairs-result-filters'}`}>
-                        <div className="participant-picker">
-                          查看{event.kind === 'teams' ? '隊伍' : '搭檔'}
-                          <button
-                            className="participant-picker-trigger"
-                            aria-label="選擇參賽者"
-                            popoverTarget="participant-options"
-                            onClick={(e) => positionDetail(e.currentTarget)}
-                          >
-                            <span><span className="participant-picker-number">{participantNumber((person || event.participants[0].id), event.kind)}</span>{event.kind === 'pairs' ? name(person || event.participants[0].id).trim().replace(/\s+/g, ' ') : name(person || event.participants[0].id)}</span>
-                            <ChevronDown size={16} />
-                          </button>
-                          <div
-                            id="participant-options"
-                            popover="auto"
-                            className="player-detail-popover participant-options"
-                          >
-                            {event.participants.map((p) => (
-                              <button
-                                type="button"
-                                key={p.id}
-                                aria-pressed={p.id === (person || event.participants[0].id)}
-                                onClick={(e) => {
-                                  setPerson(p.id);
-                                  (
-                                    e.currentTarget.closest('[popover]') as HTMLElement
-                                  )?.hidePopover();
-                                }}
-                              >
-                                <span><span className="participant-picker-number">{participantNumber(p.id, event.kind)}</span>{event.kind === 'pairs' ? p.name.trim().replace(/\s+/g, ' ') : p.name}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        {event.kind === 'teams' && <label className="participant-picker">
-                          查看圈次
-                          <select aria-label="選擇成績圈次" value={playerRound} onChange={e => setPlayerRound(Number(e.target.value))}>
-                            {Array.from({ length: event.rounds }, (_, i) => <option key={i + 1} value={i + 1}>第 {roundLabel(event, i + 1)} 圈</option>)}
-                          </select>
-                        </label>}
-                        </div>
-                        {event.kind === 'teams' && !event.teamMovement && <div className="player-round-context">
-                          {playerMatch ? <>
-                            <button
-                              type="button"
-                              className="contract-link"
-                              popoverTarget="player-preround-summary"
-                              onClick={e => positionDetail(e.currentTarget)}
-                            >第 {playerMatch.table} 桌 · 對手：{name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}</button>
-                            <div
-                              key={`${playerId}-${playerRound}`}
-                              id="player-preround-summary"
-                              popover="auto"
-                              className="player-detail-popover"
-                            >
-                            <small>{playerRound === 1 ? '賽前' : `截至第 ${roundLabel(event, playerRound - 1)} 圈`}</small>
-                            {[playerId!, playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns].map((id, i) => {
-                              const standing = previousStandings.find(s => s.id === id);
-                              return <div key={id}>{i === 0 ? '我方' : '對手'}：{playerRound === 1 ? '0.00 VP · 尚無排名' : `${number(standing?.score ?? null)} VP · #${standing?.rank ?? '—'}`}</div>;
-                            })}
-                            </div>
-                          </> : <div>{playerBye ? `本圈輪空：${number(playerBye.vp)} VP（${playerBye.awarded ? '已計入排名' : '待本圈收分完成'}），不計 IMP 或實打牌數。` : '本圈無對戰安排'}</div>}
-                        </div>}
-                      </div>
-                      <div className="table-scroll">
-                        {event.teamMovement === 'interleaved' && <InterleavedRound event={event} round={playerRound} teamId={playerId} onBoard={(b, a) => { setBoard(b); setSelectedResult(a); setTab('boards'); }} />}
-                        {event.kind === 'teams' && !event.teamMovement && !playerBye && <table className="team-player-results">
-                          <thead><tr><th>牌號</th><th>公開</th><th>關閉</th><th>IMP 差</th></tr></thead>
-                          <tbody>
-                            {teamPlayerRows.map(({ a, b, closed, impDiff, butlers }) => {
-                              const openBoard = (assignment?: Assignment) => {
-                                setSelectedResult(assignment?.id ?? '');
-                                setBoard(b);
-                                setTab('boards');
-                              };
-                              return <tr key={`${a.matchId}-${b}`}>
-                                <td><button className="text-button" onClick={() => openBoard(a)}>{displayBoardNumber(b)}</button></td>
-                                {[a, closed].map((assignment, index) => {
-                                  const result = assignment ? awardedResult(event.results[resultKey(assignment.id, b)], assignment.ns === playerId ? 'ns' : 'ew') : undefined;
-                                  const ownScore = result && assignment ? result.nsScore * (assignment.ns === playerId ? 1 : -1) : null;
-                                  const butler = butlers[index];
-                                  return <td key={index}>
-                                    <button className="contract-link" aria-label={`查看牌號 ${displayBoardNumber(b)} ${index === 0 ? '公開' : '關閉'}室成績`} onClick={() => openBoard(assignment)}>
-                                      <Contract result={result} />
-
-                                      <small className="block mono team-raw-score">{result?.status === 'average' ? '取消' : result?.status === 'cancelled' || ownScore === null ? '—' : signed(ownScore)}
-                                        {butler !== null && <span className="muted butler-imp" title="Butler IMP（我方視角）" aria-label={`Butler IMP ${signed(butler)}`}>({signed(butler)})</span>}
-                                      </small>
-                                    </button>
-                                  </td>;
-                                })}
-                                <td className="mono">{impDiff === null ? '—' : signed(impDiff)}</td>
-                              </tr>;
-                            })}
-                          </tbody>
-                          <tfoot><tr>
-                            <td colSpan={4}>
-                              <div className="team-match-summary" aria-label="本圈比數，我方在左、對手在右">
-                                <span className="muted">{playerMatchScore?.split ? 'IMP 淨差' : 'IMP 合計'}</span>
-                                <button type="button" className="contract-link mono" aria-label="查看本圈雙方 Butler IMP" popoverTarget="player-butler-summary" onClick={e => positionDetail(e.currentTarget)}>{teamPlayerRows.some(row => row.impDiff !== null) ? playerMatchScore?.split ? `${signed(playerMatchScore.a === playerId ? playerMatchScore.marginA : playerMatchScore.marginB)} : ${signed(playerMatchScore.a === playerId ? playerMatchScore.marginB : playerMatchScore.marginA)}` : `${playerImpFor} : ${playerImpAgainst}` : '— : —'}</button>
-                              <button type="button" className="contract-link" popoverTarget="player-vp-scale" onClick={e => positionDetail(e.currentTarget)}>換算 VP</button>
-                                <button type="button" className="contract-link mono" aria-label="查看雙方累積 VP" popoverTarget="player-cumulative-vp" onClick={e => positionDetail(e.currentTarget)}>{number(playerMatchVp)} : {number(opponentMatchVp)}</button>
-                              </div>
-                              <div key={`${playerId}-${playerRound}-cumulative`} id="player-cumulative-vp" popover="auto" className="player-detail-popover">
-                                <strong>截至第 {roundLabel(event, playerRound)} 圈 · 累積 VP</strong>
-                                {[playerId, playerMatch ? (playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns) : undefined].map((id, index) => <div key={index}>
-                                  {index === 0 ? '我方' : '對手'} · {id ? name(id) : '—'}：<span className="mono">{number(cumulativePlayerStandings.find(s => s.id === id)?.score ?? null)} VP</span>
-                                </div>)}
-                                <small className="muted">計入已完成對戰與已結算輪空的 VP。</small>
-                              </div>
-                              <div key={`${playerId}-${playerRound}-butler`} id="player-butler-summary" popover="auto" className="player-detail-popover">
-                                <strong>第 {roundLabel(event, playerRound)} 圈 · Butler IMP 合計</strong>
-                                <div>我方 · {name(playerId!)}：<span className="butler-total">{playerButlers.length ? signed(playerButlerTotal) : '—'}</span></div>
-                                <div>對手 · {playerMatch ? name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns) : '—'}：<span className="butler-total">{playerButlers.length ? signed(opponentButlerTotal) : '—'}</span></div>
-                                <small className="muted">加總本圈兩室已收的有效成績；取消牌不計入。</small>
-                              </div>
-                              <div key={`${playerId}-${playerRound}-${playerVpBoards}`} id="player-vp-scale" popover="auto" className="player-detail-popover vp-scale-popover">
-                                <strong>第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 換算表</strong>
-                                <p>WBF 20–0 · 依原訂牌數換算</p>
-                                <p>{playerMatchVp === null ? '成績未齊，尚未換算 VP' : `我方 ${signed(playerImpTotal)} IMP → ${number(playerMatchVp)} VP`}</p>
-                                {playerVpScale.length ? <div className="vp-scale-scroll">
-                                  <table aria-label={`${playerVpBoards} 牌 VP 換算表`}>
-                                    <thead><tr><th>IMP 差</th><th>勝方 VP</th><th>負方 VP</th></tr></thead>
-                                    <tbody>{playerVpScale.map((entry, index) => <tr key={entry.margin} className={playerMatchVp !== null && Math.min(Math.abs(playerImpTotal), playerVpScale.length - 1) === entry.margin ? 'vp-scale-current' : undefined}>
-                                      <td>{entry.margin}{index === playerVpScale.length - 1 ? '+' : ''}</td>
-                                      <td>{number(entry.winner)}</td><td>{number(entry.loser)}</td>
-                                    </tr>)}</tbody>
-                                  </table>
-                                </div> : <p>本圈沒有可計分的牌。</p>}
-                              </div>
-                            </td>
-                          </tr></tfoot>
-                        </table>}
-                        {Boolean(event.kind !== 'teams') && <table>
-                          <thead>
-                            <tr>
-                              {event.kind !== 'teams' && <th aria-sort={playerSort === 'round' ? 'ascending' : 'none'}>
-                                <button
-                                  className="contract-link"
-                                  onClick={() => setPlayerSort('round')}
-                                >
-                                  桌次
-                                </button>
-                              </th>}
-                              <th aria-sort={playerSort === 'board' ? 'ascending' : 'none'}>
-                                <button
-                                  className="contract-link"
-                                  onClick={() => setPlayerSort('board')}
-                                >
-                                  牌號
-                                </button>
-                              </th>
-                              <th>{event.kind === 'teams' ? '房間' : '方向'}</th>
-                              {event.kind !== 'teams' && <th aria-sort={playerSort === 'opponent' ? 'ascending' : 'none'}>
-                                <button
-                                  className="contract-link"
-                                  onClick={() => setPlayerSort('opponent')}
-                                >
-                                  對手
-                                </button>
-                              </th>}
-                              <th>合約</th>
-                              <th>己方原始分</th>
-                              {event.kind === 'pairs' && <th>{pairMethod === 'mp' ? 'MP%' : 'IMP'}</th>}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {playerRows.map(({ a, b, shaded }) => {
-                              const r = event.results[resultKey(a.id, b)],
-                                ns = a.ns === (person || event.participants[0].id),
-                                mp = event.projection.pairScores[resultKey(a.id, b)],
-                                value = mp ? (ns ? mp.ns : mp.ew) : null;
-                              const scores = event.assignments
-                                .filter((other) => other.boards.includes(b))
-                                .map((other) => event.results[resultKey(other.id, b)])
-                                .filter((result) => result && result.status !== 'cancelled')
-                                .map((result) => result);
-                              const average = directionalDatum(scores)[ns ? 'ns' : 'ew'].mean;
-                              const popupId = `player-${a.id}-${b}`;
-                              const openBoard = () => {
-                                setSelectedResult('');
-                                setTravellerSide(ns ? 'ns' : 'ew');
-                                setBoard(b);
-                                setTab('boards');
-                              };
-                              return (
-                                <tr
-                                  key={resultKey(a.id, b)}
-                                  className={shaded ? 'even-round' : undefined}
-                                >
-                                  {event.kind !== 'teams' && <td>
-                                    <button
-                                      className="contract-link"
-                                      onClick={() => {
-                                        setRound(a.round);
-                                        setTab('rounds');
-                                      }}
-                                    >
-                                      <strong className="player-round">R{roundLabel(event, a.round)}</strong>
-                                      <small className="muted">/{a.table}</small>
-                                    </button>
-                                  </td>}
-                                  <td>
-                                    <button className="text-button" onClick={openBoard}>
-                                      {b}
-                                    </button>
-                                  </td>
-                                  <td>{event.kind === 'teams' ? (a.room === 'open' ? '公開' : '關閉') : (ns ? 'NS' : 'EW')}</td>
-                                  {event.kind !== 'teams' && <td>
-                                    <span className="opponent-name">
-                                      {name(ns ? a.ew : a.ns)}{' '}
-                                      <small className="muted">
-                                        {participantNumber((ns ? a.ew : a.ns), event.kind)}
-                                      </small>
-                                    </span>
-                                    <button
-                                      className="opponent-number contract-link"
-                                      popoverTarget={`${popupId}-opponent`}
-                                      onClick={(e) => positionDetail(e.currentTarget)}
-                                    >
-                                      {participantNumber((ns ? a.ew : a.ns), event.kind)}
-                                    </button>
-                                    <div
-                                      id={`${popupId}-opponent`}
-                                      popover="auto"
-                                      className="player-detail-popover"
-                                    >
-                                      對手：{participantNumber((ns ? a.ew : a.ns), event.kind)} ·{' '}
-                                      {name(ns ? a.ew : a.ns)}
-                                    </div>
-                                  </td>}
-                                  <td>
-                                    <button
-                                      type="button"
-                                      className="contract-link"
-                                      aria-label={`查看牌號 ${b} 的逐副成績`}
-                                      onClick={openBoard}
-                                    >
-                                      <Contract result={r} />
-                                    </button>
-                                  </td>
-                                  <td className="mono">
-                                    <button
-                                      className="player-raw-score contract-link"
-                                      popoverTarget={`${popupId}-average`}
-                                      onClick={(e) => positionDetail(e.currentTarget)}
-                                    >
-                                      {r && r.status !== 'cancelled'
-                                        ? signed(awardedResult(r, ns ? 'ns' : 'ew')!.nsScore * (ns ? 1 : -1))
-                                        : '—'}
-                                    </button>
-                                    <div
-                                      id={`${popupId}-average`}
-                                      popover="auto"
-                                      className="player-detail-popover"
-                                    >
-                                      牌號 {b} · {ns ? 'NS' : 'EW'} 平均分{' '}
-                                      {average === null
-                                        ? '—'
-                                        : `${average >= 0 ? '+' : ''}${number(average)}`}
-                                      （{scores.length} 桌有效結果）
-                                    </div>
-                                  </td>
-                                  {event.kind === 'pairs' && <td
-                                    className={
-                                      event.kind === 'pairs'
-                                        ? `player-points ${pairTone(value, mp?.top ?? 0, pairMethod)}`
-                                        : undefined
-                                    }
-                                  >
-                                    <span className="player-points-value">
-                                      {value !== null && mp
-                                          ? pairValue(value, mp.top, pairMethod)
-                                          : '—'}
-                                    </span>
-                                  </td>}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>}
-                      </div>
-                    </section>
+                    <PlayersView
+                      event={event}
+                      person={person}
+                      playerRound={playerRound}
+                      playerSort={playerSort}
+                      setBoard={setBoard}
+                      setPerson={setPerson}
+                      setPlayerRound={setPlayerRound}
+                      setPlayerSort={setPlayerSort}
+                      setRound={setRound}
+                      setSelectedResult={setSelectedResult}
+                      setTab={setTab}
+                      setTravellerSide={setTravellerSide}
+                    />
                   )}
                   {tab === 'admin' && admin && (
                     <AdminPanel
@@ -1724,7 +657,9 @@ export default function Scoreboard() {
                       onDeleted={async () => {
                         requestGeneration.current++;
                         setEvent(null);
-                        location.assign(`/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`);
+                        location.assign(
+                          `/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`,
+                        );
                         setTab('standings');
                         setNotice('賽段已刪除。');
                       }}
@@ -1789,7 +724,6 @@ export default function Scoreboard() {
           </form>
         </Modal>
       )}
-
     </div>
   );
 }
