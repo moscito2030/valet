@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createEvent, applyMutation } from '../lib/events';
 import { mutationSchema, type StoredEvent } from '../lib/model';
-import { competitionCatalog, appendStage, inheritCompetition } from '../lib/competitions';
+import { competitionCatalog, inheritCompetition } from '../lib/competitions';
 import { eventIndex } from '../lib/event-index';
 import { project } from '../lib/scoring';
 import { canMutate } from '../lib/mutation-permissions';
@@ -33,7 +33,10 @@ test('stage ranges validate real dates and order; updates preserve scores and ca
 });
 
 test('stage date ranges remain independent and catalog includes full extent without filling gaps', () => {
-  const next = appendStage(store(), createEvent({ ...input, date: '2026-12-01', endDate: '2026-12-03' }), 1, '預賽');
+  const root = store();
+  const stage = store(createEvent({ ...input, date: '2026-12-01', endDate: '2026-12-03' }));
+  stage.event.parentEventId = root.event.id;
+  const next = { root, stage };
   assert.equal(inheritCompetition(next.stage, next.root.event).event.endDate, '2026-12-03');
   const c = competitionCatalog([eventIndex(next.root), eventIndex(next.stage)])[0];
   assert.equal(c.date, '2026-10-30');

@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createSchema } from '@/lib/model';
 import { createEvent } from '@/lib/events';
-import { insertEvent, listEventIndex, storageMode } from '@/lib/store';
+import { insertEvent, listEventIndex, listCompetitionRecords, storageMode } from '@/lib/store';
+import { competitionCatalog } from '@/lib/competitions';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
 import { DomainError } from '@/lib/events';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
-    const data = await listEventIndex();
-    const roots = new Map(data.filter(s => !s.event.parentEventId).map(s => [s.event.id, s.event]));
+    const [data, records] = await Promise.all([listEventIndex(), listCompetitionRecords()]);
+    const roots = new Map(competitionCatalog(data, records).map(c => [c.id, c]));
     return NextResponse.json(
       {
         storage: storageMode(),
@@ -18,13 +19,13 @@ export async function GET() {
           .map(({ event: e, projection: p }) => ({
             id: e.id,
             name: e.name,
-            prefix: e.prefix ?? '',
+            prefix: roots.get(e.parentEventId ?? e.id)?.prefix ?? e.prefix ?? '',
             updatedAt: e.updatedAt,
             kind: e.kind,
             pairMethod: e.pairMethod ?? 'mp',
             date: e.date,
             endDate: e.endDate,
-            venue: roots.get(e.parentEventId ?? e.id)?.venue ?? e.venue,
+            venue: e.venueOverride ?? roots.get(e.parentEventId ?? e.id)?.venue ?? e.venue,
             status: e.status,
             demo: e.demo,
             participants: e.participants.length,

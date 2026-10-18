@@ -11,6 +11,7 @@ export type IndexEvent = Pick<
   | 'date'
   | 'endDate'
   | 'venue'
+  | 'venueOverride'
   | 'status'
   | 'demo'
   | 'rounds'
@@ -41,6 +42,7 @@ export function eventIndex(stored: StoredEvent): EventIndex {
       date: e.date,
       endDate: e.endDate,
       venue: e.venue,
+      venueOverride: e.venueOverride,
       status: e.status,
       demo: e.demo,
       rounds: e.rounds,

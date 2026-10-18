@@ -947,14 +947,15 @@ export function AdminPanel({
             {event.canDirect && (
               <form
                 className="event-identity-form"
-                key={`${event.stageName}-${event.date}-${event.endDate}`}
+                key={`${event.stageName}-${event.date}-${event.endDate}-${event.venueOverride}`}
                 onSubmit={(e) => {
                   e.preventDefault();
                   const form = new FormData(e.currentTarget);
                   void save({
                     action: 'settings',
                     status: event.status,
-                    ...((event.hasStages || event.parentEventId) ? { stageName: String(form.get('name')) } : {}),
+                    stageName: String(form.get('name')),
+                    venueOverride: form.get('customVenue') ? String(form.get('venueOverride') ?? '') : null,
                     date: String(form.get('date')),
                     endDate: String(form.get('endDate')) || null,
                     reason: '修改賽段資訊',
@@ -962,7 +963,7 @@ export function AdminPanel({
                 }}
               >
                 <h4>賽段資訊</h4>
-                {(event.hasStages || event.parentEventId) && <label className="field">
+                <label className="field">
                   賽段名稱
                   <input
                     name="name"
@@ -971,7 +972,7 @@ export function AdminPanel({
                     required
                     defaultValue={event.stageName ?? event.name}
                   />
-                </label>}
+                </label>
                 <label className="field">
                   開始日期
                   <input name="date" type="date" required defaultValue={event.date} />
@@ -981,13 +982,16 @@ export function AdminPanel({
                   <input name="endDate" type="date" defaultValue={event.endDate ?? ''} />
                 </label>
                 <p className="footnote">單日賽段可將結束日期留空。</p>
+                <label><input name="customVenue" type="checkbox" defaultChecked={event.venueOverride !== undefined} /> 此賽段另設地點</label>
+                <label className="field">賽段地點<input name="venueOverride" maxLength={80} defaultValue={event.venueOverride ?? ''} placeholder="留空表示此賽段地點未定" /></label>
+                <p className="footnote">未勾選時沿用賽事地點：{event.competition?.venue || '未公布'}。</p>
                 <button className="button subtle" disabled={busy}>
                   儲存賽段資訊
                 </button>
               </form>
             )}
             <p className="footnote">
-              名稱、前綴與地點等共用資訊，請至{' '}
+              賽事名稱、前綴與共用地點，請至{' '}
               <a
                 href={`/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`}
               >
@@ -1104,7 +1108,7 @@ export function AdminPanel({
                   try {
                     await api(`/api/admin/events/${eventId}`, {
                       method: 'DELETE',
-                      body: JSON.stringify({ confirmName: deleteName, revision: event.revision }),
+                      body: JSON.stringify({ confirmStageName: deleteName, revision: event.revision }),
                     });
                     await onDeleted();
                   } catch (error) {
@@ -1114,20 +1118,20 @@ export function AdminPanel({
                   }
                 }}
               >
-                <h4>刪除賽事</h4>
+                <h4>刪除賽段</h4>
                 <p>
-                  永久刪除此賽事的賽程、成績與操作紀錄。請輸入完整賽事名稱「{event.name}」確認。
+                  永久刪除此賽段的賽程、成績與操作紀錄，賽事共用資訊仍會保留。請輸入完整賽段名稱「{event.stageName ?? event.name}」確認。
                 </p>
                 <label className="field">
-                  確認賽事名稱
+                  確認賽段名稱
                   <input
                     value={deleteName}
                     onChange={(e) => setDeleteName(e.target.value)}
                     autoComplete="off"
                   />
                 </label>
-                <button className="button primary" disabled={busy || deleteName !== event.name}>
-                  永久刪除賽事
+                <button className="button primary" disabled={busy || deleteName !== (event.stageName ?? event.name)}>
+                  永久刪除賽段
                 </button>
               </form>
             )}

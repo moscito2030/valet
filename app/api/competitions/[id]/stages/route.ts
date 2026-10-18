@@ -6,7 +6,7 @@ import { insertStage } from '@/lib/store';
 import { errorResponse, requireAdmin, readJson } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
-const schema = z.object({ stage: createSchema, revision: z.number().int(), firstStageName: z.string().trim().min(1).max(80).optional() }).strict();
+const schema = z.object({ stage: createSchema, revision: z.number().int().positive() }).strict();
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin(request);
@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const body = schema.parse(await readJson(request));
     const stage = createEvent(body.stage);
     delete stage.hasStages;
-    const stored = await insertStage((await params).id, stage, body.revision, body.firstStageName);
+    const stored = await insertStage((await params).id, stage, body.revision);
     return NextResponse.json({ id: stored.event.id }, { status: 201 });
   } catch (e) { return errorResponse(e); }
 }

@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenForOutsideDismiss } from '@/lib/outside-dismiss';
 import { EventCalendar } from './event-calendar';
 import { ArrowLeft, ArrowRight, CalendarDays, Eye, EyeOff, MapPin, Plus, Trophy, Users } from 'lucide-react';
-import { CreateDialog, Modal } from './event-dialogs';
+import { CreateCompetitionDialog, CreateDialog, Modal } from './event-dialogs';
 import { dateRangeLabel, includesDate } from '@/lib/date-range';
 import type { Competition } from '@/lib/competitions';
 
@@ -17,7 +17,7 @@ async function request<T>(url: string, body?: object, method = 'POST'): Promise<
   if (!r.ok) throw new Error(data.error ?? '讀取失敗');
   return data;
 }
-const competitionDateLabel = dateRangeLabel;
+const competitionDateLabel = (c: Competition) => c.date ? dateRangeLabel(c) : '日期未定';
 const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? 'MiniBridge · ' : '') + (s.kind === 'teams' ? '隊制賽 · IMP / VP' : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
 
 export default function CompetitionHub({ competitionId }: { competitionId?: string }) {
@@ -94,22 +94,23 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             {competition.prefix && <p className="competition-prefix">{competition.prefix}</p>}
             <h1>{competition.name}</h1>
             <div className="competition-facts"><span><CalendarDays size={17} />{competitionDateLabel(competition)}</span><span><MapPin size={17} />{competition.venue || '地點未公布'}</span></div>
-            <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />{competition.hasStages ? '新增賽段' : '設立賽段'}</button></>}</div>
+            <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />新增賽段</button></>}</div>
           </section>
           {editing && session.director && <form className="panel hub-form" key={competition.revision} onSubmit={async e => {
             e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
             try {
-              await request(`/api/events/${competition.id}`, { action: 'competition-settings', revision: competition.revision, requestId: crypto.randomUUID(), reason: '編輯賽事共用資訊', name: String(form.get('name')), prefix: String(form.get('prefix')), venue: String(form.get('venue')) }, 'PATCH');
+              await request(`/api/competitions/${competition.id}`, { revision: competition.revision, requestId: crypto.randomUUID(), name: String(form.get('name')), prefix: String(form.get('prefix')), venue: String(form.get('venue')) }, 'PATCH');
               await load(); setEditing(false);
             } catch (e) { setError((e as Error).message); await load().catch(() => {}); } finally { setBusy(false); }
           }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><label className="field">前綴<input name="prefix" maxLength={80} defaultValue={competition.prefix} /></label><div className="form-grid"><label className="field">地點<input name="venue" maxLength={80} defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
-          <section aria-label={competition.hasStages ? '選擇賽段' : '賽事成績'}>
-            <div className="hub-section-heading"><h2>{competition.hasStages ? '選擇賽段' : '賽事成績'}</h2>{competition.hasStages && <p>各賽段的日期、名單、賽制與成績各自獨立。</p>}</div>
+          <section aria-label="選擇賽段">
+            <div className="hub-section-heading"><h2>選擇賽段</h2><p>各賽段的日期、名單、賽制與成績各自獨立。</p></div>
             <div className="competition-grid competition-list">{competition.stages.map(s => <a key={s.id} className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
-              <div className="competition-card-copy"><h3>{competition.hasStages ? s.name : '進入賽事'}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
+              <div className="competition-card-copy"><h3>{s.name}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.venue || '地點未公布'}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
               <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
             </a>)}</div>
+            {!competition.stages.length && <p className="empty">尚未安排賽段，裁判可點選「新增賽段」。</p>}
           </section>
         </> : <>
           <div className="page-heading"><div><h1>即時掌握你的表現</h1><p>還在用過時的 Excel 試算表舉辦比賽嗎？</p></div>{session.director && <button className="button subtle" onClick={() => setCreating(true)}><Plus size={16} />建立賽事</button>}</div>
@@ -122,9 +123,9 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             {date && <div className="hub-date-filter"><span>日期：{date}</span><button type="button" className="button subtle" onClick={() => setDate('')}>清除日期</button></div>}
           </div>
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
-            <span className={`event-icon ${c.stages[0].kind}`} aria-hidden="true"><Users size={23} /></span>
-            <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{c.hasStages ? `${c.stages.length} 個賽段` : format(c.stages[0])}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
-            <span className="competition-status">{c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
+            <span className={`event-icon ${c.stages[0]?.kind ?? ''}`} aria-hidden="true"><Users size={23} /></span>
+            <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{`${c.stages.length} 個賽段`}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
+            <span className="competition-status">{!c.stages.length ? '尚未安排賽段' : c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}
@@ -132,7 +133,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
         <footer className="page-footer"><div><AppVersion /></div></footer>
       </main>
     </div>
-    {creating && <CreateDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}
+    {creating && <CreateCompetitionDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}
     {addingStage && competition && <CreateDialog competition={competition} onClose={() => { setAddingStage(false); void load().catch(e => setError(e.message)); }} onCreated={async () => { await load(); setAddingStage(false); }} />}
     {deleting && session.director && competition && <DeleteStagesDialog competition={competition} onClose={() => setDeleting(false)} onDeleted={async rootDeleted => { setDeleting(false); if (rootDeleted) location.assign('/'); else { setNotice('已刪除賽段。'); await load(); } }} />}
     {deleting && session.director && !competitionId && <DeleteCompetitionsDialog competitions={competitions} onClose={() => setDeleting(false)} onRefresh={load} onDeleted={async count => {
@@ -155,7 +156,7 @@ function DeleteStagesDialog({ competition, onClose, onDeleted }: {
     setBusy(true); setError('');
     try {
       await request(`/api/admin/events/${encodeURIComponent(selected.id)}`, { confirmStageName: confirmation, revision: selected.revision }, 'DELETE');
-      await onDeleted(selected.id === competition.id);
+      await onDeleted(false);
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -163,13 +164,13 @@ function DeleteStagesDialog({ competition, onClose, onDeleted }: {
     {error && <p className="alert error" role="alert">{error}</p>}
     {selected ? <>
       <p>確定刪除「{selected.name}」？此賽段的名單與成績將一併刪除，無法復原。</p>
-      {selected.id === competition.id && <p>這是此賽事最後一個賽段，刪除後也會移除賽事。</p>}
+      <p>賽事共用資訊會保留，刪除最後一個賽段後仍可重新新增賽段。</p>
       <label className="field">請輸入賽段名稱「{selected.name}」<input value={confirmation} onChange={e => setConfirmation(e.target.value)} autoComplete="off" disabled={busy} /></label>
       <div className="button-row"><button type="button" className="button subtle" disabled={busy} onClick={() => setSelected(null)}>返回選擇</button><button type="button" className="button danger" disabled={busy || confirmation !== selected.name} onClick={() => void remove()}>{busy ? '刪除中…' : '確認刪除賽段'}</button></div>
     </> : <>
       <p>選擇要刪除的賽段。</p>
-      <div className="delete-competition-list">{competition.stages.map(stage => <button type="button" key={stage.id} className="button subtle" disabled={stage.id === competition.id && competition.stages.length > 1} onClick={() => { setConfirmation(''); setSelected(stage); }}>{stage.name}</button>)}</div>
-      {competition.stages.length > 1 && <p className="footnote">第一賽段包含賽事共用資料，須先刪除其他賽段才能刪除。</p>}
+      <div className="delete-competition-list">{competition.stages.map(stage => <button type="button" key={stage.id} className="button subtle" onClick={() => { setConfirmation(''); setSelected(stage); }}>{stage.name}</button>)}</div>
+      {!competition.stages.length && <p>目前沒有賽段。若要刪除整場賽事，請回到首頁的「刪除比賽」。</p>}
     </>}
   </Modal>;
 }
@@ -194,7 +195,7 @@ function DeleteCompetitionsDialog({ competitions, onClose, onRefresh, onDeleted 
     setBusy(true); setError('');
     try {
       const result = await request<{ deleted: number }>('/api/admin/competitions', {
-        competitions: chosen.map(c => ({ id: c.id, confirmName: confirmations[c.id], stages: c.stages.map(s => ({ id: s.id, revision: s.revision })) })),
+        competitions: chosen.map(c => ({ id: c.id, revision: c.revision, confirmName: confirmations[c.id], stages: c.stages.map(s => ({ id: s.id, revision: s.revision })) })),
       }, 'DELETE');
       await onDeleted(result.deleted);
     } catch (e) {

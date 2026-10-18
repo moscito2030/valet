@@ -83,6 +83,7 @@ export function createEvent(
     date: data.date,
     ...(data.endDate ? { endDate: data.endDate } : {}),
     venue: data.venue,
+    ...(data.venueOverride !== undefined ? { venueOverride: data.venueOverride } : {}),
     rounds: data.rounds,
     boardsPerRound: data.boardsPerRound,
     status: 'live',
@@ -382,8 +383,11 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
     if (command.maxBoardNumber !== undefined) e.maxBoardNumber = command.maxBoardNumber;
     if ((e.parentEventId || e.hasStages) && (command.name !== undefined || command.prefix !== undefined)) throw new DomainError('賽事共用資訊請至賽事主頁修改');
     if (command.stageName !== undefined) {
-      if (!e.hasStages && !e.parentEventId) throw new DomainError('此賽事未設賽段');
       e.stageName = command.stageName;
+    }
+    if (command.venueOverride !== undefined) {
+      if (command.venueOverride === null) delete e.venueOverride;
+      else e.venueOverride = command.venueOverride;
     }
     if (command.date !== undefined) e.date = command.date;
     if (command.endDate !== undefined) {

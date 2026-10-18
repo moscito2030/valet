@@ -17,4 +17,5 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:security
+      - run: npx tsx scripts/empty-competition-smoke.ts
       - run: npm run typecheck

@@ -37,6 +37,25 @@ export function Modal({
     </dialog>
   );
 }
+export function CreateCompetitionDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => Promise<void> }) {
+  const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  return <Modal title="建立賽事" onClose={onClose}><form onSubmit={async e => {
+    e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
+    try {
+      const result = await api<{ id: string }>('/api/competitions', { method: 'POST', body: JSON.stringify({ name: form.get('name'), prefix: form.get('prefix'), venue: form.get('venue') }) });
+      await onCreated(result.id);
+    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  }}>
+    <p>先保存賽事共用資訊，之後再新增賽段、名單與賽程。</p>
+    <label className="field">賽事名稱<input name="name" required minLength={2} maxLength={80} /></label>
+    <label className="field">前綴（選填）<input name="prefix" maxLength={80} /></label>
+    <label className="field">共用地點（選填）<input name="venue" maxLength={80} /></label>
+    <p className="footnote">各賽段預設沿用共用地點，也可另設地點。</p>
+    {error && <p className="error-text" role="alert">{error}</p>}
+    <button className="button primary full" disabled={busy}>{busy ? '建立中…' : '建立賽事'}</button>
+  </form></Modal>;
+}
+
 export function CreateDialog({
   onClose,
   onCreated,
@@ -55,7 +74,7 @@ export function CreateDialog({
   const [method, setMethod] = useState('mp');
   const [movementPlan, setMovementPlan] = useState('');
   const [gameMode, setGameMode] = useState<'bridge' | 'minibridge'>('bridge');
-  const [staged, setStaged] = useState(false);
+  const [customVenue, setCustomVenue] = useState(false);
   const [eventDate, setEventDate] = useState(() =>
     new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }),
   );
@@ -79,7 +98,7 @@ export function CreateDialog({
         date: form.get('date'),
         ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
         venue: competition?.venue ?? form.get('venue'),
-        ...(!competition && staged ? { firstStageName: form.get('firstStageName') } : {}),
+        ...(competition && customVenue ? { venueOverride: String(form.get('venueOverride') ?? '') } : {}),
         rounds: form.get('rounds') ? Number(form.get('rounds')) : undefined,
         boardsPerRound: form.get('boardsPerRound') ? Number(form.get('boardsPerRound')) : undefined,
         names: grouped ? [...lines('nsNames'), ...lines('ewNames')] : lines('names'),
@@ -93,7 +112,6 @@ export function CreateDialog({
               ? {
                   stage,
                   revision: competition.revision,
-                  ...(!competition.hasStages ? { firstStageName: form.get('firstStageName') } : {}),
                 }
               : stage,
           ),
@@ -120,18 +138,6 @@ export function CreateDialog({
           </select>
         </label>
         {gameMode === 'minibridge' && <p>五種花色 × 一線／成局，共 10 種合約；無身價、不加倍。</p>}
-        {!competition && (
-          <label className="stage-mode">
-            <input type="checkbox" checked={staged} onChange={(e) => setStaged(e.target.checked)} />{' '}
-            設立賽段
-          </label>
-        )}
-        {((!competition && staged) || (competition && !competition.hasStages)) && (
-          <label className="field">
-            {competition ? '原有成績的賽段名稱' : '第一賽段名稱'}
-            <input name="firstStageName" required maxLength={80} placeholder="例如：預賽" />
-          </label>
-        )}
         {competition && (
           <p>
             {competition.name} · {competition.venue || '未填地點'}
@@ -257,6 +263,10 @@ export function CreateDialog({
               <input name="venue" maxLength={80} placeholder="比賽地點" />
             </label>
           )}
+          {competition && <div className="field create-details-wide">
+            <label><input type="checkbox" checked={customVenue} onChange={e => setCustomVenue(e.target.checked)} /> 此賽段另設地點</label>
+            {customVenue ? <input aria-label="賽段地點" name="venueOverride" maxLength={80} placeholder="留空表示此賽段地點未定" /> : <span className="footnote">沿用賽事地點：{competition.venue || '未公布'}</span>}
+          </div>}
           <label className="field">
             圈數（選填）
             <input name="rounds" type="number" min={1} max={MAX_PLAYER_BOARDS} onChange={e => setPlannedRounds(Number(e.target.value))} placeholder="稍後設定" />

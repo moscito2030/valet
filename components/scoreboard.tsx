@@ -630,7 +630,7 @@ export default function Scoreboard() {
                         popover="auto"
                         className="player-detail-popover event-information"
                       >
-                        <strong>{[event.prefix, event.name].filter(Boolean).join(' ')}</strong>
+                        <strong>{[event.competition?.prefix ?? event.prefix, event.competition?.name ?? event.name].filter(Boolean).join(' ')}</strong>
                         <div>日期：{dateRangeLabel(event)}</div>
                         <div>地點：{event.venue || '線上記分'}</div>
                       </div>
@@ -1724,9 +1724,9 @@ export default function Scoreboard() {
                       onDeleted={async () => {
                         requestGeneration.current++;
                         setEvent(null);
-                        location.assign(event.parentEventId ? `/?competition=${encodeURIComponent(event.parentEventId)}` : '/');
+                        location.assign(`/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`);
                         setTab('standings');
-                        setNotice('賽事已刪除。');
+                        setNotice('賽段已刪除。');
                       }}
                     />
                   )}

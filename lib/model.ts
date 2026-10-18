@@ -78,9 +78,10 @@ export type SwissPublication = {
 };
 export type SwissConfig = { mode: 'current' | 'delayed'; publications: SwissPublication[] };
 export type BridgeEvent = {
-  // A root record holds shared competition metadata and its original scoring session.
+  // Legacy root stages retain their IDs; independent competition records own shared metadata.
   parentEventId?: string;
   stageName?: string;
+  venueOverride?: string;
   hasStages?: boolean;
   competition?: CompetitionInfo;
   club?: {
@@ -140,6 +141,7 @@ export const createSchema = z
     date: dateSchema,
     endDate: dateSchema.optional(),
     venue: z.string().trim().max(80),
+    venueOverride: z.string().trim().max(80).optional(),
     names: z.array(z.string().trim().min(1).max(60)).min(3).max(38),
     rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS).optional(),
     boardsPerRound: z.number().int().min(1).max(16).optional(),
@@ -261,6 +263,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       date: dateSchema.optional(),
       endDate: dateSchema.nullable().optional(),
       stageName: z.string().trim().min(1).max(80).optional(),
+      venueOverride: z.string().trim().max(80).nullable().optional(),
       name: z.string().trim().min(2).max(80).optional(),
       prefix: z.string().trim().max(80).optional(),
     })
