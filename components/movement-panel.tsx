@@ -55,7 +55,9 @@ export function MovementPanel({
     ? parseAcblMovement(Uint8Array.from(movementFile), 'uploaded.MOV')
     : undefined;
   const options = movementOptions(draft, external);
-  const switchable = event.kind === 'pairs' && ['mitchell', 'mitchell-relay'].includes(choice);
+  const switchable =
+    event.kind === 'pairs' &&
+    (['mitchell', 'mitchell-relay'].includes(choice) || choice.startsWith('acbl-APPENDIX-T'));
   const arrowSwitchRound = switchChoice ?? Math.floor(rounds / 2) + 1;
   const selectedOption = options.find((p) => p.id === choice);
   const size = selectedOption?.interleavedSize;
@@ -363,6 +365,12 @@ export function MovementPanel({
       {plan && (
         <>
           <p>{plan.option.note}</p>
+          {plan.option.sessionNote && (
+            <div className="movement-session-note" role="note">
+              <strong>兩賽段搭配</strong>
+              <p>{plan.option.sessionNote}</p>
+            </div>
+          )}
           {groups && size && (
             <div>
               <p className="footnote">

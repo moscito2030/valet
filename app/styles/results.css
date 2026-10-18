@@ -564,3 +564,13 @@ table a:focus-visible {
     width: 100%;
   }
 }
+
+.movement-session-note {
+  margin-block: 1rem;
+  padding: 1rem;
+  border-left: 3px solid var(--primary, #24483c);
+  background: #f0f4ef;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.movement-session-note p { margin: .5rem 0 0; }

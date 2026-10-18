@@ -37,3 +37,13 @@ Howell 使用內建編排表：完整 Howell 為 3–8 桌，Reduced（3/4）How
 採 Web Crypto 均勻洗牌，predeal 先固定指定牌，再洗剩餘牌；條件以拒絕抽樣篩選。未達指定副數時不回傳部分結果。
 最多產生本賽段的牌數，搜尋限制為 100 萬次嘗試、30 秒；可取消。Source 不作 JavaScript 執行，也不傳至外部網站。
 produce 預設本賽段牌數，可減少以供下載；套用需要全部牌號，沿用既有 PBN 匯入的裁判權限、版本與未收分檢查。
+
+## Appendix Mitchell / Interwoven Howell compatibility
+
+The new full-table Appendix generator is separate from `acbl-appendix.ts`'s 1.5-table ACBL movement. It uses overlapping circuits: NS moves one position on the last R tables, EW two on the first R tables, boards move down one on an R-group cycle. T-R pairs on each side remain stationary. Table R+i shares with i. Supported R are primes >=5, T in [R+1, min(2R,40)]. This deliberately does not claim support for every named Appendix variant.
+
+References: [EBU discussion by movement directors](https://forums.ebu.co.uk/discussion/843/eddy-appendix-mitchell-movements), [JCBL director manual, two-session movements](https://www.jcbl.or.jp/Portals/0/pdf/member/%E3%83%87%E3%82%A3%E3%83%AC%E3%82%AF%E3%82%BF%E3%83%BC%E3%83%9E%E3%83%8B%E3%83%A5%E3%82%A2%E3%83%AB3_402.pdf), and [Magic Contest pair numbering](https://magicscoring.com/scoring/movements/jannersten/pair-numbers-at-interwoven-howell/).
+
+Pair numbering is normalized to two contiguous T-pair lines, moving pairs first, stationary pairs last. EW moving labels use the inverse of two modulo R and an offset chosen to reserve A_i / B_(i+1) encounters for odd-table combined Howells. This is a relabeling, not a change in the physical movement. The test suite exhausts all offered T/R configurations for unique opponents, per-round seating, per-pair board-group uniqueness, and a maximum of two simultaneous copies.
+
+IWH identification uses the two R-long routes in existing pinned ACBL HOWELL.LBR records, not a filename heuristic. Compatibility is computed by disjoint unordered opponent sets from both complete schedules, not by table count alone. Each recommendation preserves pair slots; no automatic participant matching or cross-stage scoring is implied. The legacy 1.5-table Appendix IDs and data remain unchanged.
