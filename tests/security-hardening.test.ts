@@ -63,7 +63,7 @@ test('legacy average and cancelled produce identical team and pair scores withou
     assert.ok(Object.values(e.results).every((r) => r.status === 'average'));
     for (const r of Object.values(e.results)) r.status = 'cancelled';
     assert.deepEqual(project(e), legacy);
-    if (kind === 'pairs') assert.ok(legacy.standings.every((s) => s.score === null));
+    if (kind === 'pairs') assert.ok(legacy.standings.every((s) => s.score === (e.pairMethod && e.pairMethod !== 'mp' ? 0 : 50)));
     else assert.ok(legacy.matches.every((m) => m.vpA === null));
   }
 });

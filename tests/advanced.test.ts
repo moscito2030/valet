@@ -332,7 +332,7 @@ test('cancelled results are processed, excluded from comparisons, protected from
   assert.equal(restored.event.results[`${a.id}:1`].status, 'played');
   assert.equal(restored.event.results[`${a.id}:1`].nsScore, 400);
 });
-test('penalties subtract from aggregate, replace rather than accumulate, and negative scores rank above missing', () => {
+test('penalties subtract from aggregate, replace rather than accumulate, and unplayed pairs start at the neutral score', () => {
   const e = event();
   for (const [i, a] of e.assignments.entries())
     e.results[`${a.id}:1`] = {
@@ -372,10 +372,10 @@ test('penalties subtract from aggregate, replace rather than accumulate, and neg
   );
   delete e.results[`${e.assignments[2].id}:1`];
   const standing = project(e).standings;
-  assert.ok(
-    standing.findIndex((s) => s.score! < 0 && s.score !== null) <
-      standing.findIndex((s) => s.score === null),
-  );
+  const unplayed = standing.filter(s => s.played === 0);
+  assert.equal(unplayed.length, 2);
+  assert.ok(unplayed.every(s => s.score === (e.pairMethod && e.pairMethod !== 'mp' ? 0 : 50)));
+  assert.ok(standing.every((s, i) => i === 0 || standing[i - 1].score! >= s.score!));
 });
 test('interactive play enforces turns and follow suit, resolves trump winner and serializes remaining cards', () => {
   const s: PlayState = {

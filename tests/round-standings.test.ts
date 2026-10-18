@@ -11,7 +11,7 @@ test('pairs pre-round scores and ranks exclude this and later rounds for MP, Cro
     event.trim = 'none';
     event.assignments = [1, 2].flatMap(round => [0, 1].map(i => ({ id: `${round}-${i}`, round, table: i + 1, room: 'pairs' as const, ns: event.participants[i * 2].id, ew: event.participants[i * 2 + 1].id, boards: [1], matchId: `${round}-${i}` })));
     event.results = Object.fromEntries(event.assignments.map((a, i) => [resultKey(a.id, 1), { assignmentId: a.id, board: 1, level: 4, strain: 'H', doubled: 1, declarer: 'N', tricks: 10, lead: '', nsScore: [420, 170, -1100, 1100][i], updatedAt: '' } as Result]));
-    assert.ok(pairStandingsBeforeRound(event, 1).every(row => row.score === null && row.played === 0));
+    assert.ok(pairStandingsBeforeRound(event, 1).every(row => row.score === (pairMethod === 'mp' ? 50 : 0) && row.played === 0));
     const beforeSecond = pairStandingsBeforeRound(event, 2);
     const first = beforeSecond.find(row => row.id === event.participants[0].id)!;
     assert.equal(first.score, { mp: 100, crossimp: 6, butler: 3 }[pairMethod]);
