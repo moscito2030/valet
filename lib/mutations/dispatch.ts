@@ -34,6 +34,7 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
     case 'movement-plan':
     case 'movement':
       return applyScheduleCommand(context, command);
+    case 'stage-archive':
     case 'competition-settings':
     case 'settings':
       return applySettingsCommand(context, command);

@@ -5,11 +5,14 @@ import type { MutationContext } from './context';
 
 export function applySettingsCommand(
   context: MutationContext,
-  command: Extract<Mutation, { action: 'competition-settings' | 'settings' }>,
+  command: Extract<Mutation, { action: 'stage-archive' | 'competition-settings' | 'settings' }>,
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
-  if (command.action === 'competition-settings') {
+  if (command.action === 'stage-archive') {
+    e.stageArchived = command.archived;
+    detail = command.archived ? '封存賽段，僅裁判可見' : '解除封存賽段';
+  } else if (command.action === 'competition-settings') {
     if (e.parentEventId) throw new DomainError('請從賽事主頁修改共用資訊');
     e.name = command.name;
     e.prefix = command.prefix;

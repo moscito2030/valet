@@ -5,6 +5,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { competitionCatalog } from '../lib/competitions';
+import { canMutate } from '../lib/mutation-permissions';
 import { createCompetition } from '../lib/competition-record';
 import { DomainError } from '../lib/domain-error';
 import { createEvent } from '../lib/domain/event-factory';
@@ -86,6 +88,31 @@ for (const kind of ['local', 'postgres'] as const)
   test(`${kind} repository contract`, async (t) => {
     const { repo, seedLegacy, close } = await harness(kind);
     try {
+      await t.test('stage archive persists in indexes, hides only the selected stage and restores without data loss', async () => {
+        const root = await repo.insertCompetition(createCompetition({name:'Stage archive test',venue:'Hall'}));
+        const e = stage();
+        await repo.insertStage(root.competition.id,e,root.competition.revision);
+        const other = stage();
+        const c = await repo.getCompetition(root.competition.id);
+        await repo.insertStage(root.competition.id,other,c.competition.revision);
+        const before = await repo.getEvent(e.id);
+        const cmd = command({action:'stage-archive',archived:true},before.event.revision);
+        assert.equal(canMutate('admin',cmd),false);
+        assert.equal(canMutate('director',cmd),true);
+        await repo.mutateEvent(e.id,cmd);
+        const archived = await repo.getEvent(e.id);
+        assert.equal(archived.event.stageArchived,true);
+        assert.deepEqual(archived.event.results,before.event.results);
+        assert.deepEqual(archived.event.assignments,before.event.assignments);
+        const indexes = await repo.listEventIndex();
+        const records = await repo.listCompetitionRecords();
+        assert.equal(indexes.find(x=>x.event.id===e.id)?.event.stageArchived,true);
+        assert.ok(!competitionCatalog(indexes,records,false).flatMap(c=>c.stages).some(s=>s.id===e.id));
+        assert.ok(competitionCatalog(indexes,records,false).flatMap(c=>c.stages).some(s=>s.id===other.id));
+        assert.ok(competitionCatalog(indexes,records,true).flatMap(c=>c.stages).some(s=>s.id===e.id));
+        await repo.mutateEvent(e.id,command({action:'stage-archive',archived:false},archived.event.revision));
+        assert.equal((await repo.getEvent(e.id)).event.stageArchived,false);
+      });
       await t.test('archive persists across repositories, inherits to stages and survives metadata edits', async () => {
         const root = await repo.insertCompetition(createCompetition({name:'Archive test',venue:'Hall'}));
         const e = stage();

@@ -1,6 +1,7 @@
 import type { BridgeEvent, Projection, StoredEvent } from './model';
 export type IndexEvent = Pick<
   BridgeEvent,
+  | 'stageArchived'
   | 'id'
   | 'name'
   | 'prefix'
@@ -32,6 +33,7 @@ export function eventIndex(stored: StoredEvent): EventIndex {
   const e = stored.event;
   return {
     event: {
+      stageArchived: e.stageArchived,
       id: e.id,
       name: e.name,
       prefix: e.prefix,

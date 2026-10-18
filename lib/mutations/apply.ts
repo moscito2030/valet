@@ -74,6 +74,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   e.audit.push({
     at,
     action: {
+      'stage-archive': '賽段封存設定',
       'competition-settings': '賽事共用資訊',
       'team-roster': '隊伍賽員名單',
       'rosters-import': '匯入隊伍賽員名單',

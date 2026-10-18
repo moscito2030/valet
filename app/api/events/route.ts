@@ -16,7 +16,7 @@ export async function GET() {
       {
         storage: storageMode(),
         events: [...data]
-          .filter(({ event }) => director || !roots.get(event.parentEventId ?? event.id)?.archived)
+          .filter(({ event }) => director || (!event.stageArchived && !roots.get(event.parentEventId ?? event.id)?.archived))
           .sort((a, b) => Date.parse(b.event.updatedAt) - Date.parse(a.event.updatedAt))
           .map(({ event: e, projection: p }) => ({
             id: e.id,

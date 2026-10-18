@@ -79,6 +79,7 @@ export type SwissPublication = {
 };
 export type SwissConfig = { mode: 'current' | 'delayed'; publications: SwissPublication[] };
 export type BridgeEvent = {
+  stageArchived?: boolean;
   // Legacy root stages retain their IDs; independent competition records own shared metadata.
   parentEventId?: string;
   stageName?: string;
@@ -171,6 +172,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
 
   z.object({ action: z.literal('rosters-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入隊伍賽員名單'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('lineups-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入入座名單'), csv: z.string().min(1).max(200000) }).strict(),
+  z.object({ action: z.literal('stage-archive'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), archived: z.boolean() }).strict(),
   z.object({ action: z.literal('clear-results'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), confirmName: z.string().min(1).max(80) }).strict(),
   z.object({ action: z.literal('results-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入成績'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('round-times-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入圈次時間'), csv: z.string().min(1).max(200000) }).strict(),

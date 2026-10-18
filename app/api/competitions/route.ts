@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const [stages, records] = await Promise.all([listEventIndex(), listCompetitionRecords()]);
     const director = await isDirector();
-    return NextResponse.json({ competitions: competitionCatalog(stages, records).filter(c => director || !c.archived) }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ competitions: competitionCatalog(stages, records, director).filter(c => director || !c.archived) }, { headers: { 'Cache-Control': 'no-store' } });
   }
   catch (e) { return errorResponse(e); }
 }

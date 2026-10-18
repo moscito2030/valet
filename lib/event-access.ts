@@ -6,7 +6,7 @@ import { DomainError } from './domain-error';
 // All stage HTTP readers share this check, including authenticated collection links.
 export async function getAccessibleEvent(id: string) {
   const stored = await getEvent(id);
-  if (stored.event.competition?.archived && !(await isDirector()))
+  if ((stored.event.stageArchived || stored.event.competition?.archived) && !(await isDirector()))
     throw new DomainError('找不到賽事', 404);
   return stored;
 }

@@ -117,7 +117,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             <div className="competition-grid competition-list">{competition.stages.map(s => <div key={s.id}><a className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
               <div className="competition-card-copy"><h3>{s.name}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.venue || '地點未公布'}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
-              <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
+              <span className="competition-status">{s.stageArchived ? '已封存 · 僅裁判可見' : s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
             </a></div>)}</div>
             {!competition.stages.length && <p className="empty">尚未安排賽段，裁判可點選「新增賽段」。</p>}
           </section>

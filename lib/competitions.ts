@@ -7,14 +7,15 @@ export function competitionInfo(root: Pick<IndexEvent, 'id' | 'name' | 'prefix' 
 }
 
 export function stageSummary(event: IndexEvent) {
-  return { id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, endDate: event.endDate || event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
+  return { stageArchived: event.stageArchived, id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, endDate: event.endDate || event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
 }
 
-export function competitionCatalog(data: EventIndex[], records: StoredCompetition[] = []) {
+export function competitionCatalog(data: EventIndex[], records: StoredCompetition[] = [], includeArchivedStages = true) {
   const roots = new Map(data.filter(s => !s.event.parentEventId).map(s => [s.event.id, competitionInfo(s.event)]));
   for (const { competition } of records) roots.set(competition.id, competitionInfo(competition));
   return [...roots.values()].map(root => {
     const stages = data.filter(s => (s.event.parentEventId ?? s.event.id) === root.id)
+      .filter(s => includeArchivedStages || !s.event.stageArchived)
       .map(s => ({ ...stageSummary(s.event), venue: s.event.venueOverride ?? root.venue }));
     const dates = [...new Set(stages.map(s => s.date))].sort();
     return { ...root, date: dates[0] ?? '', endDate: stages.map(s => s.endDate).sort().at(-1) ?? '', dates, stages };

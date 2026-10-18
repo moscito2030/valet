@@ -226,6 +226,12 @@ export function PublicationPanel({
             }
           }}
         >
+          <h4>封存賽段</h4>
+          <p>{event.stageArchived ? '此賽段已封存，僅裁判可見。' : '封存後僅裁判可見，觀眾、賽務與收分裝置無法存取；不影響同賽事其他賽段。'}</p>
+          <button type="button" className="button subtle" disabled={busy} onClick={() => {
+            if (!event.stageArchived && !window.confirm('封存此賽段？觀眾、賽務與收分裝置將無法存取，裁判可隨時解除封存。')) return;
+            void save({action:'stage-archive', archived:!event.stageArchived, reason:event.stageArchived ? '解除封存賽段' : '封存賽段'});
+          }}>{event.stageArchived ? '解除封存賽段' : '封存賽段'}</button>
           <h4>刪除賽段</h4>
           <p>
             永久刪除此賽段的賽程、成績與操作紀錄，賽事共用資訊仍會保留。請輸入完整賽段名稱「
