@@ -59,6 +59,10 @@ export function StandingsView({
     : [];
 
   const doubleWinner = event.kind === 'pairs' && event.participants.length > 0 && event.participants.every(p => p.group);
+  function rankLabel(row: (typeof event.projection.standings)[number]) {
+    const tied = event.projection.standings.filter(s => s.rank === row.rank && (!doubleWinner || s.group === row.group)).length;
+    return tied > 1 ? `${row.rank}-${row.rank + tied - 1}` : String(row.rank);
+  }
   const tables = doubleWinner
     ? (['NS', 'EW'] as const).map(group => ({ group, rows: visibleStandings.filter(s => s.group === group) }))
     : [{ group: undefined, rows: visibleStandings }];
@@ -109,10 +113,10 @@ export function StandingsView({
                     {s.rank <= (event.awardPlaces ?? 3) ? (
                       <>
                         <Trophy size={13} />
-                        {s.rank}
+                        {rankLabel(s)}
                       </>
                     ) : (
-                      String(s.rank).padStart(2, '0')
+                      rankLabel(s)
                     )}
                   </span>
                 </td>

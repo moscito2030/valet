@@ -150,6 +150,8 @@ test('publication panel keeps director-only identity and deletion controls out o
   const render = (query: string) => renderToStaticMarkup(createElement(StandingsView,{event,query,id:event.id,follow:'',setPerson:noop,setQuery:noop,setTab:noop,toggleFollow:noop}));
   const tables=render('').match(/<table[\s\S]*?<\/table>/g)!;
   assert.equal(tables.length,2);
+  assert.equal((tables[0].match(/1-3/g) ?? []).length,3);
+  assert.equal((tables[1].match(/1-3/g) ?? []).length,3);
   assert.match(tables[0],/南北 NS 排名/);
   assert.match(tables[1],/東西 EW 排名/);
   for (const p of raw.participants) {
@@ -162,3 +164,14 @@ test('publication panel keeps director-only identity and deletion controls out o
   assert.equal((filtered.match(/沒有符合的參賽者/g) ?? []).length,1);
 });
 
+
+test('tied rank ranges use full standings despite search and plain ranks have no leading zero', () => {
+  const raw=fixture();
+  const event=audienceEvent(raw,project(raw));
+  event.projection.standings.forEach((s,i) => {s.rank=i === 0 ? 1 : i === 3 ? 4 : 2;});
+  const render=(query:string) => renderToStaticMarkup(createElement(StandingsView,{event,query,id:event.id,follow:'',setPerson:noop,setQuery:noop,setTab:noop,toggleFollow:noop}));
+  assert.equal((render('').match(/2-3/g) ?? []).length,2);
+  assert.match(render(event.projection.standings[1].name),/2-3/);
+  assert.match(render(''),/rank-4[^>]*>4<\/span>/);
+  assert.doesNotMatch(render(''),/>04</);
+});

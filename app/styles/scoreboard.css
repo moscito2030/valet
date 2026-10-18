@@ -256,6 +256,7 @@ tbody tr.followed {
   padding-left: 0;
 }
 .rank {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 7px;
