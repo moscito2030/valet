@@ -8,9 +8,11 @@ export function MiniContractFields({ value, onChange }: { value: ResultInput; on
       const level = target === 'part' ? 1 : miniGameLevel(strain);
       onChange({ ...value, strain, level, doubled: 1, miniBridge: true, tricks: level + 6 });
     }}>
-      {(['C', 'D', 'H', 'S', 'NT'] as const).flatMap((strain, i) => ['part', 'game'].map(target =>
-        <option key={`${strain}-${target}`} value={`${strain}-${target}`}>{target === 'part' ? 1 : miniGameLevel(strain)}{['♣', '♦', '♥', '♠', 'NT'][i]}</option>
-      ))}
+      {(['part', 'game'] as const).flatMap(target =>
+        (target === 'part' ? ['C', 'D', 'H', 'S', 'NT'] as const : ['NT', 'H', 'S', 'C', 'D'] as const).map(strain =>
+          <option key={`${strain}-${target}`} value={`${strain}-${target}`}>{target === 'part' ? 1 : miniGameLevel(strain)}{{ C: '♣', D: '♦', H: '♥', S: '♠', NT: 'NT' }[strain]}</option>
+        )
+      )}
     </select>
   </label>;
 }
