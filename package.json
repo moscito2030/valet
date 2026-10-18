@@ -16,6 +16,7 @@
     "prebuild": "node scripts/check-deployment-deps.mjs && npm run prepare:dds && npm run manual:build && npm run manual:check",
     "check:secrets": "node scripts/check-secrets.mjs",
     "test:security": "node scripts/security-smoke.mjs",
+    "profile:events": "tsx scripts/profile-event-flow.ts",
     "manual:build": "node scripts/build-manual.mjs",
     "manual:check": "node scripts/check-manual.mjs"
   },

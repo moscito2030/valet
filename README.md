@@ -142,6 +142,9 @@ npm run build
 - lib/scoring.ts：純計分函式；舊 average 統一視為取消。
 - lib/store.ts：伺服器儲存模式選擇；lib/storage/repository.ts 定義原子操作介面，local.ts、neon.ts、demo.ts 分別實作。相容資料讀取集中於 hydrate-event.ts。
 - tests/repository-contract.test.ts：以同一套契約驗證本機儲存與 SQL 儲存；SQL 使用測試專用 PGlite PostgreSQL 執行實際參數化查詢，不連正式資料庫。
+- lib/read-models/：公開快照與裁判單副私下檢視；前者只在所有成績可見時重用儲存投影，後者只計算所選牌號。公開／私下快照不能互相覆寫。
+- tests/architecture.test.ts：限制核心模組不得依賴 UI、框架或儲存實作，並檢查本地模組的執行期循環依賴。
+- `npm run profile:events`：產生合成賽事，量測計分、操作、公開／私下快照與 JSON 序列化；不存檔、不連資料庫。輸出是本機 CPU 的三次暖機後中位數，不代表正式站端到端延遲。
 - lib/mutation-permissions.ts、session-token.ts：角色規則與可撤銷登入憑證。
 - lib/csv-cell.ts：CSV 公式防護與往返還原。
 - Valet Viewer 固定版本套件：共用牌局檢視器；介面變更需在 Viewer 專案維護並更新兩個使用端。

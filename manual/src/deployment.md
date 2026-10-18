@@ -27,6 +27,8 @@ Valet 使用 Next.js，可部署至 Vercel，正式資料使用 Neon PostgreSQL�
 
 開發者應先執行 `npm test`，其中包含本機檔案與嵌入式 PostgreSQL 的共同儲存測試，確認版本衝突、重複提交、失敗時不留部分資料，以及賽事／賽段刪除規則。建置後再執行 `npm run test:security` 與 `npx tsx scripts/empty-competition-smoke.ts` 驗證 HTTP 權限及空賽事流程；測試使用隔離資料，不需要正式資料庫連線。
 
+若要分析大型賽事，可執行 `npm run profile:events`，以合成資料分別量測計分、公開成績快照、裁判單副私下檢視與傳輸內容大小。這不包含資料庫、網路與瀏覽器繪製時間，不能直接據此判定正式站方案的效能。
+
 ## 備份與復原
 
 資料庫備份應另存於部署以外的儲存空間，例如由管理者使用 PostgreSQL `pg_dump`。還原先在獨立測試資料庫演練，核對賽事、成績與操作紀錄，再安排正式復原。
