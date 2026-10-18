@@ -143,3 +143,22 @@ test('publication panel keeps director-only identity and deletion controls out o
   assert.match(render(true), /儲存賽段資訊/);
   assert.doesNotMatch(render(false), /儲存賽段資訊|刪除賽段/);
 });
+
+ test('double winner standings render separate directional tables and search each group', () => {
+  const raw = createEvent({name:'Double',kind:'pairs',rankingMode:'double',names:['北甲','北乙','北丙','東甲','東乙','東丙'],boardsPerRound:2,date:'2026-10-18',venue:''});
+  const event = audienceEvent(raw, project(raw));
+  const render = (query: string) => renderToStaticMarkup(createElement(StandingsView,{event,query,id:event.id,follow:'',setPerson:noop,setQuery:noop,setTab:noop,toggleFollow:noop}));
+  const tables=render('').match(/<table[\s\S]*?<\/table>/g)!;
+  assert.equal(tables.length,2);
+  assert.match(tables[0],/南北 NS 排名/);
+  assert.match(tables[1],/東西 EW 排名/);
+  for (const p of raw.participants) {
+    assert.ok(tables[p.group === 'NS' ? 0 : 1].includes(p.name));
+    assert.ok(!tables[p.group === 'NS' ? 1 : 0].includes(p.name));
+  }
+  const filtered=render('北甲');
+  assert.match(filtered,/北甲/);
+  assert.doesNotMatch(filtered,/北乙/);
+  assert.equal((filtered.match(/沒有符合的參賽者/g) ?? []).length,1);
+});
+

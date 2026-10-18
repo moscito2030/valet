@@ -58,6 +58,11 @@ export function StandingsView({
       })
     : [];
 
+  const doubleWinner = event.kind === 'pairs' && event.participants.length > 0 && event.participants.every(p => p.group);
+  const tables = doubleWinner
+    ? (['NS', 'EW'] as const).map(group => ({ group, rows: visibleStandings.filter(s => s.group === group) }))
+    : [{ group: undefined, rows: visibleStandings }];
+
   return (
     <section className="panel">
       <div className="panel-heading">
@@ -81,12 +86,13 @@ export function StandingsView({
           />
         </label>
       </div>
-      <div className="table-scroll">
+      {tables.map(({ group, rows }) => <div className="table-scroll" key={group ?? 'all'}>
         <table className={`ranking-table${event.kind === 'teams' ? ' team-ranking-table' : ''}`}>
+          {group && <caption className="ranking-group-title">{group === 'NS' ? '南北 NS 排名' : '東西 EW 排名'}</caption>}
           <thead>
             <tr>
               <th className="rank-col">排名</th>
-              {event.participants.some((p) => p.group) && <th>組別</th>}
+
               <th>{event.kind === 'teams' ? '隊伍' : '搭檔'}</th>
               <th>完成／安排牌數</th>
               <th className="score-col">
@@ -96,7 +102,7 @@ export function StandingsView({
             </tr>
           </thead>
           <tbody>
-            {visibleStandings.map((s) => (
+            {rows.map((s) => (
               <tr key={s.id} className={follow === `${id}:${s.id}` ? 'followed' : ''}>
                 <td>
                   <span className={`rank rank-${s.rank}`}>
@@ -110,7 +116,7 @@ export function StandingsView({
                     )}
                   </span>
                 </td>
-                {event.participants.some((p) => p.group) && <td>{s.group}</td>}
+
                 <td>
                   <button
                     className="participant-link"
@@ -194,8 +200,8 @@ export function StandingsView({
             ))}
           </tbody>
         </table>
-        {visibleStandings.length === 0 && <div className="empty compact">沒有符合的參賽者</div>}
-      </div>
+        {rows.length === 0 && <div className="empty compact">沒有符合的參賽者</div>}
+      </div>)}
       <div className="table-footer">
         <span>
           <i className="live-dot" />
