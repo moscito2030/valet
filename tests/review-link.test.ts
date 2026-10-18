@@ -6,8 +6,8 @@ import type { Board, BridgeEvent, Result } from '../lib/model';
 test('Review export includes all recorded tables for this board and preserves selection', async () => {
   const board: Board = { number: 1, dealer: 'N', vulnerability: 'None', deal: { N: [], E: [], S: [], W: [] } };
   const result: Result = { assignmentId: 'open', board: 1, level: 4, strain: 'S', doubled: 1, declarer: 'N', tricks: 10, lead: 'HA', nsScore: 420, updatedAt: '' };
-  const event: Pick<BridgeEvent, 'assignments' | 'results' | 'kind' | 'participants' | 'gameMode'> = {
-    kind: 'teams', participants: [],
+  const event: Pick<BridgeEvent, 'id' | 'assignments' | 'results' | 'kind' | 'participants' | 'gameMode'> = {
+    id: 'stage-one', kind: 'teams', participants: [],
     assignments: [
       { id: 'open', round: 1, table: 1, room: 'open', ns: 't1', ew: 't2', boards: [1], matchId: 'm1', playerNames: { N: '北家' } },
       { id: 'closed', round: 2, table: 1, room: 'closed', ns: 't2', ew: 't1', boards: [1], matchId: 'm1' },
@@ -32,6 +32,12 @@ test('Review export includes all recorded tables for this board and preserves se
   const splitData = await new Response(new Blob([splitBytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
   assert.equal(splitData.results.length, 2);
   assert.equal(splitData.results[0].split.ew.nsScore, 450);
+  assert.equal(splitData.boards[0].originKey, data.boards[0].originKey);
+  assert.equal(splitData.results[0].originKey, data.results[0].originKey);
+  const otherUrl = new URL(await reviewUrl(board, new URL('https://review.example'), { ...event, id: 'another-stage' }));
+  const other = await new Response(new Blob([Buffer.from(otherUrl.hash.slice(10), 'base64url')]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
+  assert.notEqual(other.boards[0].originKey, data.boards[0].originKey);
+  assert.notEqual(other.results[0].originKey, data.results[0].originKey);
 });
 
 test('Review export preserves the single board using the version 1 gzip share protocol', async () => {
@@ -44,7 +50,9 @@ test('Review export preserves the single board using the version 1 gzip share pr
   assert.ok(url.hash.startsWith('#review=1.'));
   const bytes = Buffer.from(url.hash.slice(10), 'base64url');
   const decoded = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).json();
-  assert.deepEqual(decoded.boards[0], { id: 'board:17', ...board });
+  const { originKey, ...exportedBoard } = decoded.boards[0];
+  assert.match(originKey, /^[a-f0-9-]{36}$/);
+  assert.deepEqual(exportedBoard, { id: 'board:17', ...board });
   assert.deepEqual(decoded.results, []);
   assert.equal(decoded.selectedBoardId, 'board:17');
 });

@@ -1,7 +1,7 @@
 import { resultKey, type Board, type BridgeEvent } from './model';
 import { tableNames } from './table-names';
 
-export type ReviewContext = Pick<BridgeEvent, 'assignments' | 'results' | 'kind' | 'participants' | 'gameMode'>;
+export type ReviewContext = Pick<BridgeEvent, 'id' | 'assignments' | 'results' | 'kind' | 'participants' | 'gameMode'>;
 
 export function reviewDestination(configured: string | undefined, current: string): URL {
   const origin = new URL(current);
@@ -30,12 +30,18 @@ export async function reviewUrl(board: Board, destination: URL, event?: ReviewCo
       updatedAt: r.updatedAt, miniBridge: r.miniBridge ?? event.gameMode === 'minibridge',
     }];
   }) : [];
+  const digest = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))), b => b.toString(16).padStart(2, '0')).join('');
+  // Event IDs identify stages globally; board.number is the internal, unwrapped board key.
+  const originKey = event ? await digest(JSON.stringify(['valet', event.id, board.number])) : crypto.randomUUID();
+  const identifiedResults = await Promise.all(results.map(async r => ({ ...r,
+    originKey: await digest(JSON.stringify([originKey, r.assignmentId])),
+  })));
   const data = {
     version: 1,
     title: `第 ${board.number} 副檢討`,
-    boards: [{ id, number: board.number, dealer: board.dealer,
+    boards: [{ id, originKey, number: board.number, dealer: board.dealer,
       vulnerability: board.vulnerability, deal: board.deal }],
-    results, selectedBoardId: id,
+    results: identifiedResults, selectedBoardId: id,
     selectedResultId: results.find(r => r.assignmentId === selectedAssignmentId)?.id,
   };
   const stream = new Blob([JSON.stringify(data)]).stream().pipeThrough(new CompressionStream('gzip'));
