@@ -95,6 +95,7 @@ export function ScorePanel({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          if (input.level < 0) return;
           await save({
             action: 'results',
             results: [{ ...input, assignmentId: assignment, board }],
@@ -235,12 +236,14 @@ export function ScorePanel({
               <label className="field">
                 線位
                 <select
-                  value={input.level}
+                  required
+                  value={input.level < 0 ? '' : input.level}
                   onChange={(e) => {
                     const level = Number(e.target.value);
                     setInput({ ...input, level, tricks: level ? level + 6 : 0, doubled: 1 });
                   }}
                 >
+                  <option value="" disabled>請選擇合約線位</option>
                   {Array.from({ length: 8 }, (_, i) => (
                     <option value={i} key={i}>
                       {i || 'Pass out'}
@@ -251,7 +254,7 @@ export function ScorePanel({
               <label className="field">
                 合約花色
                 <select
-                  disabled={!input.level}
+                  disabled={input.level <= 0}
                   value={input.strain}
                   onChange={(e) =>
                     setInput({ ...input, strain: e.target.value as ResultInput['strain'] })
@@ -319,7 +322,7 @@ export function ScorePanel({
             {event.gameMode === 'minibridge' && <DeclarerWarning value={input} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} />}
             <span>NS 原始分</span>
             <strong>
-              {signed(
+              {input.level < 0 ? '—' : signed(
                 contractScore(
                   input,
                   event.boards.find((b) => b.number === board)?.vulnerability ?? 'None',
@@ -346,7 +349,7 @@ export function ScorePanel({
           <button
             className="button subtle"
             disabled={
-              busy ||
+              busy || input.level < 0 ||
               event.status === 'finished' ||
               !!existing?.split ||
               existing?.status === 'cancelled'
@@ -365,14 +368,11 @@ export function ScorePanel({
                 assignmentId: assignment,
                 board,
                 cancelled: existing?.status !== 'cancelled',
-                ...(existing?.status === 'cancelled'
-                  ? { result: { ...input, assignmentId: assignment, board } }
-                  : {}),
                 reason,
               })
             }
           >
-            {existing?.status === 'cancelled' ? '恢復合約' : '取消此副'}
+            {existing?.status === 'cancelled' ? '恢復取消前狀態' : '取消此副'}
           </button>
         </div>
         {event.status === 'finished' && (

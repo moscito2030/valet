@@ -95,6 +95,18 @@ export function applyScoresCommand(
     if (!a || !b || !a.boards.includes(b.number)) throw new DomainError('桌次與牌號不符合賽程');
     const key = resultKey(a.id, b.number);
     if (e.results[key]?.split) throw new DomainError('請先撤銷不平衡合約，再取消此副');
+    if (!command.cancelled && !command.result) {
+      const before = e.results[key];
+      if (before?.status !== 'cancelled') throw new DomainError('此副尚未取消');
+      const cancellation = [...e.audit].reverse().flatMap(a => [...(a.changes ?? [])].reverse()).find(c => c.key === key && c.after?.status === 'cancelled' && c.before?.status !== 'cancelled');
+      const original = cancellation?.before;
+      const after = original && original.status !== 'average' ? { ...original, updatedAt: at } : null;
+      changes.push({ key, before, after });
+      if (after) e.results[key] = after;
+      else delete e.results[key];
+      context.detail = `${key}: ${after ? '恢復取消前成績' : '恢復為未收分'}`;
+      return;
+    }
     const r = command.cancelled
       ? (e.results[key] ?? {
           assignmentId: a.id,

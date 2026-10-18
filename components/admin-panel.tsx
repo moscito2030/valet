@@ -32,11 +32,11 @@ export function AdminPanel({
   const [input, setInput] = useState<ResultInput>({
     assignmentId: '',
     board: 1,
-    level: 3,
+    level: -1,
     strain: 'NT',
     declarer: 'N',
     doubled: 1,
-    tricks: 9,
+    tricks: 0,
     lead: '',
   });
   const [importType, setImportType] = useState('results'),
@@ -84,12 +84,12 @@ export function AdminPanel({
         : {
             assignmentId: assignment,
             board,
-            level: 3,
+            level: -1,
             miniBridge: event?.gameMode === 'minibridge',
             strain: 'NT',
             declarer: 'N',
             doubled: 1,
-            tricks: 9,
+            tricks: 0,
             lead: '',
           },
     );
