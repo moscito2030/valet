@@ -1,11 +1,26 @@
 import { MAX_PLAYER_BOARDS, playerBoardError } from './schedule-limits';
 import templates from './movement-templates.json';
 import acblMovements from './acbl-movements.json';
+import howellRecords from './acbl-howell-records.json';
+import { decodeAcblHowell } from './acbl-howell';
+import roverRecords from './acbl-rover-records.json';
+import { decodeAcblRover } from './acbl-rover';
+import { buildAcblWeb } from './acbl-web';
+import { buildAcblAppendix } from './acbl-appendix';
 import { parseAcblMovement, type AcblMovement } from './acbl-movement';
 import type { Assignment, BridgeEvent } from './model';
 import { interleavedAssignments, teamByes, type InterleavedGroups, type InterleavedSize } from './team-movement';
 
 export type MovementPlan = { id: string; label: string; groups: number; note: string; source?: string; interleavedSize?: InterleavedSize; interleavedMode?: 'rotation' | 'symmetric' };
+const officialMovements: AcblMovement[] = [...acblMovements, ...howellRecords.map(record => decodeAcblHowell(record.name, record.text)), ...roverRecords.flatMap(record => [decodeAcblRover(record.name, record.text), decodeAcblRover(`EW-${record.name}`, record.text, 'EW')])];
+function availableOfficialMovements(tables: number): AcblMovement[] {
+  const webs: AcblMovement[] = [];
+  if (tables % 2 === 0) for (let rounds = 3; rounds < tables; rounds++) {
+    if (rounds % 2) webs.push(buildAcblWeb(tables, rounds));
+  }
+  return [...officialMovements, ...webs, ...(tables >= 5 && tables <= 40 ? [buildAcblAppendix(tables - 1)] : [])];
+}
+export type PairMovementSettings = { barometer?: boolean; phantom?: number; pairOrder?: string[]; groupOrder?: number[] };
 type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
 export function movementOptions(event: Input, external?: AcblMovement): MovementPlan[] {
   if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > MAX_PLAYER_BOARDS) return [];
@@ -47,11 +62,14 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
     for (const option of [...options].filter(o => o.id.startsWith('mitchell')))
       options.push({ ...option, id: `double-${option.id}`, label: `雙冠軍・${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
   }
-  for (const movement of external ? [...acblMovements, external] : acblMovements) {
-    if (movement.pairCount !== event.participants.length || movement.rounds !== rounds) continue;
+  for (const movement of [...availableOfficialMovements(tables), ...(external ? [external] : [])]) {
+    if (![event.participants.length, event.participants.length % 2 ? event.participants.length + 1 : -1].includes(movement.pairCount) || movement.rounds < rounds) continue;
     const family = movement.name === 'uploaded.MOV' ? '匯入編排'
       : movement.name.startsWith('WBMP') ? '輪休 Web'
       : movement.name.startsWith('W') ? 'Web 編排'
+      : movement.name.startsWith('APPENDIX') ? '附桌 Mitchell'
+      : movement.name.startsWith('EW-R') ? '東西輪休 Mitchell'
+      : movement.name.startsWith('R') ? '南北輪休 Mitchell'
       : movement.name.startsWith('SM') ? '交換方位 Mitchell'
       : movement.name.startsWith('BL') ? 'Blackpool 編排'
       : movement.name.includes('ROVER') ? '輪休 Howell'
@@ -59,7 +77,7 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
       : movement.name.startsWith('M06') ? '剪式 Mitchell'
       : movement.name.startsWith('M08') ? '交叉式 Mitchell' : '跨區 Mitchell';
     const option = {
-      id: `acbl-${movement.name}`, label: movement.name === 'uploaded.MOV' ? family : `${family} · ${movement.name}`,
+      id: `acbl-${movement.name}`, label: movement.name === 'uploaded.MOV' ? family : `${family} · ${movement.name}${movement.rounds !== rounds ? `（取前 ${rounds}／${movement.rounds} 圈）` : ''}`,
       groups: movement.groups,
       note: `${movement.name === 'uploaded.MOV' ? '匯入的 ACBLscore 編排。' : 'ACBLscore 8.33 隨附編排。'}共 ${movement.tables} 個桌位、${rounds} 圈，依預覽的桌次、方向與牌號移動；空桌不登分。${['M0612.MOV', 'H0310.MOV', 'H7ROVER.MOV', 'H8ROVER.MOV'].includes(movement.name) ? '原編排的半圈分別作為獨立圈次，請按每個半圈設定牌數與切換進度。' : ''}`,
       source: movement.name === 'uploaded.MOV' ? undefined : 'https://www.acbl.org/getscore/',
@@ -77,7 +95,7 @@ export function movementBoardError(boardsPerRound: number): string | null {
   return null;
 }
 
-export function buildMovement(event: Input, id: string, groups?: InterleavedGroups, arrowSwitchRound?: number, movementFile?: number[]) {
+export function buildMovement(event: Input, id: string, groups?: InterleavedGroups, arrowSwitchRound?: number, movementFile?: number[], settings: PairMovementSettings = {}) {
   // Preserve callers of the original single-ring plan.
   if (id === 'team-interleaved' && [3, 5].includes(event.participants.length)) id += '-' + event.participants.length;
   const playerError = playerBoardError(event.rounds, event.boardsPerRound);
@@ -92,11 +110,23 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   const doubleWinner = id.startsWith('double-');
   if (doubleWinner) id = id.slice(7);
   const tables = Math.ceil(event.participants.length / 2);
-  const acbl = id === 'acbl-uploaded.MOV' ? external : acblMovements.find(m => `acbl-${m.name}` === id);
-  const participants = event.participants.map((p, i) => {
+  const acbl = id === 'acbl-uploaded.MOV' ? external : availableOfficialMovements(tables).find(m => `acbl-${m.name}` === id);
+  if (event.kind !== 'pairs' && Object.keys(settings).length) throw new Error('此設定僅適用雙人賽');
+  const order = settings.pairOrder ?? event.participants.map(p => p.id);
+  if (order.length !== event.participants.length || new Set(order).size !== order.length || order.some(id => !event.participants.some(p => p.id === id)))
+    throw new Error('搭檔對照必須完整且不得重複');
+  const hasPhantom = acbl ? acbl.pairCount === event.participants.length + 1 : event.participants.length % 2 === 1;
+  const capacity = acbl?.pairCount ?? tables * 2;
+  const phantom = hasPhantom ? settings.phantom ?? capacity : 0;
+  if (settings.phantom !== undefined && (!hasPhantom || !Number.isInteger(phantom) || phantom < 1 || phantom > capacity)) throw new Error('輪空搭檔編號不適用此編排');
+  const slots = Array.from({ length: capacity }, (_, i) => i + 1 === phantom ? undefined : order[i - (phantom && i + 1 > phantom ? 1 : 0)]);
+  const participants = event.participants.map(p => {
     const { group, ...rest } = p;
-    return { ...rest, ...(doubleWinner ? { group: i < (acbl?.nsCount ?? tables) ? 'NS' as const : 'EW' as const } : {}) };
+    return { ...rest, ...(doubleWinner ? { group: slots.indexOf(p.id) < (acbl?.nsCount ?? tables) ? 'NS' as const : 'EW' as const } : {}) };
   });
+  const groupCount = settings.barometer ? event.rounds : option.groups;
+  if (settings.groupOrder && (settings.groupOrder.length !== groupCount || new Set(settings.groupOrder).size !== groupCount || settings.groupOrder.some(n => !Number.isInteger(n) || n < 1 || n > groupCount)))
+    throw new Error(`牌組對照須包含 1–${groupCount}，不得重複或遺漏`);
   const switchable = !doubleWinner && event.kind === 'pairs' && (id === 'mitchell' || id === 'mitchell-relay');
   const switchRound = arrowSwitchRound ?? Math.floor(event.rounds / 2) + 1;
   if (arrowSwitchRound !== undefined && !switchable) throw new Error('交換方位僅適用單冠軍米契爾編排');
@@ -104,16 +134,18 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   if (switchable) option.note += switchRound === 0 ? ' 全程不交換方位。' : ` 從第 ${switchRound} 圈起交換所有桌的南北／東西方向，之後維持交換；移動路線與牌組不變。`;
   const assignments: Assignment[] = [];
   function add(round: number, table: number, nsIndex: number, ewIndex: number, group: number) {
-    let ns = event.participants[nsIndex - 1]?.id, ew = event.participants[ewIndex - 1]?.id;
+    let ns = slots[nsIndex - 1], ew = slots[ewIndex - 1];
     if (switchable && switchRound > 0 && round >= switchRound) [ns, ew] = [ew, ns];
-    if (!ns || !ew) return; // The absent highest-numbered pair is a phantom.
+    if (!ns || !ew) return;
+    if (settings.barometer) group = round;
+    if (settings.groupOrder) group = settings.groupOrder[group - 1];
     assignments.push({ id: `r${round}t${table}`, matchId: `r${round}t${table}`, round, table, room: 'pairs', ns, ew,
       boards: Array.from({ length: event.boardsPerRound }, (_, i) => (group - 1) * event.boardsPerRound + i + 1) });
   }
   if (option.interleavedSize) {
     assignments.push(...interleavedAssignments(event, option.interleavedSize, groups, option.interleavedMode));
   } else if (acbl) {
-    acbl.rows.forEach((row, r) => row.forEach((cell, t) => {
+    acbl.rows.slice(0, event.rounds).forEach((row, r) => row.forEach((cell, t) => {
       if (cell) add(r + 1, t + 1, cell[0], cell[1], cell[2]);
     }));
   } else if (id.startsWith('howell-')) {
@@ -153,5 +185,8 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
     simultaneous.set(key, (simultaneous.get(key) ?? 0) + 1);
   }
   const copies = Math.max(1, ...simultaneous.values());
-  return { option, participants, assignments, byes: teamByes({ ...event, assignments }), boardCount: option.groups * event.boardsPerRound, shared: copies > 1, copies };
+  if (settings.barometer) option.note += ' 各圈改用全場共牌。';
+  if (phantom) option.note += ` 編排位置 ${phantom} 輪空，其餘依搭檔對照入座。`;
+  if (settings.groupOrder) option.note += ` 牌組對照：${settings.groupOrder.join('、')}。`;
+  return { option, participants, assignments, byes: teamByes({ ...event, assignments }), boardCount: groupCount * event.boardsPerRound, shared: copies > 1, copies, hasPhantom, capacity };
 }

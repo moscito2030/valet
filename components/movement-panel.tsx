@@ -31,6 +31,10 @@ export function MovementPanel({
   const [choice, setChoice] = useState('');
   const [movementFile, setMovementFile] = useState<number[] | undefined>();
   const [fileError, setFileError] = useState('');
+  const [barometer, setBarometer] = useState(false);
+  const [phantom, setPhantom] = useState<number | undefined>();
+  const [pairOrder, setPairOrder] = useState<string[] | undefined>();
+  const [groupOrderText, setGroupOrderText] = useState('');
   const fileRead = useRef(0);
   const [preview, setPreview] = useState(false);
   const [rounds, setRounds] = useState(event.rounds || 3);
@@ -43,13 +47,17 @@ export function MovementPanel({
     groups: InterleavedGroups;
   } | null>(null);
   const draft = { ...event, rounds, boardsPerRound, byeVp };
-  const external = movementFile ? parseAcblMovement(Uint8Array.from(movementFile), 'uploaded.MOV') : undefined;
+  const external = movementFile
+    ? parseAcblMovement(Uint8Array.from(movementFile), 'uploaded.MOV')
+    : undefined;
   const options = movementOptions(draft, external);
   const switchable = event.kind === 'pairs' && ['mitchell', 'mitchell-relay'].includes(choice);
   const arrowSwitchRound = switchChoice ?? Math.floor(rounds / 2) + 1;
   const selectedOption = options.find((p) => p.id === choice);
   const size = selectedOption?.interleavedSize;
-  const boardError = playerBoardError(rounds, boardsPerRound) ?? (selectedOption ? movementBoardError(boardsPerRound) : null);
+  const boardError =
+    playerBoardError(rounds, boardsPerRound) ??
+    (selectedOption ? movementBoardError(boardsPerRound) : null);
   const groupKey = choice + ':' + rounds + ':' + event.participants.map((p) => p.id).join(',');
   const groups = size
     ? customGroups?.key === groupKey
@@ -57,7 +65,37 @@ export function MovementPanel({
       : defaultInterleavedGroups(draft, size)
     : undefined;
   const isUploaded = choice.includes('acbl-uploaded.MOV');
-  const plan = selectedOption && !boardError ? buildMovement(draft, choice, groups, switchable ? arrowSwitchRound : undefined, isUploaded ? movementFile : undefined) : null;
+  const pairMovement =
+    event.kind === 'pairs'
+      ? {
+          barometer,
+          phantom,
+          pairOrder,
+          ...(groupOrderText.trim()
+            ? {
+                groupOrder: groupOrderText
+                  .trim()
+                  .split(/[\s,，、]+/)
+                  .map(Number),
+              }
+            : {}),
+        }
+      : undefined;
+  let plan: ReturnType<typeof buildMovement> | null = null;
+  let planError = '';
+  try {
+    if (selectedOption && !boardError)
+      plan = buildMovement(
+        draft,
+        choice,
+        groups,
+        switchable ? arrowSwitchRound : undefined,
+        isUploaded ? movementFile : undefined,
+        pairMovement,
+      );
+  } catch (error) {
+    planError = (error as Error).message;
+  }
   const previewEvent = {
     assignments: plan?.assignments ?? [],
     teamMovement: size ? ('interleaved' as const) : undefined,
@@ -96,6 +134,7 @@ export function MovementPanel({
             }}
           />
         </label>
+
         <label className="field">
           每圈牌數
           <input
@@ -111,27 +150,54 @@ export function MovementPanel({
           />
         </label>
       </div>
-      {event.kind === 'pairs' && <label className="field">
-        匯入 ACBLscore 雙人賽編排（.MOV）
-        <input type="file" accept=".mov" disabled={locked || busy} onChange={async e => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const reading = ++fileRead.current;
-          setFileError(''); setPreview(false); setMovementFile(undefined);
-          try {
-            if (!/\.mov$/i.test(file.name) || file.size > 20000) throw new Error('請選擇 20 KB 以內的 .MOV 編排檔');
-            const bytes = new Uint8Array(await file.arrayBuffer());
-            if (reading !== fileRead.current) return;
-            const parsed = parseAcblMovement(bytes, 'uploaded.MOV');
-            if (parsed.pairCount !== event.participants.length) throw new Error(`此編排需要 ${parsed.pairCount} 對搭檔，與目前名單不符`);
-            setMovementFile(Array.from(bytes)); setRounds(parsed.rounds);
-            setChoice(!parsed.oneWinner && event.participants.some(p => p.group) ? 'double-acbl-uploaded.MOV' : 'acbl-uploaded.MOV');
-            setSwitchChoice(null);
-          } catch (error) { if (reading === fileRead.current) setFileError((error as Error).message); }
-        }} />
-        <small>依檔案設定圈數與移動方式；每圈牌數由上方指定。先預覽再套用，已有成績時不能變更。</small>
-        {fileError && <span role="alert">{fileError}</span>}
-      </label>}
+      {event.kind === 'pairs' && (
+        <label className="field">
+          匯入 ACBLscore 雙人賽編排（.MOV）
+          <input
+            type="file"
+            accept=".mov"
+            disabled={locked || busy}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reading = ++fileRead.current;
+              setFileError('');
+              setPreview(false);
+              setMovementFile(undefined);
+              try {
+                if (!/\.mov$/i.test(file.name) || file.size > 20000)
+                  throw new Error('請選擇 20 KB 以內的 .MOV 編排檔');
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                if (reading !== fileRead.current) return;
+                const parsed = parseAcblMovement(bytes, 'uploaded.MOV');
+                if (
+                  parsed.pairCount !== event.participants.length &&
+                  !(
+                    event.participants.length % 2 &&
+                    parsed.pairCount === event.participants.length + 1
+                  )
+                )
+                  throw new Error(`此編排需要 ${parsed.pairCount} 對搭檔，與目前名單不符`);
+                setMovementFile(Array.from(bytes));
+                setRounds(parsed.rounds);
+                setPhantom(undefined);
+                setChoice(
+                  !parsed.oneWinner && event.participants.some((p) => p.group)
+                    ? 'double-acbl-uploaded.MOV'
+                    : 'acbl-uploaded.MOV',
+                );
+                setSwitchChoice(null);
+              } catch (error) {
+                if (reading === fileRead.current) setFileError((error as Error).message);
+              }
+            }}
+          />
+          <small>
+            依檔案設定圈數與移動方式；每圈牌數由上方指定。先預覽再套用，已有成績時不能變更。
+          </small>
+          {fileError && <span role="alert">{fileError}</span>}
+        </label>
+      )}
       {event.kind === 'teams' && [3, 5].some((n) => event.participants.length % n === 0) && (
         <p className="footnote">
           全員打牌的交錯循環：隊數須被 3 或 5 整除；三隊模式請設 2 的倍數圈，五隊模式請設 4
@@ -145,6 +211,7 @@ export function MovementPanel({
           disabled={locked}
           onChange={(e) => {
             setChoice(e.target.value);
+            setPhantom(undefined);
             setPreview(false);
           }}
         >
@@ -156,21 +223,117 @@ export function MovementPanel({
           ))}
         </select>
       </label>
+      {event.kind === 'pairs' && selectedOption && (
+        <details>
+          <summary>共牌、輪空與搭檔對照</summary>
+          <label className="field">
+            牌組對照（選填）
+            <input
+              value={groupOrderText}
+              disabled={locked}
+              placeholder="例如：3, 1, 2"
+              onChange={(e) => {
+                setGroupOrderText(e.target.value);
+                setPreview(false);
+              }}
+            />
+            <small>
+              依原牌組順序填入實際牌組，須完整且不重複。每組依每圈牌數展開；留空沿用原編排。
+            </small>
+          </label>
+          <label className="field">
+            牌組安排
+            <select
+              value={barometer ? 'same' : 'original'}
+              disabled={locked}
+              onChange={(e) => {
+                setBarometer(e.target.value === 'same');
+                setPreview(false);
+              }}
+            >
+              <option value="original">依原編排輪轉牌組</option>
+              <option value="same">全場共牌（Barometer）：每圈各桌使用相同新牌</option>
+            </select>
+          </label>
+          {plan?.hasPhantom && (
+            <label className="field">
+              輪空搭檔位置
+              <select
+                value={phantom ?? plan.capacity}
+                disabled={locked}
+                onChange={(e) => {
+                  setPhantom(Number(e.target.value));
+                  setPreview(false);
+                }}
+              >
+                {Array.from({ length: plan.capacity }, (_, i) => (
+                  <option key={i} value={i + 1}>
+                    編排位置 {i + 1}
+                  </option>
+                ))}
+              </select>
+              <small>此位置不安排賽員；遇到此位置的搭檔輪空。其餘位置依下方名單順序填入。</small>
+            </label>
+          )}
+          <div className="form-grid">
+            {(pairOrder ?? event.participants.map((p) => p.id)).map((id, index) => (
+              <label className="field" key={index}>
+                名單順序 {index + 1}
+                <select
+                  value={id}
+                  disabled={locked}
+                  onChange={(e) => {
+                    const next = [...(pairOrder ?? event.participants.map((p) => p.id))];
+                    const previous = next.indexOf(e.target.value);
+                    [next[index], next[previous]] = [next[previous], next[index]];
+                    setPairOrder(next);
+                    setPreview(false);
+                  }}
+                >
+                  {event.participants.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.id} · {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        </details>
+      )}
+      {planError && <p role="alert">{planError}</p>}
       <p className="footnote">
         依本賽段人數、圈數列出適用選項。
-        {event.kind === 'pairs' &&
-          '縮短循環對戰的圈數依編排表而定，並非固定為完整循環的四分之三。'}
+        {event.kind === 'pairs' && '縮短循環對戰的圈數依編排表而定，並非固定為完整循環的四分之三。'}
       </p>
-      {switchable && <label className="field">
-        交換方位時機
-        <select value={arrowSwitchRound} disabled={locked || busy} onChange={e => { setSwitchChoice(Number(e.target.value)); setPreview(false); }}>
-          <option value={0}>不交換方位</option>
-          {Array.from({length: rounds}, (_, i) => <option key={i + 1} value={i + 1}>第 {i + 1} 圈</option>)}
-        </select>
-        <small>可選擇不交換方位；預設為第一次超過半場的圈次。從該圈起，各桌交換 NS／EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。</small>
-      </label>}
+      {switchable && (
+        <label className="field">
+          交換方位時機
+          <select
+            value={arrowSwitchRound}
+            disabled={locked || busy}
+            onChange={(e) => {
+              setSwitchChoice(Number(e.target.value));
+              setPreview(false);
+            }}
+          >
+            <option value={0}>不交換方位</option>
+            {Array.from({ length: rounds }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                第 {i + 1} 圈
+              </option>
+            ))}
+          </select>
+          <small>
+            可選擇不交換方位；預設為第一次超過半場的圈次。從該圈起，各桌交換
+            NS／EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。
+          </small>
+        </label>
+      )}
       {boardError && <p role="alert">{boardError}</p>}
-      {playerBoardWarning(rounds, boardsPerRound) && <p role="alert">{playerBoardWarning(rounds, boardsPerRound)}</p>}
+      {playerBoardWarning(rounds, boardsPerRound) && (
+        <p role="alert">{playerBoardWarning(rounds, boardsPerRound)}</p>
+      )}
       {plan && (
         <>
           <p>{plan.option.note}</p>
@@ -319,6 +482,7 @@ export function MovementPanel({
                       ...(switchable ? { arrowSwitchRound } : {}),
                       plan: choice,
                       ...(isUploaded ? { movementFile } : {}),
+                      ...(pairMovement ? { pairMovement } : {}),
                       rounds,
                       boardsPerRound,
                       ...(groups ? { interleavedGroups: groups } : {}),

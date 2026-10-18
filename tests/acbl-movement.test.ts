@@ -78,7 +78,7 @@ test('MOV decoder rejects damaged files, duplicate seats and boards, and unsuppo
   }
 });
 
-test('official options require the exact roster and rounds and cannot be used for teams', () => {
+test('official options reject excess rounds and cannot be used for teams', () => {
   const event = {kind: 'pairs' as const, rounds: 12, boardsPerRound: 2,
     participants: Array.from({length: 13}, (_,i) => ({id:`p${i+1}`,name:`P${i+1}`,players:''}))};
   const id = 'acbl-H7ROVER.MOV';
@@ -86,7 +86,7 @@ test('official options require the exact roster and rounds and cannot be used fo
   const plan = buildMovement(event,id);
   assert.equal(plan.assignments.length,72);
   assert.ok(plan.assignments.every(a => a.ns !== 'p14' && a.ew !== 'p14'));
-  assert.throws(() => buildMovement({...event,rounds:11},id), /不適用/);
+  assert.throws(() => buildMovement({...event,rounds:13},id), /不適用/);
   assert.throws(() => buildMovement({...event,kind:'teams'},id), /不適用/);
 });
 
@@ -100,7 +100,7 @@ test('uploaded MOV is validated by the mutation and cannot replace scored schedu
   assert.equal(original.event.assignments.length,0);
   assert.throws(() => applyMutation(original,{...command,movementFile:[1,2,3]}),/長度/);
   assert.throws(() => applyMutation(original,{...command,plan:'mitchell'}),/不符/);
-  assert.throws(() => applyMutation(original,{...command,rounds:2}),/不適用/);
+  assert.throws(() => applyMutation(original,{...command,rounds:4}),/不適用/);
   const a=state.event.assignments[0];
   state.event.results[`${a.id}:1`]={assignmentId:a.id,board:1,level:1,strain:'NT',declarer:'N',doubled:1,tricks:7,lead:'',nsScore:90,status:'played',updatedAt:''};
   assert.throws(() => applyMutation(state,{...command,revision:state.event.revision,requestId:randomUUID()}),/尚未收分/);

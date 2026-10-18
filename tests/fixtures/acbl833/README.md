@@ -21,3 +21,23 @@ npx tsx scripts/import-acbl-catalog.ts "path/to/Pair movements"
 
 This catalog covers the release's external pair files. It does not stand in for
 verification of the separate internal HOWELL.LBR and ROVER.LBR generators.
+
+## Internal movement references
+
+`lib/acbl-howell-records.json` and `lib/acbl-rover-records.json` contain only the
+numerical route records from HOWELL.LBR and ROVER.LBR in the same pinned installer.
+The decoder tests cover all 102 Howell records and all Rover records.
+
+The eight `howell/*.MOV` and two `AM*.MOV` files are independent ACBLscore exports
+published by MIT/Draper Lab Bridge Club, retrieved from:
+https://web.mit.edu/mitdlbc/www/bridgemats/All-MOV.zip
+Their roles are documented at:
+https://web.mit.edu/mitdlbc/www/bridgemats/Wide/index.html
+Hashes are pinned in reference-hashes.json.
+
+Web arithmetic is independently checked against Tim Hill’s 18-table, 13-round
+worked example: https://www.bridgewebs.com/baystate/Web%20movements.pdf
+Large even Webs additionally match every cell of the official 28/30/32/34/36-table
+MOV catalog. Other sizes have invariant tests, not independent official exports.
+Rover direction variants have seat/board and mutation/CSV tests; the EW variants
+have not yet been compared to independent ACBLscore exports.
