@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHmac } from 'node:crypto';
 import { neon } from '@neondatabase/serverless';
-import { DomainError } from './events';
+import { DomainError } from './domain-error';
 const localAttempts = new Map<string, { count: number; until: number }>();
 export async function limitLogin(request: Request) {
   const ip = (

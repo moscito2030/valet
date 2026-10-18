@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isDirector } from '@/lib/auth';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 import { deletionSchema } from '@/lib/competition-deletion';
 import { deleteCompetitions } from '@/lib/store';
 

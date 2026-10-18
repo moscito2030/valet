@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { isDirector } from '@/lib/auth';
 import { getEvent, mutateEvent } from '@/lib/store';
 import { requireAdmin, errorResponse, readJson } from '@/lib/http';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 export const dynamic = 'force-dynamic';
 const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('input-rule'), inputRule: z.enum(['ns', 'ew', 'lower', 'higher']), revision: z.number().int() }).strict(),

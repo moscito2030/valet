@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isAdmin, isDirector } from '@/lib/auth';
 import { deleteEvent, getEvent } from '@/lib/store';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 export const dynamic = 'force-dynamic';
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {

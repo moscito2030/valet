@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { DomainError } from './events';
+import { DomainError } from './domain-error';
 import { isAdmin } from './auth';
 export async function requireAdmin(request: Request) {
   checkOrigin(request);

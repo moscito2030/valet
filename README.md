@@ -133,13 +133,15 @@ npm run build
 
 ## 程式結構
 
-- components/scoreboard.tsx：公開成績畫面與查詢狀態。
-- components/admin-panel.tsx：裁判／賽務後台。
+- components/scoreboard.tsx：公開頁面的導覽與跨分頁選擇狀態；各成績畫面位於 components/scoreboard/，資料輪詢與私下檢視由獨立 hooks 管理。
+- components/admin-panel.tsx：裁判／賽務後台的載入與提交協調；各功能面板位於 components/admin/。
 - components/event-dialogs.tsx：建立賽事與對話框。
 - components/scoreboard-shared.tsx、scoreboard-widgets.tsx：顯示格式、共用元件與瀏覽器操作。
-- lib/events.ts：操作協調、版本檢查與稽核；名單操作分離於 roster-mutations.ts。
+- lib/events.ts：既有呼叫端的相容入口；建立賽段與示範資料位於 lib/domain/。
+- lib/mutations/apply.ts：共同的版本檢查、工作副本、稽核與投影更新；dispatch.ts 按操作種類分派至計分、收分、編排、設定與牌型處理器，名單操作沿用 roster-mutations.ts。
 - lib/scoring.ts：純計分函式；舊 average 統一視為取消。
-- lib/store.ts、event-index.ts：儲存與精簡賽事摘要。
+- lib/store.ts：伺服器儲存模式選擇；lib/storage/repository.ts 定義原子操作介面，local.ts、neon.ts、demo.ts 分別實作。相容資料讀取集中於 hydrate-event.ts。
+- tests/repository-contract.test.ts：以同一套契約驗證本機儲存與 SQL 儲存；SQL 使用測試專用 PGlite PostgreSQL 執行實際參數化查詢，不連正式資料庫。
 - lib/mutation-permissions.ts、session-token.ts：角色規則與可撤銷登入憑證。
 - lib/csv-cell.ts：CSV 公式防護與往返還原。
 - Valet Viewer 固定版本套件：共用牌局檢視器；介面變更需在 Viewer 專案維護並更新兩個使用端。

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isDirector } from '@/lib/auth';
 import { getEvent } from '@/lib/store';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 import { errorResponse } from '@/lib/http';
 import { privateBoardPreview } from '@/lib/private-board-preview';
 

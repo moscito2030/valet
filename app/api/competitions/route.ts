@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { listEventIndex, listCompetitionRecords, insertCompetition } from '@/lib/store';
 import { createCompetition, competitionSchema } from '@/lib/competition-record';
 import { isDirector } from '@/lib/auth';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 import { competitionCatalog } from '@/lib/competitions';
 import { errorResponse, requireAdmin, readJson } from '@/lib/http';
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { competitionKey, findCompetition, isStage, stageCompetitionId, type StoredDocument } from './competition-record';
-import { DomainError } from './events';
+import { DomainError } from './domain-error';
 
 export const deletionSchema = z.object({
   competitions: z.array(z.object({

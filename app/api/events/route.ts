@@ -5,7 +5,7 @@ import { insertEvent, listEventIndex, listCompetitionRecords, storageMode } from
 import { competitionCatalog } from '@/lib/competitions';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {

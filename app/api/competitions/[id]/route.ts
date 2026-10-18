@@ -3,7 +3,7 @@ import { competitionUpdateSchema } from '@/lib/competition-record';
 import { mutateCompetition } from '@/lib/store';
 import { errorResponse, requireAdmin, readJson } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 export const dynamic = 'force-dynamic';
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { Audit, CompetitionInfo, StoredEvent } from './model';
-import { DomainError } from './events';
+import { DomainError } from './domain-error';
 
 export const competitionSchema = z.object({
   name: z.string().trim().min(2).max(80),

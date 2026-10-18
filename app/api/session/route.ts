@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { authConfigured, isAdmin, isDirector, issueSession, loginRole } from '@/lib/auth';
 import { storageMode } from '@/lib/store';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 import { limitLogin } from '@/lib/login-limit';
 export const dynamic = 'force-dynamic';
 export async function GET() {

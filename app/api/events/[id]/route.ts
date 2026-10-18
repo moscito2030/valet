@@ -5,7 +5,7 @@ import { getEvent, mutateEvent } from '@/lib/store';
 import { mutationSchema } from '@/lib/model';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
-import { DomainError } from '@/lib/events';
+import { DomainError } from '@/lib/domain-error';
 export const dynamic = 'force-dynamic';
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
