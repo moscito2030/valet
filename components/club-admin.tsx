@@ -1,4 +1,6 @@
 'use client';
+import { Modal } from './event-dialogs';
+import { TableScoreReview } from './table-score-review';
 import { roundLabel } from '@/lib/team-movement';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
@@ -8,6 +10,8 @@ import { tableDevices, tableDeviceLabel } from '@/lib/table-device';
 import { swissRoundComplete } from '@/lib/swiss';
 
 export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => Promise<unknown> }) {
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const reviewAssignment = event.assignments.find(a => a.id === reviewId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -47,6 +51,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
   const assignments = event.assignments.filter(a => a.round === round);
   const finalized = event.club?.finalized.includes(round);
   return <div className="club-admin">
+    {reviewAssignment && <Modal title={`第 ${roundLabel(event, reviewAssignment.round)} 圈 · ${tableDeviceLabel(event, reviewAssignment)} 成績核對`} onClose={() => setReviewId(null)}><TableScoreReview event={event} assignment={reviewAssignment} /></Modal>}
     <h4>裝置收分</h4>
     <label className="field">收分模式<select value={mode} disabled={busy || !!event.club?.enabled || !!Object.keys(event.results).length} onChange={e=>{setMode(e.target.value as 'pair'|'table');setLink('');setQr('');}}>
       {event.kind === 'pairs' && <option value="pair">俱樂部模式 · 裝置跟著搭檔</option>}
@@ -82,7 +87,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
       const received = a.boards.filter(b => event.results[`${a.id}:${b}`]).length;
       const roles = clubRoles(event, a);
       return <div key={a.id} className="club-progress-row">
-        <div className="club-progress-info">
+        <button type="button" className="club-progress-info club-progress-trigger" aria-haspopup="dialog" aria-label={`${tableDeviceLabel(event, a)} 成績核對`} onClick={() => setReviewId(a.id)}>
           <div className="club-progress-heading">
             <strong>{tableDeviceLabel(event, a)}</strong>
             <span className={accepted ? 'club-progress-status accepted' : 'club-progress-status'}>{accepted ? '已認可' : received === a.boards.length ? '待確認' : '待輸入'}</span>
@@ -91,7 +96,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
             <span>已收 {received} / {a.boards.length} 副</span>
             <span>輸入 {roles.inputPair.toUpperCase()} ／ 確認 {roles.confirmPair.toUpperCase()}</span>
           </div>
-        </div>
+        </button>
         <button type="button" className="button subtle club-progress-action" disabled={busy || !event.club?.enabled || finalized || event.status !== 'live' || accepted} onClick={() => {
           const missing = a.boards.length - received;
           if (window.confirm(`${tableDeviceLabel(event,a)}：取消本圈尚未輸入的 ${missing} 副牌，保留已有成績，並由裁判確認鎖定本桌。此操作不結算或發布整圈。確定繼續？`)) void act({action:'complete-table',assignmentId:a.id,round});

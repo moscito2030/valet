@@ -67,3 +67,12 @@
 .club-score-preview > span { font-size: 12px; letter-spacing: 0.08em; }
 .score-preview-value { font-size: 16px; color: var(--ink); }
 .score-preview-value b { font-size: 28px; margin-left: 8px; font-variant-numeric: tabular-nums; }
+
+.club-progress-trigger { appearance: none; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; padding: 6px; border-radius: 6px; cursor: pointer; }
+.club-progress-trigger:hover { background: #f3f5f1; }
+.club-progress-trigger:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
+.club-progress-trigger strong { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
+.table-score-review { min-width: 0; }
+.table-score-review-board { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+.table-score-review-scores { margin: 8px 0; font-variant-numeric: tabular-nums; }
+.table-score-review-board small { color: var(--muted); }
