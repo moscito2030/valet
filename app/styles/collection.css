@@ -19,7 +19,20 @@
 .club-link-card { display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid var(--line); padding: 16px; border-radius: 8px; }
 .club-link-card img { max-width: 100%; height: auto; }
 .club-link-card input { width: 100%; min-width: 0; }
-.club-progress-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.club-progress-list { margin: 16px 0 24px; }
+.club-progress-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.club-progress-info { flex: 1 1 240px; min-width: 0; }
+.club-progress-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.club-progress-status { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: #f3f1ea; color: #716b59; white-space: nowrap; }
+.club-progress-status.accepted { background: #eaf1ec; color: #345c49; }
+.club-progress-details { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 14px; color: var(--muted); }
+.club-progress-details > span { white-space: nowrap; }
+.club-progress-action { flex: 0 1 auto; margin-left: auto; max-width: 100%; font-size: 13px; line-height: 1.5; }
+@media (max-width: 600px) {
+  .club-progress-row { flex-direction: column; align-items: stretch; gap: 12px; }
+  .club-progress-info { flex-basis: auto; }
+  .club-progress-action { width: 100%; margin-left: 0; min-height: 44px; white-space: normal; }
+}
 
 .score-actions .button { font-size: 14px; min-height: 44px; padding: 10px 12px; }
 .score-actions .button.danger { background: #f7efed; border-color: #e5d4d0; color: #895b56; }

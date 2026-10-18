@@ -77,10 +77,27 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
     {link && <section className="club-link-card"><strong>{pair.toUpperCase()} 專屬收分卡</strong>{qr && <img src={qr} width={280} height={280} alt={`${pair} 收分 QR code`} />}<a href={link} target="_blank" rel="noopener noreferrer">開啟收分卡</a><input aria-label="專屬連結" readOnly value={link} onFocus={e => e.currentTarget.select()} /><button className="button subtle" onClick={() => { void navigator.clipboard.writeText(link).then(() => setNotice('連結已複製。')).catch(() => setError('請選取上方連結手動複製')); }}>複製連結</button><small>連結僅在本次簽發時顯示，請交給{tableMode ? '對應桌次裝置，不要公開張貼' : '對應搭檔'}。</small></section>}
     <h4>目前第 {roundLabel(event, round)} 圈 · {finalized ? '已結算' : '未結算'}</h4>
     <p>請在「圈次與發布設定」指定當前圈數與開始／休息狀態。</p>
-    {assignments.map(a => <div key={a.id} className="club-progress-row">{tableDeviceLabel(event,a)} · {a.boards.filter(b => event.results[`${a.id}:${b}`]).length} / {a.boards.length} 副 · 輸入 {clubRoles(event, a).inputPair.toUpperCase()} ／ 確認 {clubRoles(event, a).confirmPair.toUpperCase()} · {clubAccepted(event, a) ? '已認可' : '待輸入／確認'} <button type="button" className="button subtle" disabled={busy || !event.club?.enabled || finalized || event.status !== 'live' || clubAccepted(event,a)} onClick={() => {
-      const missing = a.boards.filter(b => !event.results[`${a.id}:${b}`]).length;
-      if (window.confirm(`${tableDeviceLabel(event,a)}：取消本圈尚未輸入的 ${missing} 副牌，保留已有成績，並由裁判確認鎖定本桌。此操作不結算或發布整圈。確定繼續？`)) void act({action:'complete-table',assignmentId:a.id,round});
-    }}>取消本桌剩餘牌局並且確認輸入</button></div>)}
+    <div className="club-progress-list">{assignments.map(a => {
+      const accepted = clubAccepted(event, a);
+      const received = a.boards.filter(b => event.results[`${a.id}:${b}`]).length;
+      const roles = clubRoles(event, a);
+      return <div key={a.id} className="club-progress-row">
+        <div className="club-progress-info">
+          <div className="club-progress-heading">
+            <strong>{tableDeviceLabel(event, a)}</strong>
+            <span className={accepted ? 'club-progress-status accepted' : 'club-progress-status'}>{accepted ? '已認可' : received === a.boards.length ? '待確認' : '待輸入'}</span>
+          </div>
+          <div className="club-progress-details">
+            <span>已收 {received} / {a.boards.length} 副</span>
+            <span>輸入 {roles.inputPair.toUpperCase()} ／ 確認 {roles.confirmPair.toUpperCase()}</span>
+          </div>
+        </div>
+        <button type="button" className="button subtle club-progress-action" disabled={busy || !event.club?.enabled || finalized || event.status !== 'live' || accepted} onClick={() => {
+          const missing = a.boards.length - received;
+          if (window.confirm(`${tableDeviceLabel(event,a)}：取消本圈尚未輸入的 ${missing} 副牌，保留已有成績，並由裁判確認鎖定本桌。此操作不結算或發布整圈。確定繼續？`)) void act({action:'complete-table',assignmentId:a.id,round});
+        }}>取消本桌剩餘牌局並且確認輸入</button>
+      </div>;
+    })}</div>
     <label className="field">結算原因<input value={reason} minLength={2} maxLength={200} onChange={e => setReason(e.target.value)} /></label>
     <div className="button-row"><button className="button primary" disabled={busy || !event.club?.enabled || !round || finalized || reason.trim().length < 2} onClick={() => void act({ action: 'finalize', round, force: false, reason })}>結算並發布本圈</button>
       <button className="button subtle" disabled={busy || !event.club?.enabled || !round || finalized || reason.trim().length < 2} onClick={() => {
