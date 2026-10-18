@@ -100,6 +100,8 @@ export type BridgeEvent = {
   prefix?: string;
   kind: Kind;
   gameMode?: 'bridge' | 'minibridge';
+  teamMethod?: 'imp' | 'bam';
+  bam?: { win: number; draw: number; loss: number };
   date: string;
   endDate?: string;
   venue: string;
@@ -134,6 +136,7 @@ export type BridgeEvent = {
   revision: number;
   updatedAt: string;
 };
+export const bamSchema = z.object({ win: z.number().min(0).max(10000).multipleOf(0.01), draw: z.number().min(0).max(10000).multipleOf(0.01), loss: z.number().min(0).max(10000).multipleOf(0.01) }).strict();
 export const createSchema = z
   .object({
     firstStageName: z.string().trim().min(1).max(80).optional(),
@@ -141,6 +144,8 @@ export const createSchema = z
     prefix: z.string().trim().max(80).optional(),
     kind: z.enum(['teams', 'pairs']),
     gameMode: z.enum(['bridge', 'minibridge']).optional(),
+    teamMethod: z.enum(['imp', 'bam']).optional(),
+    bam: bamSchema.optional(),
     rankingMode: z.enum(['single', 'double']).optional(),
     movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay', 'double-barometer']).optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
@@ -156,6 +161,8 @@ export const createSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.kind !== 'teams' && (v.teamMethod || v.bam)) ctx.addIssue({code:'custom',message:'BAM 計分僅適用隊制賽'});
+    if (v.bam && v.teamMethod !== 'bam') ctx.addIssue({code:'custom',message:'請選擇 Board-A-Match 計分'});
     if (v.neuberg && (v.kind !== 'pairs' || (v.pairMethod ?? 'mp') !== 'mp')) ctx.addIssue({ code: 'custom', path: ['neuberg'], message: 'Neuberg 僅適用雙人賽 MP 計分' });
     if (v.rankingMode && (v.kind !== 'pairs' || v.movementPlan || v.rounds)) ctx.addIssue({ code: 'custom', message: '排名方式僅用於先建立雙人賽名單，賽程請於建立後設定' });
     if (v.rankingMode === 'double' && (v.names.length < 6 || v.names.length % 2)) ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–40 組完整搭檔' });
@@ -173,7 +180,7 @@ export const createSchema = z
   });
 export const mutationSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('pair-name'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), participantId: z.string().min(1).max(100), name: z.string().trim().min(1).max(60) }).strict(),
-  z.object({ action: z.literal('swiss-config'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), mode: z.enum(['current','delayed']), rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS), boardsPerRound: z.number().int().min(1).max(16), byeVp: z.number().min(0).max(20).multipleOf(0.01) }).strict(),
+  z.object({ action: z.literal('swiss-config'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), mode: z.enum(['current','delayed']), rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS), boardsPerRound: z.number().int().min(1).max(16), byeVp: z.number().min(0).max(160000).multipleOf(0.01) }).strict(),
   z.object({ action: z.literal('swiss-publish'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), round: z.number().int().min(1).max(MAX_PLAYER_BOARDS), partial: z.boolean() }).strict(),
 
   z.object({ action: z.literal('rosters-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入隊伍賽員名單'), csv: z.string().min(1).max(200000) }).strict(),
@@ -182,7 +189,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('clear-results'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), confirmName: z.string().min(1).max(80) }).strict(),
   z.object({ action: z.literal('results-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入成績'), csv: z.string().min(1).max(200000) }).strict(),
   z.object({ action: z.literal('round-times-import'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().max(200).optional().transform(value => value || '匯入圈次時間'), csv: z.string().min(1).max(200000) }).strict(),
-  z.object({ action: z.literal('movement-plan'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), plan: z.string().min(1).max(80), pairMovement: z.object({ groupOrder: z.array(z.number().int().min(1).max(MAX_PLAYER_BOARDS)).min(1).max(MAX_PLAYER_BOARDS).optional(), barometer: z.boolean().optional(), phantom: z.number().int().min(1).max(80).optional(), pairOrder: z.array(z.string().min(1).max(80)).min(3).max(80).optional() }).strict().optional(), movementFile: z.array(z.number().int().min(0).max(255)).min(707).max(20000).optional(), arrowSwitchRound: z.number().int().min(0).max(MAX_PLAYER_BOARDS).optional(), interleavedGroups: z.array(z.array(z.array(z.string().min(1).max(80)).min(3).max(5)).min(1).max(10)).min(1).max(MAX_PLAYER_BOARDS / 2).optional(), byeVp: z.number().min(0).max(20).multipleOf(0.01).optional(), rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS).optional(), boardsPerRound: z.number().int().min(1).max(16).optional() }).strict(),
+  z.object({ action: z.literal('movement-plan'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), plan: z.string().min(1).max(80), pairMovement: z.object({ groupOrder: z.array(z.number().int().min(1).max(MAX_PLAYER_BOARDS)).min(1).max(MAX_PLAYER_BOARDS).optional(), barometer: z.boolean().optional(), phantom: z.number().int().min(1).max(80).optional(), pairOrder: z.array(z.string().min(1).max(80)).min(3).max(80).optional() }).strict().optional(), movementFile: z.array(z.number().int().min(0).max(255)).min(707).max(20000).optional(), arrowSwitchRound: z.number().int().min(0).max(MAX_PLAYER_BOARDS).optional(), interleavedGroups: z.array(z.array(z.array(z.string().min(1).max(80)).min(3).max(5)).min(1).max(10)).min(1).max(MAX_PLAYER_BOARDS / 2).optional(), byeVp: z.number().min(0).max(160000).multipleOf(0.01).optional(), rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS).optional(), boardsPerRound: z.number().int().min(1).max(16).optional() }).strict(),
   z.object({ action: z.literal('team-roster'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), participantId: z.string(), players: z.array(z.string().trim().min(1).max(80)).max(30), captain: z.string().trim().max(80) }).strict(),
   z.object({ action: z.literal('table-lineup'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), assignmentId: z.string(), playerNames: z.object({ N: z.string().trim().max(80), E: z.string().trim().max(80), S: z.string().trim().max(80), W: z.string().trim().max(80) }).strict() }).strict(),
   z.object({ action: z.literal('competition-settings'), revision: z.number().int(), requestId: z.string().uuid(), reason: z.string().min(2).max(200), name: z.string().trim().min(2).max(80), prefix: z.string().trim().max(80), venue: z.string().trim().max(80) }).strict(),
@@ -276,6 +283,8 @@ export const mutationSchema = z.discriminatedUnion('action', [
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
       status: z.enum(['live', 'finished']),
+      teamMethod: z.enum(['imp','bam']).optional(),
+      bam: bamSchema.optional(),
       maxBoardNumber: z.number().int().min(0).optional(),
       publishBoards: z.boolean().optional(),
       awardPlacesNS: z.number().int().min(0).max(32).optional(),
@@ -330,6 +339,8 @@ export type MatchScore = {
   round: number;
   a: string;
   b: string;
+  bamA?: number;
+  bamB?: number;
   impsA: number;
   impsB: number;
   marginA: number;

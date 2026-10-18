@@ -7,7 +7,7 @@ export function competitionInfo(root: Pick<IndexEvent, 'id' | 'name' | 'prefix' 
 }
 
 export function stageSummary(event: IndexEvent) {
-  return { stageArchived: event.stageArchived, id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, endDate: event.endDate || event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
+  return { stageArchived: event.stageArchived, id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, endDate: event.endDate || event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', teamMethod: event.teamMethod, bam: event.bam, pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
 }
 
 export function competitionCatalog(data: EventIndex[], records: StoredCompetition[] = [], includeArchivedStages = true) {

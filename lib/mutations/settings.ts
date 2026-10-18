@@ -69,6 +69,16 @@ export function applySettingsCommand(
       if (command.awardPlacesNS !== undefined) e.awardPlacesNS = command.awardPlacesNS;
       if (command.awardPlacesEW !== undefined) e.awardPlacesEW = command.awardPlacesEW;
     }
+    if (command.teamMethod !== undefined || command.bam !== undefined) {
+      if (e.kind !== 'teams') throw new DomainError('隊制計分僅適用隊制賽');
+      if (Object.keys(e.results).length || e.swiss?.publications.length || e.status === 'finished') throw new DomainError('已有成績或已公布 Swiss 對戰，不能變更計分規則');
+      const method = command.teamMethod ?? e.teamMethod ?? 'imp';
+      if (command.bam && method !== 'bam') throw new DomainError('請選擇 Board-A-Match 計分');
+      if (method !== (e.teamMethod ?? 'imp')) e.byeVp = method === 'bam' ? 0 : 12;
+      e.teamMethod = method;
+      if (method === 'bam') e.bam = command.bam ?? e.bam ?? {win:2,draw:1,loss:0};
+      else delete e.bam;
+    }
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;
     if (command.winAward !== undefined) e.winAward = command.winAward;
     if (command.awardDescription !== undefined) e.awardDescription = command.awardDescription;

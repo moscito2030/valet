@@ -21,7 +21,7 @@ function availableOfficialMovements(tables: number): AcblMovement[] {
   return [...officialMovements, ...webs, ...(tables >= 5 && tables <= 40 ? [buildAcblAppendix(tables - 1)] : [])];
 }
 export type PairMovementSettings = { barometer?: boolean; phantom?: number; pairOrder?: string[]; groupOrder?: number[] };
-type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp'>;
+type Input = Pick<BridgeEvent, 'participants' | 'rounds' | 'boardsPerRound' | 'kind' | 'byeVp' | 'teamMethod'>;
 export function movementOptions(event: Input, external?: AcblMovement): MovementPlan[] {
   if (!Number.isInteger(event.rounds) || event.rounds < 1 || event.rounds > MAX_PLAYER_BOARDS) return [];
   if (event.kind === 'teams') {
@@ -33,7 +33,7 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
       const cycles = event.rounds / (size - 1);
       options.push({ id: 'team-interleaved-' + size, interleavedSize: size,
         label: (size === 3 ? '三角對抗' : '對稱式五角對抗') , groups: size * cycles,
-        note: n + ' 張實體桌，每循環 ' + (n / size) + ' 組、每組 ' + size + ' 隊，共 ' + cycles + ' 個循環。各循環可重新分組；循環內固定南北／東西搭檔，依預覽移動。正反方向兩桌收齊後完成比較，每場按每圈牌數換算 20–0 VP；全賽每隊 ' + event.rounds + ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開／閉為比較方向，非固定房間。' });
+        note: n + ' 張實體桌，每循環 ' + (n / size) + ' 組、每組 ' + size + ' 隊，共 ' + cycles + ' 個循環。各循環可重新分組；循環內固定南北／東西搭檔，依預覽移動。正反方向兩桌收齊後完成比較，' + (event.teamMethod === 'bam' ? '每牌依勝／和／負直接累計 VP；全賽每隊 ' : '每場按每圈牌數換算 20–0 VP；全賽每隊 ') + event.rounds + ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開／閉為比較方向，非固定房間。' });
       if (size === 5) {
         const symmetric = options[options.length - 1];
         options.splice(options.length - 1, 0, {

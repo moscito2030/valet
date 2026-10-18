@@ -18,6 +18,8 @@ type Source = Pick<
   | 'results'
   | 'boards'
   | 'byeVp'
+  | 'teamMethod'
+  | 'bam'
   | 'swiss'
   | 'teamMovement'
   | 'club'

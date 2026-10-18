@@ -1,4 +1,5 @@
 'use client';
+import { teamScoringLabel } from '@/lib/team-method';
 import { awardRangeDescription } from '@/lib/awards';
 import { AppVersion } from './app-version';
 
@@ -406,7 +407,7 @@ export default function Scoreboard() {
                         <span className="event-format">
                           {event.gameMode === 'minibridge' && '迷你橋牌 · 無身價 · '}
                           {event.kind === 'teams'
-                            ? 'IMP · WBF 20-0 VP'
+                            ? teamScoringLabel(event)
                             : `${methodNames[pairMethod]} · ${event.participants.every((p) => p.group) ? 'NS／EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
                         </span>
                       </div>
@@ -670,7 +671,7 @@ export default function Scoreboard() {
                       <AppVersion /> <span>／</span> 由臺灣大學橋藝社自主研發
                     </span>
                     <span>
-                      {event.kind === 'teams' ? 'IMP · WBF VP' : methodNames[pairMethod]}　♠ ♥ ♦ ♣
+                      {event.kind === 'teams' ? teamScoringLabel(event) : methodNames[pairMethod]}　♠ ♥ ♦ ♣
                     </span>
                   </footer>
                 </>

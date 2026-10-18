@@ -20,7 +20,7 @@ export function SwissPanel({
   const [mode, setMode] = useState<'current' | 'delayed'>(event.swiss?.mode ?? 'current');
   const [rounds, setRounds] = useState(event.rounds || 3);
   const [boards, setBoards] = useState(event.boardsPerRound || 8);
-  const [byeVp, setByeVp] = useState(event.byeVp ?? 12);
+  const [byeVp, setByeVp] = useState(event.byeVp ?? (event.teamMethod === 'bam' ? 0 : 12));
   const firstPending = Array.from({ length: event.rounds }, (_, i) => i + 1).find(
     (r) => !swissRoundComplete(event, r),
   );
@@ -82,7 +82,7 @@ export function SwissPanel({
               <input
                 type="number"
                 min={0}
-                max={20}
+                max={event.teamMethod === 'bam' ? 160000 : 20}
                 step={0.01}
                 value={byeVp}
                 onChange={(e) => setByeVp(Number(e.target.value))}

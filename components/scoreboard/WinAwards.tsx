@@ -16,7 +16,7 @@ export function WinAwards({
   const rows = winAwardStats(event),
     selectedRow = rows.find((r) => r.id === selected);
   const labels = { win: '勝', loss: '負', draw: '和', pending: '待定', excluded: '不計' };
-  const scoreLabel = event.kind === 'pairs' && (event.pairMethod ?? 'mp') === 'mp' ? '%' : ' IMP';
+  const scoreLabel = event.kind === 'pairs' && (event.pairMethod ?? 'mp') === 'mp' ? '%' : event.teamMethod === 'bam' ? ' VP 差' : ' IMP';
   return (
     <div className="win-awards">
       <h3>勝場獎統計</h3>

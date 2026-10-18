@@ -2,7 +2,7 @@ import { boardRange } from '@/lib/board-groups';
 import { roundLabel } from '@/lib/team-movement';
 import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
-import { awardedResult, teamBoardImps } from '@/lib/scoring';
+import { awardedResult, teamBoardPoints } from '@/lib/scoring';
 import { Contract, signed } from './scoreboard-shared';
 
 export function InterleavedRound({
@@ -76,7 +76,7 @@ export function InterleavedRound({
                       <th>
                         我方東西：第 {roundLabel(event, other.round)} 圈／{other.table} 桌
                       </th>
-                      <th>IMP 差</th>
+                      <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP 差'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -87,7 +87,7 @@ export function InterleavedRound({
                         (r) => r?.status === 'cancelled' || r?.status === 'average',
                       );
                       const imp =
-                        x && y && !cancelled ? teamBoardImps(x, y)[teamId === m.a ? 0 : 1] : null;
+                        x && y && !cancelled ? teamBoardPoints(x, y, event)[teamId === m.a ? 0 : 1] : null;
                       return (
                         <tr key={board}>
                           <td>{board}</td>

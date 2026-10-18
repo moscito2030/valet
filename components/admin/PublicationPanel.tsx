@@ -1,3 +1,4 @@
+import { TeamScoringSettings } from '../team-scoring-settings';
 import { awardPlacesFor, hasDirectionalAwards } from '@/lib/awards';
 import { boardGroups, boardRange } from '@/lib/board-groups';
 import { PairNames } from '../pair-names';
@@ -30,6 +31,7 @@ export function PublicationPanel({
   return (
     <>
       {section !== 'boards' && <>
+      <TeamScoringSettings event={event} busy={busy} save={save} />
       {event.canDirect && event.kind === 'pairs' && (
         <PairNames participants={event.participants} busy={busy} save={save} />
       )}

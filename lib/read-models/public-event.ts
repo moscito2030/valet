@@ -11,6 +11,8 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     name: event.name,
     prefix: event.prefix,
     kind: event.kind,
+    teamMethod: event.teamMethod,
+    bam: event.bam,
     gameMode: event.gameMode,
     date: event.date,
     endDate: event.endDate,

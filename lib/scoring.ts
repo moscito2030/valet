@@ -1,3 +1,4 @@
+import { bamBoardPoints, type TeamScoring } from './team-method';
 import {
 BridgeEvent,
 Projection,
@@ -19,6 +20,9 @@ export function teamBoardImps(open: Result, closed: Result): [number, number] {
   if (open.status === 'cancelled' || closed.status === 'cancelled' || open.status === 'average' || closed.status === 'average') return [0, 0];
   return [imps(awardedResult(open, 'ns')!.nsScore - awardedResult(closed, 'ew')!.nsScore),
     imps(awardedResult(closed, 'ns')!.nsScore - awardedResult(open, 'ew')!.nsScore)];
+}
+export function teamBoardPoints(open: Result, closed: Result, event: TeamScoring): [number, number] {
+  return event.teamMethod === 'bam' ? bamBoardPoints(open, closed, event) : teamBoardImps(open, closed);
 }
 export function trimScores(values: number[], trim: Trim = 'none') {
   const ordered = [...values].sort((a, b) => a - b);
@@ -135,7 +139,7 @@ export function vp(margin: number, boards: number): number {
   const win = table[Math.min(Math.abs(margin), table.length - 1)] / 100;
   return margin >= 0 ? win : Math.round((20 - win) * 100) / 100;
 }
-type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'pairMethod' | 'neuberg' | 'trim' | 'penalties' | 'byeVp' | 'swiss'> & { boards: { number: number }[] };
+type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'teamMethod' | 'bam' | 'pairMethod' | 'neuberg' | 'trim' | 'penalties' | 'byeVp' | 'swiss'> & { boards: { number: number }[] };
 
 export function pairStandingsBeforeRound(event: ProjectionInput, round: number): Standing[] {
   const assignments = event.assignments.filter(a => a.round < round);
@@ -178,6 +182,7 @@ export function project(e: ProjectionInput): Projection {
         round: Math.max(open.round, closed.round),
         a: open.ns,
         b: open.ew,
+        ...(e.teamMethod === 'bam' ? {bamA:0,bamB:0} : {}),
         impsA: 0,
         impsB: 0,
         marginA: 0,
@@ -199,6 +204,10 @@ export function project(e: ProjectionInput): Projection {
         }
         if (!x || !y) continue;
         const [imp, otherImp] = teamBoardImps(x, y);
+        if (e.teamMethod === 'bam') {
+          const [a, b] = bamBoardPoints(x, y, e);
+          match.bamA! += a; match.bamB! += b;
+        }
         match.marginA += imp;
         match.marginB += otherImp;
         match.split ||= !!(x.split || y.split);
@@ -208,12 +217,12 @@ export function project(e: ProjectionInput): Projection {
       }
       for (const id of [match.a, match.b]) byId[id].played += match.completed;
       if (match.completed === match.total && cancelled < match.total) {
-        match.vpA = vp(match.marginA, match.total);
-        match.vpB = vp(match.marginB, match.total);
+        match.vpA = e.teamMethod === 'bam' ? Math.round(match.bamA! * 100) / 100 : vp(match.marginA, match.total);
+        match.vpB = e.teamMethod === 'bam' ? Math.round(match.bamB! * 100) / 100 : vp(match.marginB, match.total);
         byId[match.a].score! += match.vpA;
         byId[match.b].score! += match.vpB;
-        byId[match.a].secondary += match.marginA;
-        byId[match.b].secondary += match.marginB;
+        byId[match.a].secondary += e.teamMethod === 'bam' ? match.vpA - match.vpB : match.marginA;
+        byId[match.b].secondary += e.teamMethod === 'bam' ? match.vpB - match.vpA : match.marginB;
       }
       projection.matches.push(match);
     }

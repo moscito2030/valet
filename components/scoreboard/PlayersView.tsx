@@ -3,7 +3,7 @@ import { directionalDatum } from '@/lib/datum';
 import type { Assignment, PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
-import { awardedResult, imps, teamBoardImps, teamStandingsThroughRound, vp } from '@/lib/scoring';
+import { awardedResult, imps, teamBoardPoints, teamStandingsThroughRound, vp } from '@/lib/scoring';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
 import { ChevronDown } from 'lucide-react';
 import { InterleavedRound } from '../interleaved-round';
@@ -100,7 +100,7 @@ export function PlayersView({
           ? null
           : openResult.status === 'average' || closedResult.status === 'average'
             ? 0
-            : teamBoardImps(openResult, closedResult)[a.ns === playerId ? 0 : 1];
+            : teamBoardPoints(openResult, closedResult, event)[a.ns === playerId ? 0 : 1];
       const scores = (event?.assignments ?? [])
         .filter(
           (other) =>
@@ -166,7 +166,7 @@ export function PlayersView({
       : playerMatchScore.vpA
     : null;
   const playerVpScale =
-    playerVpBoards > 0
+    event.teamMethod !== 'bam' && playerVpBoards > 0
       ? Array.from({ length: Math.ceil(15 * Math.sqrt(playerVpBoards)) + 1 }, (_, margin) => ({
           margin,
           winner: vp(margin, playerVpBoards),
@@ -344,7 +344,7 @@ export function PlayersView({
                 <th>牌號</th>
                 <th>公開</th>
                 <th>關閉</th>
-                <th>IMP 差</th>
+                <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP 差'}</th>
               </tr>
             </thead>
             <tbody>
@@ -412,7 +412,7 @@ export function PlayersView({
                 <td colSpan={4}>
                   <div className="team-match-summary" aria-label="本圈比數，我方在左、對手在右">
                     <span className="muted">
-                      {playerMatchScore?.split ? 'IMP 淨差' : 'IMP 合計'}
+                      {event.teamMethod === 'bam' ? 'BAM VP 合計' : playerMatchScore?.split ? 'IMP 淨差' : 'IMP 合計'}
                     </span>
                     <button
                       type="button"
@@ -422,7 +422,7 @@ export function PlayersView({
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
                       {teamPlayerRows.some((row) => row.impDiff !== null)
-                        ? playerMatchScore?.split
+                        ? event.teamMethod === 'bam' ? `${number(playerMatchScore?.a === playerId ? playerMatchScore?.bamA ?? null : playerMatchScore?.bamB ?? null)} : ${number(playerMatchScore?.a === playerId ? playerMatchScore?.bamB ?? null : playerMatchScore?.bamA ?? null)}` : playerMatchScore?.split
                           ? `${signed(playerMatchScore.a === playerId ? playerMatchScore.marginA : playerMatchScore.marginB)} : ${signed(playerMatchScore.a === playerId ? playerMatchScore.marginB : playerMatchScore.marginA)}`
                           : `${playerImpFor} : ${playerImpAgainst}`
                         : '— : —'}
@@ -433,7 +433,7 @@ export function PlayersView({
                       popoverTarget="player-vp-scale"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
-                      換算 VP
+                      {event.teamMethod === 'bam' ? '計分規則' : '換算 VP'}
                     </button>
                     <button
                       type="button"
@@ -504,13 +504,13 @@ export function PlayersView({
                     className="player-detail-popover vp-scale-popover"
                   >
                     <strong>
-                      第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 換算表
+                      第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 計分
                     </strong>
-                    <p>WBF 20–0 · 依原訂牌數換算</p>
+                    <p>{event.teamMethod === 'bam' ? `每牌勝／和／負 ${event.bam?.win ?? 2}／${event.bam?.draw ?? 1}／${event.bam?.loss ?? 0} VP，直接加總` : 'WBF 20–0 · 依原訂牌數換算'}</p>
                     <p>
                       {playerMatchVp === null
                         ? '成績未齊，尚未換算 VP'
-                        : `我方 ${signed(playerImpTotal)} IMP → ${number(playerMatchVp)} VP`}
+                        : event.teamMethod === 'bam' ? `我方本圈 ${number(playerMatchVp)} VP` : `我方 ${signed(playerImpTotal)} IMP → ${number(playerMatchVp)} VP`}
                     </p>
                     {playerVpScale.length ? (
                       <div className="vp-scale-scroll">
@@ -546,7 +546,7 @@ export function PlayersView({
                         </table>
                       </div>
                     ) : (
-                      <p>本圈沒有可計分的牌。</p>
+                      <p>{event.teamMethod === 'bam' ? '取消牌不給分；收齊後將本圈 VP 計入總排名。' : '本圈沒有可計分的牌。'}</p>
                     )}
                   </div>
                 </td>

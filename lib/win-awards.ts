@@ -20,7 +20,8 @@ export type WinAwardRow = {
 };
 type Input = Pick<
   BridgeEvent,
-  'kind' | 'participants' | 'assignments' | 'results' | 'pairMethod' | 'winAward'
+  'kind' | 'participants' | 'assignments' | 'results' | 'teamMethod'
+  | 'pairMethod' | 'winAward'
 > & { projection: Projection };
 // Consume the caller's projection and visible results; never recompute with private results.
 export function winAwardStats(event: Input): WinAwardRow[] {
@@ -52,12 +53,13 @@ export function winAwardStats(event: Input): WinAwardRow[] {
         [match.a, match.marginA, match.vpA],
         [match.b, match.marginB, match.vpB],
       ] as const) {
-        const state = !completed ? 'pending' : vp === null ? 'excluded' : outcome(margin);
+        const effectiveMargin = event.teamMethod === 'bam' ? (id === match.a ? (match.bamA ?? 0) - (match.bamB ?? 0) : (match.bamB ?? 0) - (match.bamA ?? 0)) : margin;
+        const state = !completed ? 'pending' : vp === null ? 'excluded' : outcome(effectiveMargin);
         add(id, {
           key: match.id,
           round: match.round,
           outcome: state,
-          score: state === 'pending' || state === 'excluded' ? null : margin,
+          score: state === 'pending' || state === 'excluded' ? null : effectiveMargin,
         });
       }
     }

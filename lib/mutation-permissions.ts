@@ -36,7 +36,9 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
   if (access[command.action] === 'director') return role === 'director';
   if (
     command.action === 'settings' &&
-    (command.name !== undefined ||
+    (command.teamMethod !== undefined ||
+      command.bam !== undefined ||
+      command.name !== undefined ||
       command.prefix !== undefined ||
       command.maxBoardNumber !== undefined ||
       command.stageName !== undefined ||

@@ -1,4 +1,5 @@
 'use client';
+import { TeamScoringFields, teamScoringPayload } from './team-scoring-settings';
 import type { Kind } from '@/lib/model';
 import { Info, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -84,6 +85,7 @@ export function CreateDialog({
       if (grouped && lines('nsNames').length !== lines('ewNames').length) throw new Error('NS 與 EW 組需有相同搭檔數');
       const stage = {
         kind,
+        ...(kind === 'teams' ? teamScoringPayload(form) : {}),
         gameMode,
         ...(kind === 'pairs' ? { rankingMode } : {}),
         pairMethod: kind === 'pairs' ? method : 'mp',
@@ -145,7 +147,7 @@ export function CreateDialog({
             className={kind === 'teams' ? 'selected' : ''}
             onClick={() => setKind('teams')}
           >
-            隊制賽 · IMP / VP
+            隊制賽
           </button>
           <button
             type="button"
@@ -155,6 +157,7 @@ export function CreateDialog({
             雙人賽
           </button>
         </div>
+        {kind === 'teams' && <TeamScoringFields />}
         {kind === 'pairs' && (
           <div className="form-grid">
             <div className="field">

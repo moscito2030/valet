@@ -3,7 +3,7 @@ import { directionalDatum } from '@/lib/datum';
 import { exportPbn } from '@/lib/imports';
 import type { Assignment, Board, PublicEvent, Result } from '@/lib/model';
 import { resultKey } from '@/lib/model';
-import { awardedResult, imps, teamBoardImps } from '@/lib/scoring';
+import { awardedResult, imps, teamBoardPoints } from '@/lib/scoring';
 import { tableNames } from '@/lib/table-names';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
 import { ArrowDownToLine, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -383,7 +383,7 @@ export function BoardsView({
                     <th>對戰</th>
                     <th>我方合約 (NS)</th>
                     <th>對方合約 (EW)</th>
-                    <th>IMP</th>
+                    <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -478,7 +478,7 @@ export function BoardsView({
                                 ? signed(
                                     x.status === 'average' || y.status === 'average'
                                       ? 0
-                                      : teamBoardImps(x, y)[awayPerspective ? 1 : 0],
+                                      : teamBoardPoints(x, y, event)[awayPerspective ? 1 : 0],
                                   )
                                 : '—'}
                           </td>
@@ -587,7 +587,7 @@ export function BoardsView({
           </div>
           {event.kind === 'teams' && (
             <p className="footnote">
-              {awayPerspective
+              {event.teamMethod === 'bam' ? 'BAM：以目前視角比較兩室原始分，依每牌勝／和／負給予 VP。' : awayPerspective
                 ? '目前為客隊視角：IMP 以左列第一支隊伍為正，閉室 NS 分減去開室 NS 分後換算。'
                 : '目前為主隊視角：IMP 以左列第一支隊伍為正，開室 NS 分減去閉室 NS 分後換算。'}
             </p>

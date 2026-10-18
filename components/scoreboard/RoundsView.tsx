@@ -45,7 +45,7 @@ export function RoundsView({
           <h3>圈次與對戰</h3>
           <p>
             {event.kind === 'teams'
-              ? '查看各圈 IMP 比較與收分進度。'
+              ? (event.teamMethod === 'bam' ? '查看各圈 BAM VP 與收分進度。' : '查看各圈 IMP 比較與收分進度。')
               : '查看桌次、南北／東西搭檔與牌組安排。'}
           </p>
         </div>
@@ -105,7 +105,7 @@ export function RoundsView({
                       </small>
                     </button>
                     <b>
-                      {m.split
+                      {event.teamMethod === 'bam' ? `${number(index === 0 ? m.bamA ?? 0 : m.bamB ?? 0)} VP` : m.split
                         ? `${signed(index === 0 ? m.marginA : m.marginB)} IMP 淨差`
                         : index === 0
                           ? m.impsA

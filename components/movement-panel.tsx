@@ -24,6 +24,8 @@ export function MovementPanel({
     | 'results'
     | 'status'
     | 'byeVp'
+    | 'teamMethod'
+    | 'bam'
   >;
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
@@ -43,7 +45,7 @@ export function MovementPanel({
   const [boardsPerRound, setBoardsPerRound] = useState(
     event.boardsPerRound || (event.kind === 'teams' ? 8 : 2),
   );
-  const [byeVp, setByeVp] = useState(event.byeVp ?? 12);
+  const [byeVp, setByeVp] = useState(event.byeVp ?? (event.teamMethod === 'bam' ? 0 : 12));
   const [customGroups, setCustomGroups] = useState<{
     key: string;
     groups: InterleavedGroups;
@@ -404,7 +406,7 @@ export function MovementPanel({
               <input
                 type="number"
                 min={0}
-                max={20}
+                max={event.teamMethod === 'bam' ? 160000 : 20}
                 step={0.01}
                 value={byeVp}
                 disabled={locked}
