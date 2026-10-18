@@ -1,4 +1,5 @@
 'use client';
+import { HcpFields, HcpSummary } from '@/components/hcp-fields';
 import { useEffect, useRef, useState } from 'react';
 import type { ClubView } from '@/lib/club-view';
 import type { ResultInput } from '@/lib/model';
@@ -39,7 +40,7 @@ export default function ClubPage() {
     if (!data?.assignment || (data.role !== 'input' && data.role !== 'shared') || data.locked) return;
     setReviewing('');
     const r = data.boards.find(b => b.number === number)?.result;
-    setDraft(r ? { assignmentId: r.assignmentId, board: r.board, level: r.level, strain: r.strain, doubled: r.doubled, declarer: r.declarer, tricks: r.tricks, lead: r.lead, miniBridge: data.gameMode === 'minibridge' } : {
+    setDraft(r ? { assignmentId: r.assignmentId, board: r.board, level: r.level, strain: r.strain, doubled: r.doubled, declarer: r.declarer, tricks: r.tricks, lead: r.lead, hcp: r.hcp, miniBridge: data.gameMode === 'minibridge' } : {
       assignmentId: data.assignment.id, board: number, level: 1, strain: 'C', doubled: 1, declarer: 'N', tricks: 7, lead: '', miniBridge: data.gameMode === 'minibridge',
     });
     setDraftRound(data.round);
@@ -96,6 +97,7 @@ export default function ClubPage() {
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
             <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} ／ EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
             {b.result && b.result.status !== 'cancelled' && <small>{b.result.split ? `NS ${b.result.split.ns.nsScore} ／ EW ${-b.result.split.ew.nsScore}` : `NS ${b.result.nsScore > 0 ? '+' : ''}${b.result.nsScore}`}</small>}
+            {b.result && <HcpSummary hcp={b.result.hcp} />}
             {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} onClick={() => edit(b.number)}>{b.result ? '更正' : '輸入'}</button>}
           </div>)}</div>
           <p>輸入：{data.roles?.inputPair.toUpperCase()} ／ 確認：{data.roles?.confirmPair.toUpperCase()} · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
@@ -104,7 +106,7 @@ export default function ClubPage() {
       {draft && editable && <form className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
         <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? 'MiniBridge · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
         <div className="form-grid">
-          {data.gameMode === 'minibridge' ? <MiniContractFields value={draft} onChange={setDraft} /> : <>
+          {data.gameMode === 'minibridge' ? <><HcpFields value={draft} onChange={setDraft} dealer={board?.dealer ?? 'N'} /><MiniContractFields value={draft} onChange={setDraft} /></> : <>
           <label className="field">線位<select value={draft.level} onChange={e => { const level = Number(e.target.value); setDraft({ ...draft, level, tricks: level ? level + 6 : 0, doubled: 1 }); }}>{Array.from({ length: 8 }, (_, n) => <option key={n} value={n}>{n || 'Pass'}</option>)}</select></label>
           <label className="field">合約花色<select disabled={!draft.level} value={draft.strain} onChange={e => setDraft({ ...draft, strain: e.target.value as ResultInput['strain'] })}>{['C','D','H','S','NT'].map((s,i) => <option key={s} value={s}>{['♣','♦','♥','♠','NT'][i]}</option>)}</select></label>
           </>}

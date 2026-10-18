@@ -67,6 +67,7 @@ export function parseResultsCsv(text: string): (ResultInput & { status?: 'cancel
       declarer: r.declarer,
       tricks: Number(r.tricks),
       lead: r.lead ?? '',
+      ...(seats.some(s => r[`hcp${s}`]?.trim()) ? { hcp: Object.fromEntries(seats.filter(s => r[`hcp${s}`]?.trim()).map(s => [s, Number(r[`hcp${s}`])])) } : {}),
     });
     if (!parsed.success) throw new Error(`第 ${i + 2} 列：${parsed.error.issues[0].message}`);
     return status === 'cancelled' ? { ...parsed.data, status: 'cancelled' as const } : parsed.data;
@@ -76,8 +77,9 @@ export const resultsCsvHeader =
   'assignmentId,board,level,strain,doubled,declarer,tricks,lead,status';
 export function exportResultsCsv(e: BridgeEvent) {
   const hasSplit = Object.values(e.results).some(r => r.split);
+  const hasHcp = Object.values(e.results).some(r => r.hcp);
   return (
-    resultsCsvHeader + (hasSplit ? ',splitNS,splitEW' : '') +
+    resultsCsvHeader + (hasSplit ? ',splitNS,splitEW' : '') + (hasHcp ? ',hcpN,hcpE,hcpS,hcpW' : '') +
     '\n' +
     Object.values(e.results)
       .map((r) =>
@@ -92,6 +94,7 @@ export function exportResultsCsv(e: BridgeEvent) {
           r.lead,
           r.status === 'average' ? 'cancelled' : r.status ?? 'played',
           ...(hasSplit ? [r.split ? JSON.stringify(r.split.ns) : '', r.split ? JSON.stringify(r.split.ew) : ''] : []),
+          ...(hasHcp ? seats.map(s => r.hcp?.[s] ?? '') : []),
         ]
           .map(csvCell)
           .join(','),

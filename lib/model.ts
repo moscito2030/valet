@@ -1,5 +1,6 @@
 import { MAX_PLAYER_BOARDS, playerBoardError } from './schedule-limits';
 import { z } from 'zod';
+import { recordedHcpSchema } from './recorded-hcp';
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !Number.isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v, '日期不正確');
 export const seats = ['N', 'E', 'S', 'W'] as const;
 export type Seat = (typeof seats)[number];
@@ -46,6 +47,7 @@ export const resultSchema = z
     tricks: z.number().int().min(0).max(13),
     lead: z.string().max(4).default(''),
     miniBridge: z.boolean().optional(),
+    hcp: recordedHcpSchema.optional(),
   })
   .strict()
   .refine(

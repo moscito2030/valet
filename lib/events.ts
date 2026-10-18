@@ -163,6 +163,7 @@ export { DomainError } from './domain-error';
 function scoredInput(r: ResultInput, event: BridgeEvent, board: Board) {
   const miniBridge = event.gameMode === 'minibridge';
   try {
+    if (r.hcp && !miniBridge) throw new Error('四家大牌點僅適用迷你橋牌');
     return { ...r, miniBridge, nsScore: contractScore(r, board.vulnerability, miniBridge) };
   } catch (error) {
     throw new DomainError((error as Error).message);

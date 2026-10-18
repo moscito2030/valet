@@ -890,6 +890,11 @@ tbody tr.followed {
   color: #b8bdad;
 }
 .app-version { color: inherit; font-size: 12px; letter-spacing: 0; white-space: nowrap; }
+.hcp-fields { grid-column: 1 / -1; min-width: 0; border: 1px solid #dce4d4; border-radius: 8px; padding: 12px; margin: 0 0 16px; }
+.hcp-cross { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 12px; max-width: 360px; margin: auto; }
+.hcp-cross .field { text-align: center; margin: 0; }
+.hcp-cross input { text-align: center; }
+.hcp-N { grid-area: 1 / 2; } .hcp-W { grid-area: 2 / 1; } .hcp-E { grid-area: 2 / 3; } .hcp-S { grid-area: 3 / 2; }
 .page-footer .app-version { margin: 0; color: inherit; }
 a.app-version { text-decoration: none; }
 a.app-version:hover { text-decoration: underline; }

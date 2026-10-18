@@ -1,4 +1,5 @@
 'use client';
+import { HcpFields } from './hcp-fields';
 import { isInterleaved, teamByes, roundLabel } from '@/lib/team-movement';
 import { boardGroups, boardRange } from '@/lib/board-groups';
 import {
@@ -161,6 +162,7 @@ export function AdminPanel({
             board: r.board,
             level: r.level,
             miniBridge: r.miniBridge,
+            hcp: r.hcp,
             strain: r.strain,
             declarer: r.declarer,
             doubled: r.doubled,
@@ -494,7 +496,7 @@ export function AdminPanel({
                   </select>
                 </label>
                 {event.gameMode === 'minibridge' ? (
-                  <MiniContractFields value={input} onChange={setInput} />
+                  <><HcpFields value={input} onChange={setInput} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} /><MiniContractFields value={input} onChange={setInput} /></>
                 ) : (
                   <>
                     <label className="field">

@@ -1,5 +1,6 @@
 'use client';
 import { AppVersion } from './app-version';
+import { HcpSummary } from './hcp-fields';
 import { directionalDatum } from '@/lib/datum';
 import { boardRange } from '@/lib/board-groups';
 
@@ -1130,6 +1131,7 @@ export default function Scoreboard() {
                       <div className="board-layout">
                         {activeResult?.split && <section className="panel"><div className="panel-heading"><h3>不平衡合約</h3><p className="footnote">下方牌局保留原始紀錄；判罰後各方分別依下列合約計分。</p>{(['ns','ew'] as const).map(side => <p key={side}>{side.toUpperCase()} 獲判：<Contract result={awardedResult(activeResult, side)} /> · <span className="mono">{signed(awardedResult(activeResult, side)!.nsScore * (side === 'ns' ? 1 : -1))}</span></p>)}</div></section>}
                         <section className="panel deal-panel">
+                          {activeResult?.hcp && <div className="panel-heading"><HcpSummary hcp={activeResult.hcp} /></div>}
                           {displayBoard !== selectedBoard && <div className="panel-heading"><p>裁判私下檢視 · 牌型與未發布成績僅在此裝置顯示</p><button type="button" className="button subtle" onClick={() => setPrivateDeal(null)}>關閉私下檢視</button><button type="button" className="button subtle" disabled={previewing} onClick={previewDeal}>更新私下成績</button></div>}
                           {displayBoard && hasDeal(displayBoard) && displayBoard.deal.N.length === 13 ? (
                             <DealExplorer
