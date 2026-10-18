@@ -6,7 +6,7 @@ import { SessionControl } from './session-control';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { listenForOutsideDismiss } from '@/lib/outside-dismiss';
 import { EventCalendar } from './event-calendar';
-import { ArrowLeft, ArrowRight, CalendarDays, Eye, EyeOff, MapPin, Plus, Trophy, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Copy, Eye, EyeOff, MapPin, Plus, Trophy, Users } from 'lucide-react';
 import { CreateCompetitionDialog, CreateDialog, Modal } from './event-dialogs';
 import { dateRangeLabel, includesDate } from '@/lib/date-range';
 import type { Competition } from '@/lib/competitions';
@@ -37,6 +37,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   }, [sessionExpanded]);
   const [creating, setCreating] = useState(false);
   const [addingStage, setAddingStage] = useState(false);
+  const [copying, setCopying] = useState(false);
   const [copyStage, setCopyStage] = useState<Competition['stages'][number] | null>(null);
   const [copyError, setCopyError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -74,7 +75,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             try {
               const response = await fetch('/api/session', { method: 'DELETE' });
               if (!response.ok) throw new Error('登出失敗，請再試一次。');
-              setCompetitions(previous => previous.filter(c => !c.archived)); setSession({ admin: false, director: false }); setSessionExpanded(false); setCreating(false); setAddingStage(false); setCopyStage(null); setEditing(false); setDeleting(false);
+              setCompetitions(previous => previous.filter(c => !c.archived)); setSession({ admin: false, director: false }); setSessionExpanded(false); setCreating(false); setAddingStage(false); setCopying(false); setCopyStage(null); setEditing(false); setDeleting(false);
             } catch (e) { setError((e as Error).message); }
           }} />
           {sessionExpanded && <div id="hub-account-menu" className="hub-account-menu">
@@ -96,7 +97,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             {competition.prefix && <p className="competition-prefix">{competition.prefix}</p>}
             <h1>{competition.name}</h1>{competition.archived && <p role="status">已封存 · 僅裁判可見</p>}
             <div className="competition-facts"><span><CalendarDays size={17} />{competitionDateLabel(competition)}</span><span><MapPin size={17} />{competition.venue || '地點未公布'}</span></div>
-            <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />新增賽段</button><button className="button subtle" disabled={busy} onClick={async () => {
+            <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />新增賽段</button><button className="button subtle" disabled={busy || !competition.stages.length} onClick={() => { setCopyStage(null); setCopyError(''); setCopying(true); }}><Copy size={16} />複製賽段</button><button className="button subtle" disabled={busy} onClick={async () => {
               setBusy(true); setError('');
               try {
                 await request(`/api/competitions/${competition.id}`, { name: competition.name, prefix: competition.prefix, venue: competition.venue, revision: competition.revision, requestId: crypto.randomUUID(), archived: !competition.archived }, 'PATCH');
@@ -117,7 +118,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
               <div className="competition-card-copy"><h3>{s.name}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.venue || '地點未公布'}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
               <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
-            </a>{session.director && <button type="button" className="button subtle" aria-label={`複製賽段：${s.name}`} onClick={() => { setCopyStage(s); setCopyError(''); }}>複製賽段</button>}</div>)}</div>
+            </a></div>)}</div>
             {!competition.stages.length && <p className="empty">尚未安排賽段，裁判可點選「新增賽段」。</p>}
           </section>
         </> : <>
@@ -142,21 +143,24 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       </main>
     </div>
     {creating && <CreateCompetitionDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}
-    {copyStage && session.director && <Modal title="複製賽段" onClose={() => { if (!busy) setCopyStage(null); }}>
+    {copying && competition && session.director && <Modal title="複製賽段" onClose={() => { if (!busy) { setCopying(false); setCopyStage(null); } }}>
       <form onSubmit={async e => {
-        e.preventDefault(); if (busy) return;
+        e.preventDefault(); if (busy || !copyStage) return;
         const form = new FormData(e.currentTarget); setBusy(true); setCopyError('');
         try {
           await request<{id:string}>(`/api/admin/events/${encodeURIComponent(copyStage.id)}/duplicate`, { name: String(form.get('copyName')), revision: copyStage.revision });
-          setCopyStage(null); setNotice('已複製賽段。'); await load();
+          setCopyStage(null); setCopying(false); setNotice('已複製賽段。'); await load();
         } catch (error) { setCopyError((error as Error).message); }
         finally { setBusy(false); }
       }}>
-        <p>來源賽段：{copyStage.name}</p>
-        <label className="field">副本名稱<input name="copyName" required maxLength={80} defaultValue={`${copyStage.name.slice(0,75)}（副本）`} /></label>
+        <label className="field">來源賽段<select required disabled={busy} value={copyStage?.id ?? ''} onChange={e => { setCopyStage(competition.stages.find(s => s.id === e.target.value) ?? null); setCopyError(''); }}>
+          <option value="" disabled>請選擇要複製的賽段</option>
+          {competition.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select></label>
+        <label className="field">副本名稱<input key={copyStage?.id ?? 'none'} name="copyName" required maxLength={80} disabled={busy || !copyStage} defaultValue={copyStage ? `${copyStage.name.slice(0,75)}（副本）` : ''} /></label>
         <p className="footnote">完整複製設定、名單、賽程、牌型、成績、判罰與發布進度至同一賽事。副本使用新網址，收分連結須重新簽發；後續修改互不影響。操作紀錄從本次複製開始。</p>
         {copyError && <p className="error-text" role="alert">{copyError}</p>}
-        <button className="button primary" disabled={busy}>{busy ? '複製中…' : '複製賽段'}</button>
+        <button className="button primary" disabled={busy || !copyStage}>{busy ? '複製中…' : '複製賽段'}</button>
       </form>
     </Modal>}
     {addingStage && competition && <CreateDialog competition={competition} onClose={() => { setAddingStage(false); void load().catch(e => setError(e.message)); }} onCreated={async () => { await load(); setAddingStage(false); }} />}
