@@ -139,7 +139,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}
         </>}
-        <footer className="page-footer"><div><AppVersion /></div></footer>
+        <footer className="page-footer"><div><AppVersion /> <span>／</span> 由臺灣大學橋藝社自主研發</div></footer>
       </main>
     </div>
     {creating && <CreateCompetitionDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}
