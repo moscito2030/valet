@@ -26,6 +26,7 @@ export function MovementPanel({
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 }) {
+  const [switchChoice, setSwitchChoice] = useState<number | null>(null);
   const [choice, setChoice] = useState('');
   const [preview, setPreview] = useState(false);
   const [rounds, setRounds] = useState(event.rounds || 3);
@@ -39,6 +40,8 @@ export function MovementPanel({
   } | null>(null);
   const draft = { ...event, rounds, boardsPerRound, byeVp };
   const options = movementOptions(draft);
+  const switchable = event.kind === 'pairs' && ['mitchell', 'mitchell-relay'].includes(choice);
+  const arrowSwitchRound = switchChoice ?? Math.floor(rounds / 2) + 1;
   const selectedOption = options.find((p) => p.id === choice);
   const size = selectedOption?.interleavedSize;
   const boardError = playerBoardError(rounds, boardsPerRound) ?? (selectedOption ? movementBoardError(boardsPerRound) : null);
@@ -48,7 +51,7 @@ export function MovementPanel({
       ? customGroups.groups
       : defaultInterleavedGroups(draft, size)
     : undefined;
-  const plan = selectedOption && !boardError ? buildMovement(draft, choice, groups) : null;
+  const plan = selectedOption && !boardError ? buildMovement(draft, choice, groups, switchable ? arrowSwitchRound : undefined) : null;
   const previewEvent = {
     assignments: plan?.assignments ?? [],
     teamMovement: size ? ('interleaved' as const) : undefined,
@@ -82,6 +85,7 @@ export function MovementPanel({
             disabled={locked}
             onChange={(e) => {
               setRounds(Number(e.target.value));
+              setSwitchChoice(null);
               setPreview(false);
             }}
           />
@@ -130,6 +134,13 @@ export function MovementPanel({
         {event.kind === 'pairs' &&
           '縮短循環對戰的圈數依編排表而定，並非固定為完整循環的四分之三。'}
       </p>
+      {switchable && <label className="field">
+        從第幾圈開始交換南北／東西
+        <select value={arrowSwitchRound} disabled={locked || busy} onChange={e => { setSwitchChoice(Number(e.target.value)); setPreview(false); }}>
+          {Array.from({length: rounds}, (_, i) => <option key={i + 1} value={i + 1}>第 {i + 1} 圈</option>)}
+        </select>
+        <small>預設為第一次超過半場的圈次。從該圈起，各桌交換 NS／EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。</small>
+      </label>}
       {boardError && <p role="alert">{boardError}</p>}
       {playerBoardWarning(rounds, boardsPerRound) && <p role="alert">{playerBoardWarning(rounds, boardsPerRound)}</p>}
       {plan && (
@@ -277,6 +288,7 @@ export function MovementPanel({
                   if (
                     await save({
                       action: 'movement-plan',
+                      ...(switchable ? { arrowSwitchRound } : {}),
                       plan: choice,
                       rounds,
                       boardsPerRound,

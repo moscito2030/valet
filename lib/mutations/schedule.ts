@@ -117,7 +117,7 @@ export function applyScheduleCommand(
       )
         throw new Error('僅奇數隊輪空編排可設定輪空 VP');
       if (command.byeVp !== undefined) e.byeVp = command.byeVp;
-      const plan = buildMovement(e, command.plan, command.interleavedGroups);
+      const plan = buildMovement(e, command.plan, command.interleavedGroups, command.arrowSwitchRound);
       e.boards = Array.from({ length: plan.boardCount }, (_, i) => {
         const old = e.boards.find((b) => b.number === i + 1);
         return {
