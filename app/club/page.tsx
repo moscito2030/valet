@@ -86,7 +86,7 @@ export default function ClubPage() {
           <p><strong>你的方向：{data.guide.direction === 'NS' ? '南北 NS' : '東西 EW'}</strong></p>
           <p>對手：{data.guide.opponentName}（{data.guide.opponentId.toUpperCase()}）</p>
           <p>牌號：{boardRange(data.guide.boards)}</p>
-          <p className="footnote">{data.phase === 'break' ? '本圈已結束，請依裁判指示移動至下一圈座位' : '本圈尚未結束，請等待裁判指示移動'}</p>
+          <p className="footnote">{data.phase === 'break' ? '本圈已結束，請移動並確認對手與牌號是否正確' : '本圈尚未結束，請等待裁判指示移動'}</p>
         </> : data.guide.kind === 'bye' ? <>
           <h2>第 {data.guide.round} 圈輪空</h2><p>下一圈沒有對手與牌組，無需登分或確認。請依裁判指示休息。</p>
         </> : data.guide.kind === 'pending' ? <>
