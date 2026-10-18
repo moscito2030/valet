@@ -1,3 +1,4 @@
+import { awardPlacesFor, hasDirectionalAwards } from '@/lib/awards';
 import { boardGroups, boardRange } from '@/lib/board-groups';
 import { PairNames } from '../pair-names';
 import { AdminEvent, api } from '../scoreboard-shared';
@@ -138,25 +139,19 @@ export function PublicationPanel({
           void save({
             action: 'settings',
             status: event.status,
-            awardPlaces: Number(form.get('awardPlaces')),
+            ...(hasDirectionalAwards(event) ? { awardPlacesNS: Number(form.get('awardPlacesNS')), awardPlacesEW: Number(form.get('awardPlacesEW')) } : { awardPlaces: Number(form.get('awardPlaces')) }),
             awardDescription: String(form.get('awardDescription') ?? ''),
             movementDescription: String(form.get('movementDescription') ?? ''),
             reason: '設定給獎與賽程說明',
           });
         }}
       >
-        <label className="field">
-          給獎至第幾名（0 表示不給獎）
-          <input
-            key={event.awardPlaces ?? 3}
-            name="awardPlaces"
-            type="number"
-            min="0"
-            max="32"
-            required
-            defaultValue={event.awardPlaces ?? 3}
-          />
-        </label>
+        {(hasDirectionalAwards(event) ? ['NS', 'EW'] : ['']).map(side => (
+          <label className="field" key={side}>
+            {side && side + ' '}給獎至第幾名（0 表示不給獎）
+            <input key={awardPlacesFor(event, side)} name={'awardPlaces' + side} type="number" min="0" max="32" required defaultValue={awardPlacesFor(event, side)} />
+          </label>
+        ))}
         <label className="field">
           給獎內容
           <textarea

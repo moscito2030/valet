@@ -20,6 +20,8 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     boardsPerRound: event.boardsPerRound,
     maxBoardNumber: event.maxBoardNumber,
     awardPlaces: event.awardPlaces,
+    awardPlacesNS: event.awardPlacesNS,
+    awardPlacesEW: event.awardPlacesEW,
     awardDescription: event.awardDescription,
     movementDescription: event.movementDescription,
     movementImported: event.movementImported,

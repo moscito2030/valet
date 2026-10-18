@@ -1,3 +1,4 @@
+import { awardPlacesFor } from '@/lib/awards';
 import type { PublicEvent } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { allRoundsComplete } from '@/lib/round-progress';
@@ -110,7 +111,7 @@ export function StandingsView({
               <tr key={s.id} className={follow === `${id}:${s.id}` ? 'followed' : ''}>
                 <td>
                   <span className={`rank rank-${s.rank}`}>
-                    {s.rank <= (event.awardPlaces ?? 3) ? (
+                    {s.rank <= awardPlacesFor(event, s.group) ? (
                       <>
                         <Trophy size={13} />
                         {rankLabel(s)}

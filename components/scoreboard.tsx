@@ -1,4 +1,5 @@
 'use client';
+import { awardRangeDescription } from '@/lib/awards';
 import { AppVersion } from './app-version';
 
 import { dateRangeLabel } from '@/lib/date-range';
@@ -499,9 +500,7 @@ export default function Scoreboard() {
                   <div id="award-information" popover="auto" className="player-detail-popover">
                     <strong>給獎資訊</strong>
                     <div>
-                      {(event.awardPlaces ?? 3) === 0
-                        ? '不給獎'
-                        : '給獎範圍：前 ' + (event.awardPlaces ?? 3) + ' 名（同分並列）'}
+                      {awardRangeDescription(event)}
                     </div>
                     <div className="description-text">
                       {event.awardDescription || '尚未公布給獎內容'}

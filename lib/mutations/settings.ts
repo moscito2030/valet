@@ -1,3 +1,4 @@
+import { hasDirectionalAwards } from '../awards';
 import { DomainError } from '../domain-error';
 import { Mutation } from '../model';
 import { swissRoundComplete } from '../swiss';
@@ -63,6 +64,11 @@ export function applySettingsCommand(
     if (e.endDate && e.endDate < e.date) throw new DomainError('結束日期不可早於開始日期');
     if (command.name !== undefined) e.name = command.name;
     if (command.prefix !== undefined) e.prefix = command.prefix;
+    if (command.awardPlacesNS !== undefined || command.awardPlacesEW !== undefined) {
+      if (!hasDirectionalAwards(e)) throw new DomainError('NS／EW 給獎範圍僅適用 Double Winner');
+      if (command.awardPlacesNS !== undefined) e.awardPlacesNS = command.awardPlacesNS;
+      if (command.awardPlacesEW !== undefined) e.awardPlacesEW = command.awardPlacesEW;
+    }
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;
     if (command.awardDescription !== undefined) e.awardDescription = command.awardDescription;
     if (command.movementDescription !== undefined)
