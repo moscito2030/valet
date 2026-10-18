@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import { defaultInterleavedGroups, roundLabel, type InterleavedGroups } from '@/lib/team-movement';
 import { buildMovement, movementOptions, movementBoardError } from '@/lib/movement-plans';
+import { Modal } from './event-dialogs';
 import { parseAcblMovement } from '@/lib/acbl-movement';
 
 export function MovementPanel({
@@ -27,6 +28,7 @@ export function MovementPanel({
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [switchChoice, setSwitchChoice] = useState<number | null>(null);
   const [choice, setChoice] = useState('');
   const [movementFile, setMovementFile] = useState<number[] | undefined>();
@@ -224,82 +226,104 @@ export function MovementPanel({
         </select>
       </label>
       {event.kind === 'pairs' && selectedOption && (
-        <details>
-          <summary>共牌、輪空與搭檔對照</summary>
-          <label className="field">
-            牌組對照（選填）
-            <input
-              value={groupOrderText}
-              disabled={locked}
-              placeholder="例如：3, 1, 2"
-              onChange={(e) => {
-                setGroupOrderText(e.target.value);
-                setPreview(false);
-              }}
-            />
-            <small>
-              依原牌組順序填入實際牌組，須完整且不重複。每組依每圈牌數展開；留空沿用原編排。
-            </small>
-          </label>
-          <label className="field">
-            牌組安排
-            <select
-              value={barometer ? 'same' : 'original'}
-              disabled={locked}
-              onChange={(e) => {
-                setBarometer(e.target.value === 'same');
-                setPreview(false);
-              }}
-            >
-              <option value="original">依原編排輪轉牌組</option>
-              <option value="same">全場共牌（Barometer）：每圈各桌使用相同新牌</option>
-            </select>
-          </label>
-          {plan?.hasPhantom && (
-            <label className="field">
-              輪空搭檔位置
-              <select
-                value={phantom ?? plan.capacity}
-                disabled={locked}
-                onChange={(e) => {
-                  setPhantom(Number(e.target.value));
-                  setPreview(false);
-                }}
-              >
-                {Array.from({ length: plan.capacity }, (_, i) => (
-                  <option key={i} value={i + 1}>
-                    編排位置 {i + 1}
-                  </option>
-                ))}
-              </select>
-              <small>此位置不安排賽員；遇到此位置的搭檔輪空。其餘位置依下方名單順序填入。</small>
-            </label>
-          )}
-          <div className="form-grid">
-            {(pairOrder ?? event.participants.map((p) => p.id)).map((id, index) => (
-              <label className="field" key={index}>
-                名單順序 {index + 1}
+        <>
+          <button
+            type="button"
+            className="button secondary"
+            aria-haspopup="dialog"
+            onClick={() => setSettingsOpen(true)}
+          >
+            共牌、輪空與搭檔對照
+          </button>
+          {settingsOpen && (
+            <Modal title="共牌、輪空與搭檔對照" onClose={() => setSettingsOpen(false)}>
+              <p className="footnote">設定保留於本次編排草稿；關閉後請預覽並套用賽程。</p>
+              <label className="field">
+                牌組對照（選填）
+                <input
+                  value={groupOrderText}
+                  disabled={locked}
+                  placeholder="例如：3, 1, 2"
+                  onChange={(e) => {
+                    setGroupOrderText(e.target.value);
+                    setPreview(false);
+                  }}
+                />
+                <small>
+                  依原牌組順序填入實際牌組，須完整且不重複。每組依每圈牌數展開；留空沿用原編排。
+                </small>
+              </label>
+              <label className="field">
+                牌組安排
                 <select
-                  value={id}
+                  value={barometer ? 'same' : 'original'}
                   disabled={locked}
                   onChange={(e) => {
-                    const next = [...(pairOrder ?? event.participants.map((p) => p.id))];
-                    const previous = next.indexOf(e.target.value);
-                    [next[index], next[previous]] = [next[previous], next[index]];
-                    setPairOrder(next);
+                    setBarometer(e.target.value === 'same');
                     setPreview(false);
                   }}
                 >
-                  {event.participants.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.id} · {p.name}
-                    </option>
-                  ))}
+                  <option value="original">依原編排輪轉牌組</option>
+                  <option value="same">全場共牌（Barometer）：每圈各桌使用相同新牌</option>
                 </select>
               </label>
-            ))}
-          </div>
-        </details>
+              {plan?.hasPhantom && (
+                <label className="field">
+                  輪空搭檔位置
+                  <select
+                    value={phantom ?? plan.capacity}
+                    disabled={locked}
+                    onChange={(e) => {
+                      setPhantom(Number(e.target.value));
+                      setPreview(false);
+                    }}
+                  >
+                    {Array.from({ length: plan.capacity }, (_, i) => (
+                      <option key={i} value={i + 1}>
+                        編排位置 {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <small>
+                    此位置不安排賽員；遇到此位置的搭檔輪空。其餘位置依下方名單順序填入。
+                  </small>
+                </label>
+              )}
+              <div className="form-grid">
+                {(pairOrder ?? event.participants.map((p) => p.id)).map((id, index) => (
+                  <label className="field" key={index}>
+                    名單順序 {index + 1}
+                    <select
+                      value={id}
+                      disabled={locked}
+                      onChange={(e) => {
+                        const next = [...(pairOrder ?? event.participants.map((p) => p.id))];
+                        const previous = next.indexOf(e.target.value);
+                        [next[index], next[previous]] = [next[previous], next[index]];
+                        setPairOrder(next);
+                        setPreview(false);
+                      }}
+                    >
+                      {event.participants.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.id} · {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+              {planError && <p role="alert">{planError}</p>}
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => setSettingsOpen(false)}
+              >
+                完成設定
+              </button>
+            </Modal>
+          )}
+        </>
       )}
       {planError && <p role="alert">{planError}</p>}
       <p className="footnote">

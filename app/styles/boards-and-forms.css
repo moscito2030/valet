@@ -403,13 +403,3 @@
   color: #a5af9a;
   font-size: 10px;
 }
-.audit-item details {
-  margin-top: 12px;
-}
-.audit-item summary {
-  cursor: pointer;
-  color: #658051;
-}
-.audit-item details p {
-  font-size: 11px;
-}

@@ -1,4 +1,5 @@
 'use client';
+import { Modal } from './event-dialogs';
 import { useState } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import { swissBasisChanged, swissPreview, swissRoundComplete } from '@/lib/swiss';
@@ -15,6 +16,7 @@ export function SwissPanel({
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 }) {
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [mode, setMode] = useState<'current' | 'delayed'>(event.swiss?.mode ?? 'current');
   const [rounds, setRounds] = useState(event.rounds || 3);
   const [boards, setBoards] = useState(event.boardsPerRound || 8);
@@ -253,16 +255,27 @@ export function SwissPanel({
             </>
           )}
           {!!event.swiss.publications.length && (
-            <details>
-              <summary>配對公布紀錄</summary>
-              {event.swiss.publications.map((p, i) => (
-                <p key={i}>
-                  第 {p.round} 圈 · 依據第 {p.sourceRound} 圈 · 版本 {p.sourceRevision} ·{' '}
-                  {p.pairs.map(([a, b]) => `${name(a)} vs ${name(b)}`).join('；')}
-                  {p.bye ? `；${name(p.bye)} 輪空` : ''}
-                </p>
-              ))}
-            </details>
+            <>
+              <button
+                type="button"
+                className="button secondary"
+                aria-haspopup="dialog"
+                onClick={() => setHistoryOpen(true)}
+              >
+                配對公布紀錄
+              </button>
+              {historyOpen && (
+                <Modal title="配對公布紀錄" onClose={() => setHistoryOpen(false)}>
+                  {event.swiss.publications.map((p, i) => (
+                    <p key={i}>
+                      第 {p.round} 圈 · 依據第 {p.sourceRound} 圈 · 版本 {p.sourceRevision} ·{' '}
+                      {p.pairs.map(([a, b]) => `${name(a)} vs ${name(b)}`).join('；')}
+                      {p.bye ? `；${name(p.bye)} 輪空` : ''}
+                    </p>
+                  ))}
+                </Modal>
+              )}
+            </>
           )}
         </>
       )}
