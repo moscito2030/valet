@@ -2,7 +2,7 @@ import type { ResultInput } from '@/lib/model';
 import { miniGameLevel } from '@/lib/scoring';
 
 export function MiniContractFields({ value, onChange }: { value: ResultInput; onChange: (value: ResultInput) => void }) {
-  return <label className="field">MiniBridge 合約
+  return <label className="field">迷你橋牌 合約
     <select value={`${value.strain}-${value.level === 1 ? 'part' : 'game'}`} onChange={e => {
       const [strain, target] = e.target.value.split('-') as [ResultInput['strain'], string];
       const level = target === 'part' ? 1 : miniGameLevel(strain);

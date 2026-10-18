@@ -403,7 +403,7 @@ export default function Scoreboard() {
                       </div>
                       <div className="event-meta">
                         <span className="event-format">
-                          {event.gameMode === 'minibridge' && 'MiniBridge · 無身價 · '}
+                          {event.gameMode === 'minibridge' && '迷你橋牌 · 無身價 · '}
                           {event.kind === 'teams'
                             ? 'IMP · WBF 20-0 VP'
                             : `${methodNames[pairMethod]} · ${event.participants.every((p) => p.group) ? 'NS／EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}

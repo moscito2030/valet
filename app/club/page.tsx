@@ -104,7 +104,7 @@ export default function ClubPage() {
         </> : <p>{data.round ? data.mode === 'table' ? '本桌本圈尚無可收分安排，請等待裁判。' : '本圈輪空，無需輸入或確認。' : '等待裁判指定目前圈數。'}</p>}
       </section>
       {draft && editable && <form className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
-        <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? 'MiniBridge · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
+        <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? '迷你橋牌 · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
         <div className="form-grid">
           {data.gameMode === 'minibridge' ? <><HcpFields value={draft} onChange={setDraft} dealer={board?.dealer ?? 'N'} /><MiniContractFields value={draft} onChange={setDraft} /></> : <>
           <label className="field">線位<select value={draft.level} onChange={e => { const level = Number(e.target.value); setDraft({ ...draft, level, tricks: level ? level + 6 : 0, doubled: 1 }); }}>{Array.from({ length: 8 }, (_, n) => <option key={n} value={n}>{n || 'Pass'}</option>)}</select></label>

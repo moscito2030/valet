@@ -134,7 +134,7 @@ export function CreateDialog({
             onChange={(e) => setGameMode(e.target.value as 'bridge' | 'minibridge')}
           >
             <option value="bridge">一般橋牌</option>
-            <option value="minibridge">MiniBridge 迷你橋牌</option>
+            <option value="minibridge">迷你橋牌</option>
           </select>
         </label>
         {gameMode === 'minibridge' && <p>五種花色 × 一線／成局，共 10 種合約；無身價、不加倍。</p>}

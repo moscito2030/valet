@@ -34,9 +34,9 @@ test('MiniBridge rejects ordinary levels, pass, doubles and slams', () => {
   for (const strain of ['C', 'D', 'H', 'S', 'NT'] as const) {
     for (let level = 0; level <= 7; level++) {
       if (level === 1 || level === miniGameLevel(strain)) continue;
-      assert.throws(() => contractScore(input(strain, level), 'None'), /MiniBridge/);
+      assert.throws(() => contractScore(input(strain, level), 'None'), /迷你橋牌/);
     }
-    for (const doubled of [2, 4] as const) assert.throws(() => contractScore({ ...input(strain, 1), doubled }, 'None'), /MiniBridge/);
+    for (const doubled of [2, 4] as const) assert.throws(() => contractScore({ ...input(strain, 1), doubled }, 'None'), /迷你橋牌/);
   }
 });
 test('MiniBridge event persists mode, scores on server and supports cancellation and restoration', () => {
@@ -53,7 +53,7 @@ test('MiniBridge event persists mode, scores on server and supports cancellation
   const imported = parseResultsCsv(exportResultsCsv(stored.event));
   assert.equal(imported[0].level, 4);
   assert.equal(imported[0].strain, 'H');
-  assert.throws(() => applyMutation(stored, { ...meta(), action: 'results', results: [{ ...result, doubled: 2 }] }), /MiniBridge/);
+  assert.throws(() => applyMutation(stored, { ...meta(), action: 'results', results: [{ ...result, doubled: 2 }] }), /迷你橋牌/);
   stored = applyMutation(stored, { ...meta(), action: 'ruling', assignmentId: result.assignmentId, board: 1, cancelled: true });
   assert.equal(stored.event.results[key].nsScore, 0);
   stored = applyMutation(stored, { ...meta(), action: 'ruling', assignmentId: result.assignmentId, board: 1, cancelled: false, result });
@@ -75,5 +75,5 @@ test('MiniBridge PBN import removes vulnerability and table input uses the same 
   stored = applyMutation(stored, { ...meta(), action: 'club-play', tokenHash, round: 1, confirm: false, result });
   assert.equal(stored.event.results[`${a.id}:1`].nsScore, 270);
   assert.equal(clubView(stored.event, a.ns).boards[0].result?.miniBridge, true);
-  assert.throws(() => applyMutation(stored, { ...meta(), action: 'club-play', tokenHash, round: 1, confirm: false, result: { ...result, level: 6 } }), /MiniBridge/);
+  assert.throws(() => applyMutation(stored, { ...meta(), action: 'club-play', tokenHash, round: 1, confirm: false, result: { ...result, level: 6 } }), /迷你橋牌/);
 });

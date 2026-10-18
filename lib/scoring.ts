@@ -80,7 +80,7 @@ export function miniGameLevel(strain: ResultInput['strain']) {
 }
 export function contractScore(r: ResultInput, vulnerability: Vulnerability, miniBridge = r.miniBridge ?? false): number {
   if (miniBridge && (r.doubled !== 1 || (r.level !== 1 && r.level !== miniGameLevel(r.strain)))) {
-    throw new Error('MiniBridge 僅接受一線或成局合約，不可 Pass、加倍或再加倍');
+    throw new Error('迷你橋牌 僅接受一線或成局合約，不可 Pass、加倍或再加倍');
   }
   if (r.level === 0) return 0;
   const ns = r.declarer === 'N' || r.declarer === 'S';
