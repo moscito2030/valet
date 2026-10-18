@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createEvent } from '../lib/domain/event-factory';
+import { duplicateStage } from '../lib/domain/duplicate-stage';
+import { project } from '../lib/scoring';
+import { audienceEvent } from '../lib/club-view';
+for (const kind of ['pairs','teams'] as const) test(`${kind} full stage copy preserves scores and publication without sharing credentials or objects`, () => {
+  const source = createEvent({kind,name:'Source',names:['A','B','C','D'],date:'2026-10-19',venue:'Hall',rounds:1,boardsPerRound:2});
+  const a=source.assignments[0];
+  source.results[`${a.id}:1`]={assignmentId:a.id,board:1,level:1,strain:'NT',doubled:1,declarer:'N',tricks:7,lead:'',nsScore:90,updatedAt:'now'};
+  source.club={enabled:true,mode:'table',tokens:{device:'fixture-only'},confirmations:{},finalized:[]};
+  source.penalties={[source.participants[0].id]:1};
+  const original=structuredClone(source),copy=duplicateStage(source,'Copy');
+  assert.notEqual(copy.id,source.id);
+  assert.equal(copy.parentEventId,source.id);
+  assert.equal(copy.stageName,'Copy');
+  assert.deepEqual(copy.club?.tokens,{});
+  assert.deepEqual(project(copy),project(source));
+  assert.deepEqual(audienceEvent(copy).results,audienceEvent(source).results);
+  assert.equal(copy.audit.length,1);
+  assert.equal(copy.revision,1);
+  copy.results[`${a.id}:1`].nsScore=999;
+  copy.participants[0].name='Changed';
+  assert.deepEqual(source,original);
+  source.parentEventId='parent';
+  assert.equal(duplicateStage(source,'Sibling').parentEventId,'parent');
+});

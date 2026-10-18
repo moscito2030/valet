@@ -26,6 +26,24 @@ export function PublicationPanel({
 }: Props) {
   return (
     <>
+      {event.canDirect && <form className="event-identity-form" key={`copy-${event.id}`} onSubmit={async e => {
+        e.preventDefault();
+        if (busy) return;
+        const form = new FormData(e.currentTarget);
+        setBusy(true); setError('');
+        try {
+          const copy = await api<{ id: string }>(`/api/admin/events/${encodeURIComponent(eventId)}/duplicate`, {
+            method: 'POST', body: JSON.stringify({ name: String(form.get('copyName')), revision: event.revision }),
+          });
+          location.assign(`/?event=${encodeURIComponent(copy.id)}&view=standings`);
+        } catch (error) { setError((error as Error).message); }
+        finally { setBusy(false); }
+      }}>
+        <h4>複製目前賽段</h4>
+        <label className="field">副本名稱<input name="copyName" required maxLength={80} defaultValue={`${(event.stageName || event.name).slice(0, 75)}（副本）`} /></label>
+        <p className="footnote">完整複製至同一賽事：設定、名單、賽程、牌型、成績、判罰與發布進度都保留。副本使用新網址，收分連結須重新簽發；後續修改互不影響。操作紀錄從本次複製開始。</p>
+        <button className="button subtle" disabled={busy}>複製賽段</button>
+      </form>}
       {event.canDirect && event.kind === 'pairs' && (
         <PairNames participants={event.participants} busy={busy} save={save} />
       )}
