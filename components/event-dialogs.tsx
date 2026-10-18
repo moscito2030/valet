@@ -1,5 +1,4 @@
 'use client';
-import { MAX_PLAYER_BOARDS, playerBoardError, playerBoardWarning } from '@/lib/schedule-limits';
 import type { Kind } from '@/lib/model';
 import { Info, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -68,9 +67,6 @@ export function CreateDialog({
   const [kind, setKind] = useState<Kind>('teams'),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
-  const [plannedRounds, setPlannedRounds] = useState(0);
-  const [plannedBoards, setPlannedBoards] = useState<number | null>(null);
-  const count = plannedBoards ?? (kind === 'teams' ? 8 : 2);
   const [method, setMethod] = useState('mp');
   const [rankingMode, setRankingMode] = useState<'single' | 'double'>('single');
   const [gameMode, setGameMode] = useState<'bridge' | 'minibridge'>('bridge');
@@ -99,8 +95,6 @@ export function CreateDialog({
         ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
         venue: competition?.venue ?? form.get('venue'),
         ...(competition && customVenue ? { venueOverride: String(form.get('venueOverride') ?? '') } : {}),
-        rounds: kind === 'teams' && form.get('rounds') ? Number(form.get('rounds')) : undefined,
-        boardsPerRound: form.get('boardsPerRound') ? Number(form.get('boardsPerRound')) : undefined,
         names: grouped ? [...lines('nsNames'), ...lines('ewNames')] : lines('names'),
       };
       const res = await api<{ id: string }>(
@@ -145,19 +139,18 @@ export function CreateDialog({
             此賽段使用獨立日期、名單、賽制與成績。
           </p>
         )}
-        {kind === 'teams' && (playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)) && <p role="alert">{playerBoardError(plannedRounds, count) || playerBoardWarning(plannedRounds, count)}</p>}
         <div className="segmented">
           <button
             type="button"
             className={kind === 'teams' ? 'selected' : ''}
-            onClick={() => (setKind('teams'), setPlannedBoards(null))}
+            onClick={() => setKind('teams')}
           >
             隊制賽 · IMP / VP
           </button>
           <button
             type="button"
             className={kind === 'pairs' ? 'selected' : ''}
-            onClick={() => (setKind('pairs'), setPlannedBoards(null))}
+            onClick={() => setKind('pairs')}
           >
             雙人賽
           </button>
@@ -267,23 +260,6 @@ export function CreateDialog({
             <label><input type="checkbox" checked={customVenue} onChange={e => setCustomVenue(e.target.checked)} /> 此賽段另設地點</label>
             {customVenue ? <input aria-label="賽段地點" name="venueOverride" maxLength={80} placeholder="留空表示此賽段地點未定" /> : <span className="footnote">沿用賽事地點：{competition.venue || '未公布'}</span>}
           </div>}
-          {kind === 'teams' && <label className="field">
-            圈數（選填）
-            <input name="rounds" type="number" min={1} max={MAX_PLAYER_BOARDS} onChange={e => setPlannedRounds(Number(e.target.value))} placeholder="稍後設定" />
-          </label>}
-          <label className="field">
-            每圈牌數
-            <input
-              name="boardsPerRound"
-              onChange={e => setPlannedBoards(Number(e.target.value))}
-              type="number"
-              min={1}
-              max={16}
-              defaultValue={kind === 'teams' ? 8 : 2}
-              key={kind}
-            />
-          </label>
-          <p className="footnote create-details-help">{kind === 'teams' ? '圈數可留空，稍後設定賽程；每圈牌數也可稍後調整。' : '每圈牌數可先填，具體圈數與賽程於建立後設定。'}</p>
         </div>
         {kind === 'pairs' && <label className="field">排名方式
           <select value={rankingMode} onChange={e => setRankingMode(e.target.value as 'single' | 'double')}>
@@ -310,7 +286,7 @@ export function CreateDialog({
           />
         </label>}
         <p className="footnote">
-          {kind === 'teams' ? '圈數留空時僅建立名單。預設為兩室循環對戰；奇數隊每圈一隊輪空，預設 12 VP。交錯循環與其他編排請至裁判「匯入／匯出」設定。' : '先建立名單與排名方式，不產生牌號或桌次；進入賽段後預覽並套用賽程，才能開始收分。'}
+          先建立賽段與名單，不產生牌號或桌次；進入賽段後至裁判「匯入／匯出 → 指定賽程編排」，一起設定圈數、每圈牌數與編排，預覽並套用後才能開始收分。
         </p>
         {error && (
           <p className="error-text" role="alert">
