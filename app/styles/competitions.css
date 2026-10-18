@@ -25,7 +25,7 @@
 .delete-competition-option strong { display: block; font-size: 14px; }
 .delete-competition-option small { display: block; margin-top: 4px; color: var(--muted); }
 .valet-system-title { white-space: nowrap; }
-.valet-wordmark { font-family: Georgia, 'Times New Roman', serif; letter-spacing: -0.045em; }
+.valet-wordmark { font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; letter-spacing: 0.035em; }
 .valet-wordmark sub, .valet-wordmark sup { position: relative; vertical-align: baseline; font-size: 0.72em; line-height: 0; }
 .valet-wordmark sub { bottom: -0.22em; margin-left: -0.08em; margin-right: -0.03em; }
 .valet-wordmark sup { top: -0.25em; margin-left: -0.08em; margin-right: -0.05em; }
@@ -119,7 +119,7 @@
 .valet-brand .valet-brand-diamond { color: #b88370; font-size: 25px; line-height: 1; }
 .valet-brand:hover { opacity: 0.8; }
 
-.valet-brand .valet-wordmark, .sidebar-wordmark { display: inline-block; font-family: 'Bodoni MT', Didot, 'Times New Roman', serif; font-weight: 500; -webkit-text-stroke: 0.2px currentColor; letter-spacing: 0.035em; transform: scaleX(0.88); transform-origin: left center; margin-right: -0.42em; }
+.valet-brand .valet-wordmark, .sidebar-wordmark { display: inline-block; font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; letter-spacing: 0.035em; }
 .hub-account { position: relative; flex-shrink: 0; z-index: 30; background: #edf1eb; border-radius: 12px; }
 .hub-account.expanded { border-radius: 12px 12px 0 0; }
 .hub-account .hub-session { border-radius: inherit; }
