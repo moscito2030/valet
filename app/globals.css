@@ -216,6 +216,7 @@ small {
 .main-shell {
   margin-left: 234px;
   width: calc(100% - 234px);
+  min-width: 0;
 }
 .topbar {
   height: 72px;
