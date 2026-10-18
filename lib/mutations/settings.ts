@@ -70,6 +70,7 @@ export function applySettingsCommand(
       if (command.awardPlacesEW !== undefined) e.awardPlacesEW = command.awardPlacesEW;
     }
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;
+    if (command.winAward !== undefined) e.winAward = command.winAward;
     if (command.awardDescription !== undefined) e.awardDescription = command.awardDescription;
     if (command.movementDescription !== undefined)
       e.movementDescription = command.movementDescription;

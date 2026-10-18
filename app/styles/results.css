@@ -483,3 +483,6 @@ table a:focus-visible {
     display: inline;
   }
 }
+
+.win-awards { padding: 24px; border-top: 1px solid #e3e7df; }
+.win-awards h3 { margin: 0 0 12px; }

@@ -141,6 +141,7 @@ export function PublicationPanel({
             status: event.status,
             ...(hasDirectionalAwards(event) ? { awardPlacesNS: Number(form.get('awardPlacesNS')), awardPlacesEW: Number(form.get('awardPlacesEW')) } : { awardPlaces: Number(form.get('awardPlaces')) }),
             awardDescription: String(form.get('awardDescription') ?? ''),
+            winAward: { enabled: form.get('winAwardEnabled') === 'true', win: Number(form.get('winAwardWin')), loss: Number(form.get('winAwardLoss')), draw: Number(form.get('winAwardDraw')) },
             movementDescription: String(form.get('movementDescription') ?? ''),
             reason: '設定給獎與賽程說明',
           });
@@ -152,6 +153,20 @@ export function PublicationPanel({
             <input key={awardPlacesFor(event, side)} name={'awardPlaces' + side} type="number" min="0" max="32" required defaultValue={awardPlacesFor(event, side)} />
           </label>
         ))}
+        <label className="field">
+          勝場獎統計
+          <select name="winAwardEnabled" key={String(event.winAward?.enabled)} defaultValue={String(event.winAward?.enabled ?? false)}>
+            <option value="false">關閉</option><option value="true">開啟</option>
+          </select>
+        </label>
+        <div className="form-grid">
+          {([['Win', '勝', event.winAward?.win ?? 2], ['Loss', '負', event.winAward?.loss ?? 0], ['Draw', '和', event.winAward?.draw ?? 1]] as const).map(([key, label, value]) => (
+            <label className="field" key={key}>每{label}一圈的獎勵倍數
+              <input key={value} name={'winAward' + key} type="number" min="0" max="10000" step="any" required defaultValue={value} />
+            </label>
+          ))}
+        </div>
+        <p className="footnote">勝場獎與總排名無關。例：勝／負／和設為 2／0／1，或 2／0／0。</p>
         <label className="field">
           給獎內容
           <textarea

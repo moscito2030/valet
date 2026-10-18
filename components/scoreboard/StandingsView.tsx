@@ -1,3 +1,4 @@
+import { WinAwards } from './WinAwards';
 import { awardPlacesFor } from '@/lib/awards';
 import type { PublicEvent } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
@@ -207,6 +208,7 @@ export function StandingsView({
         </table>
         {rows.length === 0 && <div className="empty compact">沒有符合的參賽者</div>}
       </div>)}
+      <WinAwards event={event} participantIds={visibleStandings.map(s => s.id)} />
       <div className="table-footer">
         <span>
           <i className="live-dot" />
