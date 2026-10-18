@@ -37,6 +37,8 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   }, [sessionExpanded]);
   const [creating, setCreating] = useState(false);
   const [addingStage, setAddingStage] = useState(false);
+  const [copyStage, setCopyStage] = useState<Competition['stages'][number] | null>(null);
+  const [copyError, setCopyError] = useState('');
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState('');
@@ -72,7 +74,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             try {
               const response = await fetch('/api/session', { method: 'DELETE' });
               if (!response.ok) throw new Error('登出失敗，請再試一次。');
-              setCompetitions(previous => previous.filter(c => !c.archived)); setSession({ admin: false, director: false }); setSessionExpanded(false); setCreating(false); setAddingStage(false); setEditing(false); setDeleting(false);
+              setCompetitions(previous => previous.filter(c => !c.archived)); setSession({ admin: false, director: false }); setSessionExpanded(false); setCreating(false); setAddingStage(false); setCopyStage(null); setEditing(false); setDeleting(false);
             } catch (e) { setError((e as Error).message); }
           }} />
           {sessionExpanded && <div id="hub-account-menu" className="hub-account-menu">
@@ -111,11 +113,11 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><label className="field">前綴<input name="prefix" maxLength={80} defaultValue={competition.prefix} /></label><div className="form-grid"><label className="field">地點<input name="venue" maxLength={80} defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
           <section aria-label="選擇賽段">
             <div className="hub-section-heading"><h2>選擇賽段</h2><p>各賽段的日期、名單、賽制與成績各自獨立。</p></div>
-            <div className="competition-grid competition-list">{competition.stages.map(s => <a key={s.id} className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
+            <div className="competition-grid competition-list">{competition.stages.map(s => <div key={s.id}><a className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
               <div className="competition-card-copy"><h3>{s.name}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.venue || '地點未公布'}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
               <span className="competition-status">{s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
-            </a>)}</div>
+            </a>{session.director && <button type="button" className="button subtle" aria-label={`複製賽段：${s.name}`} onClick={() => { setCopyStage(s); setCopyError(''); }}>複製賽段</button>}</div>)}</div>
             {!competition.stages.length && <p className="empty">尚未安排賽段，裁判可點選「新增賽段」。</p>}
           </section>
         </> : <>
@@ -140,6 +142,23 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       </main>
     </div>
     {creating && <CreateCompetitionDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}
+    {copyStage && session.director && <Modal title="複製賽段" onClose={() => { if (!busy) setCopyStage(null); }}>
+      <form onSubmit={async e => {
+        e.preventDefault(); if (busy) return;
+        const form = new FormData(e.currentTarget); setBusy(true); setCopyError('');
+        try {
+          await request<{id:string}>(`/api/admin/events/${encodeURIComponent(copyStage.id)}/duplicate`, { name: String(form.get('copyName')), revision: copyStage.revision });
+          setCopyStage(null); setNotice('已複製賽段。'); await load();
+        } catch (error) { setCopyError((error as Error).message); }
+        finally { setBusy(false); }
+      }}>
+        <p>來源賽段：{copyStage.name}</p>
+        <label className="field">副本名稱<input name="copyName" required maxLength={80} defaultValue={`${copyStage.name.slice(0,75)}（副本）`} /></label>
+        <p className="footnote">完整複製設定、名單、賽程、牌型、成績、判罰與發布進度至同一賽事。副本使用新網址，收分連結須重新簽發；後續修改互不影響。操作紀錄從本次複製開始。</p>
+        {copyError && <p className="error-text" role="alert">{copyError}</p>}
+        <button className="button primary" disabled={busy}>{busy ? '複製中…' : '複製賽段'}</button>
+      </form>
+    </Modal>}
     {addingStage && competition && <CreateDialog competition={competition} onClose={() => { setAddingStage(false); void load().catch(e => setError(e.message)); }} onCreated={async () => { await load(); setAddingStage(false); }} />}
     {deleting && session.director && competition && <DeleteStagesDialog competition={competition} onClose={() => setDeleting(false)} onDeleted={async rootDeleted => { setDeleting(false); if (rootDeleted) location.assign('/'); else { setNotice('已刪除賽段。'); await load(); } }} />}
     {deleting && session.director && !competitionId && <DeleteCompetitionsDialog competitions={competitions} onClose={() => setDeleting(false)} onRefresh={load} onDeleted={async count => {
