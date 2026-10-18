@@ -74,12 +74,12 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   const switchable = !doubleWinner && event.kind === 'pairs' && (id === 'mitchell' || id === 'mitchell-relay');
   const switchRound = arrowSwitchRound ?? Math.floor(event.rounds / 2) + 1;
   if (arrowSwitchRound !== undefined && !switchable) throw new Error('交換方位僅適用單冠軍米契爾編排');
-  if (switchable && (!Number.isInteger(switchRound) || switchRound < 1 || switchRound > event.rounds)) throw new Error('交換方位圈次須在賽程範圍內');
-  if (switchable) option.note += ` 從第 ${switchRound} 圈起交換所有桌的南北／東西方向，之後維持交換；移動路線與牌組不變。`;
+  if (switchable && (!Number.isInteger(switchRound) || switchRound < 0 || switchRound > event.rounds)) throw new Error('交換方位圈次須在賽程範圍內');
+  if (switchable) option.note += switchRound === 0 ? ' 全程不交換方位。' : ` 從第 ${switchRound} 圈起交換所有桌的南北／東西方向，之後維持交換；移動路線與牌組不變。`;
   const assignments: Assignment[] = [];
   function add(round: number, table: number, nsIndex: number, ewIndex: number, group: number) {
     let ns = event.participants[nsIndex - 1]?.id, ew = event.participants[ewIndex - 1]?.id;
-    if (switchable && round >= switchRound) [ns, ew] = [ew, ns];
+    if (switchable && switchRound > 0 && round >= switchRound) [ns, ew] = [ew, ns];
     if (!ns || !ew) return; // The absent highest-numbered pair is a phantom.
     assignments.push({ id: `r${round}t${table}`, matchId: `r${round}t${table}`, round, table, room: 'pairs', ns, ew,
       boards: Array.from({ length: event.boardsPerRound }, (_, i) => (group - 1) * event.boardsPerRound + i + 1) });

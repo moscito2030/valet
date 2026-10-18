@@ -47,17 +47,17 @@ test('single winner Mitchell switches directions at default or selected round wi
   for (const [tables, rounds, id] of [[5,5,'mitchell'],[6,5,'mitchell'],[6,6,'mitchell-relay']] as const) {
     const e=createEvent({name:'Switch',kind:'pairs',names:Array.from({length:tables*2},(_,i)=>`P${i}`),rounds,boardsPerRound:2,date:'2026-10-19',venue:''});
     const fixed=buildMovement(e,'double-'+id);
-    for (const start of [undefined,1,rounds]) {
+    for (const start of [undefined,0,1,rounds]) {
       const actual=buildMovement(e,id,undefined,start);
       const boundary=start ?? Math.floor(rounds/2)+1;
       actual.assignments.forEach((a,i)=>{
         const b=fixed.assignments[i];
-        assert.equal(a.ns,a.round>=boundary?b.ew:b.ns);
-        assert.equal(a.ew,a.round>=boundary?b.ns:b.ew);
+        assert.equal(a.ns,boundary>0 && a.round>=boundary?b.ew:b.ns);
+        assert.equal(a.ew,boundary>0 && a.round>=boundary?b.ns:b.ew);
         assert.deepEqual(a.boards,b.boards);
         assert.equal(a.table,b.table);
       });
-      assert.match(actual.option.note,new RegExp(`第 ${boundary} 圈`));
+      assert.match(actual.option.note,boundary === 0 ? /全程不交換方位/ : new RegExp(`第 ${boundary} 圈`));
     }
     assert.throws(()=>buildMovement(e,id,undefined,rounds+1),/範圍/);
     assert.throws(()=>buildMovement(e,'double-'+id,undefined,2),/單冠軍/);

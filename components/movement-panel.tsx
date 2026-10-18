@@ -135,11 +135,12 @@ export function MovementPanel({
           '縮短循環對戰的圈數依編排表而定，並非固定為完整循環的四分之三。'}
       </p>
       {switchable && <label className="field">
-        從第幾圈開始交換南北／東西
+        交換方位時機
         <select value={arrowSwitchRound} disabled={locked || busy} onChange={e => { setSwitchChoice(Number(e.target.value)); setPreview(false); }}>
+          <option value={0}>不交換方位</option>
           {Array.from({length: rounds}, (_, i) => <option key={i + 1} value={i + 1}>第 {i + 1} 圈</option>)}
         </select>
-        <small>預設為第一次超過半場的圈次。從該圈起，各桌交換 NS／EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。</small>
+        <small>可選擇不交換方位；預設為第一次超過半場的圈次。從該圈起，各桌交換 NS／EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。</small>
       </label>}
       {boardError && <p role="alert">{boardError}</p>}
       {playerBoardWarning(rounds, boardsPerRound) && <p role="alert">{playerBoardWarning(rounds, boardsPerRound)}</p>}
