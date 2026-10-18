@@ -50,6 +50,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     status: event.status,
     publishBoards: event.publishBoards,
     pairMethod: event.pairMethod,
+    neuberg: event.neuberg,
     trim: event.trim,
     penalties: event.penalties,
     demo: event.demo,

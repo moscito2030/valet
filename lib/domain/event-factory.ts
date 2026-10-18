@@ -36,6 +36,7 @@ export function createEvent(
     status: 'live',
     publishBoards: false,
     pairMethod: data.pairMethod ?? 'mp',
+    neuberg: data.neuberg ?? false,
     trim: data.kind === 'pairs' && data.pairMethod !== 'mp' ? (data.trim ?? 'none') : 'none',
     penalties: {},
     demo: false,

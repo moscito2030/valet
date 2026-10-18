@@ -121,6 +121,7 @@ export type BridgeEvent = {
   status: 'live' | 'finished';
   publishBoards: boolean;
   pairMethod?: PairMethod;
+  neuberg?: boolean;
   trim?: Trim;
   penalties?: Record<string, number>;
   demo: boolean;
@@ -142,6 +143,7 @@ export const createSchema = z
     rankingMode: z.enum(['single', 'double']).optional(),
     movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay', 'double-barometer']).optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
+    neuberg: z.boolean().optional(),
     trim: z.enum(['none', 'one', 'ten-percent']).optional(),
     date: dateSchema,
     endDate: dateSchema.optional(),
@@ -153,6 +155,7 @@ export const createSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.neuberg && (v.kind !== 'pairs' || (v.pairMethod ?? 'mp') !== 'mp')) ctx.addIssue({ code: 'custom', path: ['neuberg'], message: 'Neuberg 僅適用雙人賽 MP 計分' });
     if (v.rankingMode && (v.kind !== 'pairs' || v.movementPlan || v.rounds)) ctx.addIssue({ code: 'custom', message: '排名方式僅用於先建立雙人賽名單，賽程請於建立後設定' });
     if (v.rankingMode === 'double' && (v.names.length < 6 || v.names.length % 2)) ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–40 組完整搭檔' });
     if (v.endDate && v.endDate < v.date) ctx.addIssue({ code: 'custom', path: ['endDate'], message: '結束日期不可早於開始日期' });

@@ -87,6 +87,7 @@ export function CreateDialog({
         gameMode,
         ...(kind === 'pairs' ? { rankingMode } : {}),
         pairMethod: kind === 'pairs' ? method : 'mp',
+        neuberg: kind === 'pairs' && method === 'mp' && form.get('neuberg') === 'true',
         trim: kind === 'pairs' && method !== 'mp' ? form.get('trim') : 'none',
         name: form.get('name'),
         prefix: competition ? '' : form.get('prefix'),
@@ -187,6 +188,14 @@ export function CreateDialog({
                 <option value="ten-percent">最高、最低各去 10%（向下取整）</option>
               </select>
             </label>
+            {method === 'mp' && <label className="field">
+              Neuberg 修正
+              <select name="neuberg" defaultValue="false">
+                <option value="false">關閉：依各副實際滿分計算</option>
+                <option value="true">開啟：統一各副滿分</option>
+              </select>
+              <small>各副比較桌數不同時修正 MP；不足兩筆有效成績不計分。</small>
+            </label>}
             <div
               id="create-scoring-help"
               popover="auto"

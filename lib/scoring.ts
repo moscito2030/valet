@@ -135,7 +135,7 @@ export function vp(margin: number, boards: number): number {
   const win = table[Math.min(Math.abs(margin), table.length - 1)] / 100;
   return margin >= 0 ? win : Math.round((20 - win) * 100) / 100;
 }
-type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'pairMethod' | 'trim' | 'penalties' | 'byeVp' | 'swiss'> & { boards: { number: number }[] };
+type ProjectionInput = Pick<BridgeEvent, 'kind' | 'participants' | 'assignments' | 'results' | 'pairMethod' | 'neuberg' | 'trim' | 'penalties' | 'byeVp' | 'swiss'> & { boards: { number: number }[] };
 
 export function pairStandingsBeforeRound(event: ProjectionInput, round: number): Standing[] {
   const assignments = event.assignments.filter(a => a.round < round);
@@ -222,6 +222,11 @@ export function project(e: ProjectionInput): Projection {
     const totals: Record<string, { mp: number; top: number }> = Object.fromEntries(
       standing.map((s) => [s.id, { mp: 0, top: 0 }]),
     );
+    const scheduledCounts = new Map<number, number>();
+    for (const a of e.assignments) for (const board of a.boards)
+      scheduledCounts.set(board, (scheduledCounts.get(board) ?? 0) + 1);
+    const neubergTarget = e.neuberg && (e.pairMethod ?? 'mp') === 'mp'
+      ? Math.max(0, ...scheduledCounts.values()) : 0;
     for (const board of e.boards) {
       const assignments = e.assignments.filter((a) => a.boards.includes(board.number));
       const entries = assignments
@@ -239,12 +244,13 @@ export function project(e: ProjectionInput): Projection {
             cancelled: true,
           };
         }
-      const top = 2 * (entries.length - 1);
+      const rawTop = 2 * (entries.length - 1);
+      const top = neubergTarget ? 2 * (neubergTarget - 1) : rawTop;
       for (const [index, { a, r }] of entries.entries()) {
         byId[a.ns].played++;
         byId[a.ew].played++;
         let ns =
-          top <= 0
+          rawTop <= 0
             ? null
             : entries.reduce(
                 (mp, x) => mp + (awardedResult(r, 'ns')!.nsScore > awardedResult(x.r, 'ns')!.nsScore ? 2 : awardedResult(r, 'ns')!.nsScore === awardedResult(x.r, 'ns')!.nsScore ? 1 : 0),
@@ -262,9 +268,13 @@ export function project(e: ProjectionInput): Projection {
                 e.trim ?? 'none',
               );
         if (imp) ns = imp.value;
-        const ew = ns === null ? null : method === 'mp'
+        let ew = ns === null ? null : method === 'mp'
           ? entries.reduce((mp, x) => mp + (awardedResult(r, 'ew')!.nsScore < awardedResult(x.r, 'ew')!.nsScore ? 2 : awardedResult(r, 'ew')!.nsScore === awardedResult(x.r, 'ew')!.nsScore ? 1 : 0), -1)
           : impPairScore(-awardedResult(r, 'ew')!.nsScore, entries.map(x => -awardedResult(x.r, 'ew')!.nsScore), index, method, e.trim ?? 'none').value;
+        if (neubergTarget && ns !== null && ew !== null) {
+          ns = (ns + 1) * neubergTarget / entries.length - 1;
+          ew = (ew + 1) * neubergTarget / entries.length - 1;
+        }
         projection.pairScores[resultKey(a.id, board.number)] = {
           ns,
           ew,
