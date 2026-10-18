@@ -98,3 +98,31 @@ test('applying and leaving double winner updates groups atomically before scorin
     assert.equal(state.event.participants.every(p => !!p.group), plan === 'double-mitchell');
   }
 });
+
+test('double barometer keeps NS stationary and advances EW without skips at 3–19 tables', () => {
+  for (let tables = 3; tables <= 19; tables++) {
+    const e = createEvent({ name: 'Barometer Mitchell', kind: 'pairs', pairMethod: 'mp',
+      movementPlan: 'double-barometer', names: Array.from({ length: tables * 2 }, (_, i) => `Pair ${i + 1}`),
+      rounds: tables, boardsPerRound: 2, date: '2026-10-18', venue: '' });
+    assert.equal(e.boards.length, tables * 2);
+    assert.equal(e.assignments.length, tables * tables);
+    for (const p of e.participants) {
+      const rows = e.assignments.filter(a => a.ns === p.id || a.ew === p.id);
+      assert.equal(new Set(rows.flatMap(a => a.boards)).size, tables * 2);
+      assert.equal(new Set(rows.map(a => a.ns === p.id ? a.ew : a.ns)).size, tables);
+      if (p.group === 'NS') assert.equal(new Set(rows.map(a => a.table)).size, 1);
+      else for (let i = 1; i < rows.length; i++) assert.equal(rows[i].table, Number(rows[i - 1].table) % tables + 1);
+    }
+    for (const a of e.assignments) assert.deepEqual(a.boards, [a.round * 2 - 1, a.round * 2]);
+    assert.equal(parseMovement(exportMovement(e), e).length, e.assignments.length);
+    assert.throws(() => buildMovement({ ...e, rounds: tables + 1 }, 'double-barometer'));
+    assert.equal(buildMovement({ ...e, rounds: 2 }, 'double-barometer').boardCount, 4);
+    const standings = project(e).standings;
+    for (const group of ['NS', 'EW']) assert.equal(standings.filter(s => s.group === group).length, tables);
+    const state = applyMutation({ event: e, projection: project(e), requests: [] }, {
+      action: 'movement-plan', plan: 'double-barometer', rounds: 2, boardsPerRound: 3,
+      revision: e.revision, requestId: randomUUID(), reason: 'Verify barometer reconfiguration' });
+    assert.equal(state.event.boards.length, 6);
+    assert.ok(state.event.participants.every(p => p.group));
+  }
+});

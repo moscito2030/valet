@@ -40,6 +40,8 @@ export function movementOptions(event: Input): MovementPlan[] {
       note: '請依預覽的各圈桌次、方向與牌號移動。', source: template.source });
   }
   if (event.participants.length % 2 === 0 && tables >= 3 && tables <= 19) {
+    if (rounds <= tables) options.push({ id: 'double-barometer', label: '雙冠軍全場同牌 Mitchell', groups: rounds,
+      note: 'NS 固定，EW 每圈往下一桌（末桌回第 1 桌），不跳桌。每圈各桌打相同的新牌組，須準備各桌複製牌。名單前半為 NS 組、後半為 EW 組，各組獨立排名；最多桌數圈。' });
     for (const option of [...options].filter(o => o.id.startsWith('mitchell')))
       options.push({ ...option, id: `double-${option.id}`, label: `Double Winner ${option.label}`, note: `${option.note} 名單前半為 NS 組、後半為 EW 組，各組獨立排名。` });
   }
@@ -81,6 +83,11 @@ export function buildMovement(event: Input, id: string, groups?: InterleavedGrou
   } else if (id.startsWith('howell-')) {
     const template = templates.find(t => `howell-${t.id}` === id)!;
     template.rows.forEach((row, r) => row.forEach(([ns, ew, group], t) => add(r + 1, t + 1, ns, ew, group)));
+  } else if (doubleWinner && id === 'barometer') {
+    for (let r = 0; r < event.rounds; r++) {
+      for (let t = 0; t < tables; t++) add(r + 1, t + 1, t + 1,
+        tables + ((t - r + tables) % tables) + 1, r + 1);
+    }
   } else if (id === 'mitchell' || id === 'mitchell-relay') {
     for (let r = 0; r < event.rounds; r++) {
       const skip = id === 'mitchell' && tables % 2 === 0 && r >= tables / 2 ? 1 : 0;

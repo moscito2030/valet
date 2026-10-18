@@ -278,10 +278,11 @@ export function CreateDialog({
         {kind === 'pairs' && <label className="field">排名與編排
           <select value={movementPlan} onChange={e => setMovementPlan(e.target.value)}>
             <option value="">合併排名 · 全場同牌輪轉</option>
+            <option value="double-barometer">雙冠軍全場同牌 Mitchell</option>
             <option value="double-mitchell">Double Winner Mitchell／Skip Mitchell</option>
             <option value="double-mitchell-relay">Double Winner Mitchell（偶數桌共牌／中繼）</option>
           </select>
-          <span className="footnote">雙冠軍支援 3–19 桌。奇數桌最多桌數圈；Skip Mitchell 最多桌數減一圈；共牌／中繼最多桌數圈。每圈最多 16 副，總牌數依編排計算。</span>
+          <span className="footnote">雙冠軍支援 3–19 桌。全場同牌 Mitchell 最多桌數圈，NS 固定、EW 每圈往下一桌，不跳桌，各桌需準備複製牌。一般 Mitchell 奇數桌最多桌數圈；Skip Mitchell 最多桌數減一圈；共牌／中繼最多桌數圈。每圈最多 16 副，總牌數依編排計算。</span>
         </label>}
         {kind === 'pairs' && movementPlan ? <div className="form-grid">
           {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–19 組）

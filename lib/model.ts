@@ -132,7 +132,7 @@ export const createSchema = z
     prefix: z.string().trim().max(80).optional(),
     kind: z.enum(['teams', 'pairs']),
     gameMode: z.enum(['bridge', 'minibridge']).optional(),
-    movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay']).optional(),
+    movementPlan: z.enum(['double-mitchell', 'double-mitchell-relay', 'double-barometer']).optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
     trim: z.enum(['none', 'one', 'ten-percent']).optional(),
     date: dateSchema,
