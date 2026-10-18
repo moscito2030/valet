@@ -224,6 +224,14 @@ export const mutationSchema = z.discriminatedUnion('action', [
       contracts: z.object({ ns: resultSchema, ew: resultSchema }).strict().nullable(),
     }).strict(),
   z.object({
+    action: z.literal('clear-result'),
+    revision: z.number().int().min(1),
+    requestId: z.string().uuid(),
+    reason: z.string().trim().max(200).optional().transform(value => value || '清除此副成績'),
+    assignmentId: z.string().min(1).max(100),
+    board: z.number().int().min(1),
+  }).strict(),
+  z.object({
       action: z.literal('ruling'),
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),

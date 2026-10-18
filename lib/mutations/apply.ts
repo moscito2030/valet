@@ -28,6 +28,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'round-control',
       'movement',
       'pbn',
+      'clear-result',
       'ruling',
       'split-contract',
     ].includes(command.action) ||
@@ -96,6 +97,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'round-control': '設定目前圈數',
       'round-timing': '設定圈次時間',
       'round-times-import': '匯入各圈時間區間',
+      'clear-result': '清除此副成績',
       ruling: '裁判取消／恢復',
       'split-contract': '不平衡合約',
       penalty: '判罰扣分',

@@ -18,6 +18,7 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
     case 'results-import':
     case 'penalty':
     case 'split-contract':
+    case 'clear-result':
     case 'ruling':
       return applyScoresCommand(context, command);
     case 'club-config':

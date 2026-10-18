@@ -374,7 +374,21 @@ export function ScorePanel({
           >
             {existing?.status === 'cancelled' ? '恢復取消前狀態' : '取消此副'}
           </button>
+          {existing && (
+            <button
+              type="button"
+              className="button danger"
+              disabled={busy || event.status === 'finished' || !!existing.split || !!event.club?.finalized.includes(selected?.round ?? 0)}
+              onClick={() => {
+                if (!window.confirm('清除此桌第 ' + board + ' 副成績，回到未收分？合約、首引與大牌點將清除，本桌須重新輸入及確認。原紀錄保留於操作紀錄。')) return;
+                void save({ action: 'clear-result', assignmentId: assignment, board, reason });
+              }}
+            >清除此副成績，回到未收分</button>
+          )}
         </div>
+        {existing && event.club?.finalized.includes(selected?.round ?? 0) && (
+          <p className="footnote">本圈已結算，不開放清除單副成績。</p>
+        )}
         {event.status === 'finished' && (
           <p className="footnote">賽事已結束；更正前請至發布設定重新開放。</p>
         )}

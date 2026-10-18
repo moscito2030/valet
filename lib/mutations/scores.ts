@@ -1,3 +1,4 @@
+import { clubConfirmationKey } from '../club-confirmation';
 import { DomainError } from '../domain-error';
 import { parseResultsCsv } from '../imports';
 import { Mutation, Result, ResultInput, resultKey } from '../model';
@@ -10,13 +11,26 @@ export function applyScoresCommand(
     Mutation,
     {
       action:
-        'clear-results' | 'results' | 'results-import' | 'penalty' | 'split-contract' | 'ruling';
+        'clear-result' | 'clear-results' | 'results' | 'results-import' | 'penalty' | 'split-contract' | 'ruling';
     }
   >,
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
-  if (command.action === 'clear-results') {
+  if (command.action === 'clear-result') {
+    if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
+    const a = e.assignments.find(a => a.id === command.assignmentId);
+    if (!a || !a.boards.includes(command.board)) throw new DomainError('桌次與牌號不符合賽程');
+    if (e.club?.finalized.includes(a.round)) throw new DomainError('本圈已結算，不開放清除單副成績');
+    const key = resultKey(a.id, command.board);
+    const before = e.results[key];
+    if (!before) throw new DomainError('此副尚未收分');
+    if (before.split) throw new DomainError('請先由裁判撤銷不平衡合約，再清除成績');
+    changes.push({ key, before, after: null });
+    delete e.results[key];
+    if (e.club) delete e.club.confirmations[clubConfirmationKey(e, a)];
+    detail = key + ': 清除成績，恢復為未收分';
+  } else if (command.action === 'clear-results') {
     if (command.confirmName !== (e.stageName || e.name)) throw new DomainError('確認名稱不符');
     for (const [key, before] of Object.entries(e.results))
       changes.push({ key, before, after: null });

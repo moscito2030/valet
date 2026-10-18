@@ -22,6 +22,7 @@ const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
   'round-timing': 'director',
   'board-publication': 'director',
   'split-contract': 'director',
+  'clear-result': 'staff',
   ruling: 'staff',
   penalty: 'staff',
   results: 'staff',
