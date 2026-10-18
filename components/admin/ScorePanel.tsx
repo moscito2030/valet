@@ -390,7 +390,7 @@ export function ScorePanel({
           <p className="footnote">本圈已結算，不開放清除單副成績。</p>
         )}
         {event.status === 'finished' && (
-          <p className="footnote">賽事已結束；更正前請至發布設定重新開放。</p>
+          <p className="footnote">賽事已結束；更正前請至比賽資訊重新開放。</p>
         )}
       </form>
       {event.canDirect &&

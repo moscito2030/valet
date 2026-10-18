@@ -3,6 +3,7 @@ import { PairNames } from '../pair-names';
 import { AdminEvent, api } from '../scoreboard-shared';
 
 type Props = {
+  section?: 'information' | 'boards' | 'all';
   busy: boolean;
   deleteName: string;
   event: AdminEvent;
@@ -14,6 +15,7 @@ type Props = {
   setError: React.Dispatch<React.SetStateAction<string>>;
 };
 export function PublicationPanel({
+  section = 'all',
   busy,
   deleteName,
   event,
@@ -26,6 +28,7 @@ export function PublicationPanel({
 }: Props) {
   return (
     <>
+      {section !== 'boards' && <>
       {event.canDirect && event.kind === 'pairs' && (
         <PairNames participants={event.participants} busy={busy} save={save} />
       )}
@@ -101,7 +104,8 @@ export function PublicationPanel({
         </a>{' '}
         編輯。
       </p>
-      {event.canDirect && (
+      </>}
+      {section !== 'information' && event.canDirect && (
         <>
           <h4>依牌組公開牌型</h4>
           <p>
@@ -135,6 +139,7 @@ export function PublicationPanel({
           </div>
         </>
       )}
+      {section !== 'boards' && <>
       <form
         className="setting-row event-description-settings"
         onSubmit={(e) => {
@@ -200,7 +205,8 @@ export function PublicationPanel({
           {event.status === 'live' ? '結束賽事' : '重新開放更正'}
         </button>
       </div>
-      {event.canDirect && (
+      </>}
+      {section !== 'information' && event.canDirect && (
         <form
           className="import-export-section"
           onSubmit={async (e) => {

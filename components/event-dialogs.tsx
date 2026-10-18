@@ -266,7 +266,7 @@ export function CreateDialog({
             <option value="single">Single Winner（合併排名）</option>
             <option value="double">Double Winner（NS／EW 分別排名）</option>
           </select>
-          <span className="footnote">建立後再至裁判「匯入／匯出 → 指定賽程編排」選擇具體編排、圈數與每圈牌數。</span>
+          <span className="footnote">建立後再至裁判「賽程編排與牌局管理 → 指定賽程編排」選擇具體編排、圈數與每圈牌數。</span>
         </label>}
         {kind === 'pairs' && rankingMode === 'double' ? <div className="form-grid">
           {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–32 組）
@@ -286,7 +286,7 @@ export function CreateDialog({
           />
         </label>}
         <p className="footnote">
-          先建立賽段與名單，不產生牌號或桌次；進入賽段後至裁判「匯入／匯出 → 指定賽程編排」，一起設定圈數、每圈牌數與編排，預覽並套用後才能開始收分。
+          先建立賽段與名單，不產生牌號或桌次；進入賽段後至裁判「賽程編排與牌局管理 → 指定賽程編排」，一起設定圈數、每圈牌數與編排，預覽並套用後才能開始收分。
         </p>
         {error && (
           <p className="error-text" role="alert">

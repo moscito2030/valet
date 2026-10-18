@@ -126,9 +126,10 @@ test('private board results are scoped to the selected event, board and director
 test('publication panel keeps director-only identity and deletion controls out of staff UI', () => {
   const raw = fixture(),
     event = audienceEvent(raw, project(raw));
-  const render = (canDirect: boolean) =>
+  const render = (canDirect: boolean, section: 'information' | 'boards' | 'all' = 'all') =>
     renderToStaticMarkup(
       createElement(PublicationPanel, {
+        section,
         event: { ...event, canDirect },
         busy: false,
         deleteName: '',
@@ -141,6 +142,12 @@ test('publication panel keeps director-only identity and deletion controls out o
       }),
     );
   assert.match(render(true), /儲存賽段資訊/);
+  assert.match(render(true, 'information'), /儲存賽段資訊/);
+  assert.doesNotMatch(render(true, 'information'), /依牌組公開牌型|永久刪除賽段/);
+  assert.match(render(true, 'boards'), /依牌組公開牌型/);
+  assert.match(render(true, 'boards'), /永久刪除賽段/);
+  assert.doesNotMatch(render(true, 'boards'), /儲存賽段資訊|儲存給獎與賽程說明|結束賽事/);
+  assert.doesNotMatch(render(false, 'boards'), /依牌組公開牌型|永久刪除賽段/);
   assert.doesNotMatch(render(false), /儲存賽段資訊|刪除賽段/);
 });
 

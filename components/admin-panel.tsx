@@ -24,7 +24,7 @@ export function AdminPanel({
   const [event, setEvent] = useState<AdminEvent | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [section, setSection] = useState('score');
+    [section, setSection] = useState('publish');
   const [assignment, setAssignment] = useState(''),
     [board, setBoard] = useState(1),
     [round, setRound] = useState(1),
@@ -137,12 +137,11 @@ export function AdminPanel({
       </div>
       <div className="admin-tabs">
         {[
-          ['score', '收分／更正'],
-          ...(event.canDirect ? [['import', '匯入／匯出']] : []),
-          ['publish', event.canDirect ? '圈次與發布設定' : '賽事設定'],
+          ['publish', '比賽資訊'],
+          ...(event.canDirect ? [['import', '賽程編排與牌局管理'], ['club', '圈次與裝置收分']] : []),
+          ['score', '裁判更正成績'],
           ['penalty', '判罰調整'],
           ...(event.canDirect ? [['audit', '操作紀錄']] : []),
-          ...(event.canDirect ? [['club', '裝置收分']] : []),
         ].map(([k, v]) => (
           <button
             key={k}
@@ -157,10 +156,10 @@ export function AdminPanel({
         ))}
       </div>
       <div className="admin-content">
-        {section === 'club' && event.canDirect && <ClubAdmin event={event} reload={load} />}
-        {section === 'publish' && event.canDirect && (
+        {section === 'club' && event.canDirect && <>
           <RoundControlPanel busy={busy} event={event} save={save} />
-        )}
+          <ClubAdmin event={event} reload={load} />
+        </>}
         {error && (
           <div className="alert error" role="alert">
             {error}
@@ -177,7 +176,7 @@ export function AdminPanel({
         )}
         {!event.rounds && (
           <p className="footnote">
-            待設定賽程：請至「匯入／匯出」選擇賽程編排，設定圈數與每圈牌數後再開始收分。
+            待設定賽程：請至「賽程編排與牌局管理」選擇賽程編排，設定圈數與每圈牌數後再開始收分。
           </p>
         )}
         {section === 'score' && event.rounds > 0 && (
@@ -216,8 +215,9 @@ export function AdminPanel({
         {section === 'import' && event.canDirect && (
           <ArrangementPanel busy={busy} event={event} save={save} />
         )}
-        {section === 'publish' && (
+        {(section === 'publish' || (section === 'import' && event.canDirect)) && (
           <PublicationPanel
+            section={section === 'publish' ? 'information' : 'boards'}
             busy={busy}
             deleteName={deleteName}
             event={event}

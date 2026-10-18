@@ -71,7 +71,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
       if(event.club?.tokens[d.key] && !window.confirm(`重新簽發 ${d.label}，使舊連結失效？`)) return;
       try { const url = new URL(base); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); } catch { setError('請填寫有效的 http／https 網址'); return; }
       void act({action:'issue-table',deviceKey:d.key});
-    }}>{d.label}</button>)}</div>{!devices.length && <p>尚未公布桌次，請先至「匯入／匯出」設定賽程或公布 Swiss 首圈。</p>}</>}
+    }}>{d.label}</button>)}</div>{!devices.length && <p>尚未公布桌次，請先至「賽程編排與牌局管理」設定賽程或公布 Swiss 首圈。</p>}</>}
     {!tableMode && <div className="club-pair-links">{event.participants.map(p => <button key={p.id} className="button subtle" title={`${p.id.toUpperCase()} ${p.name}`} aria-label={`${p.id.toUpperCase()} ${p.name}`} disabled={busy || !event.club?.enabled} onClick={() => {
       if (event.club?.tokens[p.id] && !window.confirm(`重新簽發 ${p.id.toUpperCase()} 的連結並使舊連結失效？`)) return;
       try { const url = new URL(base); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); }
@@ -80,7 +80,7 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
     }}><span className="club-pair-label">{p.id.toUpperCase()} {p.name}</span></button>)}</div>}
     {link && <section className="club-link-card"><strong>{pair.toUpperCase()} 專屬收分卡</strong>{qr && <img src={qr} width={280} height={280} alt={`${pair} 收分 QR code`} />}<a href={link} target="_blank" rel="noopener noreferrer">開啟收分卡</a><input aria-label="專屬連結" readOnly value={link} onFocus={e => e.currentTarget.select()} /><button className="button subtle" onClick={() => { void navigator.clipboard.writeText(link).then(() => setNotice('連結已複製。')).catch(() => setError('請選取上方連結手動複製')); }}>複製連結</button><small>連結僅在本次簽發時顯示，請交給{tableMode ? '對應桌次裝置，不要公開張貼' : '對應搭檔'}。</small></section>}
     <h4>目前第 {roundLabel(event, round)} 圈 · {finalized ? '已結算' : '未結算'}</h4>
-    <p>請在「圈次與發布設定」指定當前圈數與開始／休息狀態。</p>
+    <p>請在上方指定當前圈數與開始／休息狀態。</p>
     <div className="club-progress-list">{assignments.map(a => {
       const accepted = clubAccepted(event, a);
       const received = a.boards.filter(b => event.results[`${a.id}:${b}`]).length;
