@@ -44,3 +44,7 @@ npm run build
 網站側邊欄底部與頁尾會顯示 `Valet · commit 短碼`，點擊可開啟 GitHub 的完整 commit 與訊息。版本在建置時固定，代表目前部署的程式版本，而非倉庫最新版本。
 
 Vercel 使用系統提供的 `VERCEL_GIT_COMMIT_SHA` 與 `VERCEL_GIT_COMMIT_MESSAGE`，不需手動填入 commit。若正式部署顯示「版本資訊未提供」，請確認 Vercel 專案允許提供系統環境變數，並重新部署。本機未提供部署資訊時顯示「本機開發版」。
+
+### 共用檢視器依賴
+
+部署使用 `vendor/` 內的共用檢視器封裝檔，不能依賴開發電腦的相鄰專案目錄。建置前會檢查 lockfile 是否含本機連結或不可攜路徑；更新套件後也應在獨立目錄執行乾淨安裝，避免既有 `node_modules` 掩蓋依賴問題。
