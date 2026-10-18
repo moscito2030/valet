@@ -66,6 +66,7 @@ export default function ClubPage() {
   const active = !!data && data.status === 'live' && !data.locked && !data.finalized && data.phase !== 'break' && data.round > 0;
   const editable = active && (data?.role === 'input' || data?.role === 'shared') && !reviewing;
   const board = data?.boards.find(b => b.number === draft?.board);
+  const inputIsEW = !!data?.assignment && data.roles?.inputPair === data.assignment.ew;
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
   return <main className="club-page">
     <header><span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span><h1>{data?.deviceLabel ?? data?.pairName ?? '裝置收分'}</h1><p>{data?.name}</p><a href="/manual/players.html">收分操作手冊</a></header>
@@ -117,7 +118,7 @@ export default function ClubPage() {
           <label className="field">實得墩數<select disabled={!draft.level} value={draft.tricks} onChange={e => setDraft({ ...draft, tricks: Number(e.target.value) })}>{Array.from({ length: 14 }, (_, n) => <option key={n} value={n}>{n}{draft.level ? `（${n - draft.level - 6 >= 0 ? '+' : ''}${n - draft.level - 6}）` : ''}</option>)}</select></label>
           <label className="field">首引（選填，如 S2）<input maxLength={4} value={draft.lead} onChange={e => setDraft({ ...draft, lead: e.target.value.toUpperCase() })} /></label>
         </div>
-        <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">NS 原始分 <b>{board ? contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} dealer={board?.dealer ?? 'N'} />}</div>
+        <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">{inputIsEW ? 'EW' : 'NS'} 原始分 <b>{board ? (inputIsEW ? -1 : 1) * contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} dealer={board?.dealer ?? 'N'} />}</div>
         <div className="button-row"><button className="button primary" disabled={busy}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
       </form>}
       {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 {data.roles?.confirmPair.toUpperCase()} 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}
