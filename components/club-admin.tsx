@@ -67,7 +67,6 @@ export function ClubAdmin({ event, reload }: { event: AdminEvent; reload: () => 
     }}>{event.club?.enabled ? '停用裝置收分' : tableMode ? '啟用大賽收分模式' : '啟用俱樂部模式'}</button>
     <h4>產生 QRCode/重新簽發</h4>
     <label className="field">手機可連線的網站網址<input type="url" value={base} onChange={e => setBase(e.target.value)} placeholder="https://…" /></label>
-    <p className="footnote">本機 localhost／127.0.0.1 無法供其他手機連線，請填入已部署網址或區域網路網址。重新簽發會讓舊連結失效，已確認狀態仍保留。</p>
     {tableMode && <><p>先建立或公布賽程，再為各桌簽發。交錯循環依實體桌號綁定，不隨比較用的開閉室標記變動。</p><div className="club-pair-links">{devices.map(d=><button key={d.key} className="button subtle" disabled={busy || !event.club?.enabled} onClick={()=>{
       if(event.club?.tokens[d.key] && !window.confirm(`重新簽發 ${d.label}，使舊連結失效？`)) return;
       try { const url = new URL(base); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); } catch { setError('請填寫有效的 http／https 網址'); return; }
