@@ -1,4 +1,5 @@
 'use client';
+import { AppVersion } from './app-version';
 import { ManualLink } from './manual-link';
 import { Breadcrumbs } from './breadcrumbs';
 import { SessionControl } from './session-control';
@@ -56,7 +57,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       <a href="/" className="brand"><span className="brand-symbol" aria-hidden="true">♦</span><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
       <div className="sidebar-label">賽事工作區</div>
       <a href="/" className="nav-item active"><Trophy size={18} />瀏覽賽事</a>
-      <div className="sidebar-bottom"><ManualLink /><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>每一場比賽，從這裡開始。</p></div></div>
+      <div className="sidebar-bottom"><ManualLink /><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>每一場比賽，從這裡開始。</p><small><AppVersion /></small></div></div>
     </aside>
     <div className="main-shell">
       <header className="topbar">{competitionId ? <Breadcrumbs items={[{ label: competition?.name ?? '賽事主頁' }]} /> : <nav className="breadcrumb home-navigation" aria-label="主要導覽">
@@ -128,6 +129,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}
         </>}
+        <footer className="page-footer"><div><AppVersion /></div></footer>
       </main>
     </div>
     {creating && <CreateDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}

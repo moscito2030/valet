@@ -889,6 +889,10 @@ tbody tr.followed {
   margin: 0 7px;
   color: #b8bdad;
 }
+.app-version { color: inherit; font-size: 12px; letter-spacing: 0; white-space: nowrap; }
+.page-footer .app-version { margin: 0; color: inherit; }
+a.app-version { text-decoration: none; }
+a.app-version:hover { text-decoration: underline; }
 .page-footer > span:last-child {
   letter-spacing: 1.4px;
 }

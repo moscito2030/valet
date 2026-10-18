@@ -38,3 +38,9 @@ npm run build
 建置腳本下載固定版本的官方 mdBook，檢查 SHA-256 後執行；第一次需要連上 GitHub。產物在 `public/manual/`，由建置產生，不加入 Git。平時修改原稿後重新執行 `manual:build`，本機 `/manual/` 即可查看。
 
 功能更新時一起修改操作步驟；不應把測試密碼、真實連線字串、專屬收分連結或備份檔放進公開手冊。
+
+## 查看部署版本
+
+網站側邊欄底部與頁尾會顯示 `Valet · commit 短碼`，點擊可開啟 GitHub 的完整 commit 與訊息。版本在建置時固定，代表目前部署的程式版本，而非倉庫最新版本。
+
+Vercel 使用系統提供的 `VERCEL_GIT_COMMIT_SHA` 與 `VERCEL_GIT_COMMIT_MESSAGE`，不需手動填入 commit。若正式部署顯示「版本資訊未提供」，請確認 Vercel 專案允許提供系統環境變數，並重新部署。本機未提供部署資訊時顯示「本機開發版」。

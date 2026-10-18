@@ -1,5 +1,10 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_COMMIT: /^[a-f0-9]{40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA ?? '') ? process.env.VERCEL_GIT_COMMIT_SHA! : '',
+    NEXT_PUBLIC_APP_COMMIT_MESSAGE: process.env.VERCEL_GIT_COMMIT_MESSAGE ?? '',
+    NEXT_PUBLIC_APP_DEPLOYED: process.env.VERCEL === '1' ? '1' : '',
+  },
   transpilePackages: ['@valet/deal-viewer'],
   poweredByHeader: false,
   skipTrailingSlashRedirect: true,

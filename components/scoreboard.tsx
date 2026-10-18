@@ -1,4 +1,5 @@
 'use client';
+import { AppVersion } from './app-version';
 import { directionalDatum } from '@/lib/datum';
 import { boardRange } from '@/lib/board-groups';
 
@@ -549,7 +550,7 @@ export default function Scoreboard() {
               ♠ <b>♥ ♦</b> ♣
             </span>
             <p>再怎麼說橋牌還是太 Creepy 了</p>
-            <small>Valet</small>
+            <small><AppVersion /></small>
           </div>
         </div>
       </aside>
@@ -1729,7 +1730,7 @@ export default function Scoreboard() {
                   )}
                   <footer className="page-footer">
                     <span>
-                      VALET <span>／</span> 由臺灣大學橋藝社自主研發
+                      <AppVersion /> <span>／</span> 由臺灣大學橋藝社自主研發
                     </span>
                     <span>
                       {event.kind === 'teams' ? 'IMP · WBF VP' : methodNames[pairMethod]}　♠ ♥ ♦ ♣
