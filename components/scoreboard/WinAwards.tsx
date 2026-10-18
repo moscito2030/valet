@@ -21,7 +21,7 @@ export function WinAwards({
     <div className="win-awards">
       <h3>勝場獎統計</h3>
       <p className="footnote">
-        勝／負／和：{event.winAward.win}／{event.winAward.loss}／{event.winAward.draw}{' '}
+        勝／和／負：{event.winAward.win}／{event.winAward.draw}／{event.winAward.loss}{' '}
         倍。獨立於總排名，不含判罰與輪空。點按名稱查看逐圈明細。
       </p>
       <div className="table-scroll">
@@ -30,8 +30,8 @@ export function WinAwards({
             <tr>
               <th>{event.kind === 'teams' ? '隊伍' : '搭檔'}</th>
               <th>勝</th>
-              <th>負</th>
               <th>和</th>
+              <th>負</th>
               <th>待定</th>
               <th>不計</th>
               <th>獎勵倍數</th>
@@ -54,8 +54,8 @@ export function WinAwards({
                     </button>
                   </td>
                   <td>{r.win}</td>
-                  <td>{r.loss}</td>
                   <td>{r.draw}</td>
+                  <td>{r.loss}</td>
                   <td>{r.pending}</td>
                   <td>{r.excluded}</td>
                   <td>{Number(r.units.toFixed(6))} 倍</td>

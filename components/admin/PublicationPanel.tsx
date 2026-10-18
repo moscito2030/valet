@@ -162,13 +162,13 @@ export function PublicationPanel({
           </select>
         </label>
         <div className="form-grid">
-          {([['Win', '勝', event.winAward?.win ?? 2], ['Loss', '負', event.winAward?.loss ?? 0], ['Draw', '和', event.winAward?.draw ?? 1]] as const).map(([key, label, value]) => (
+          {([['Win', '勝', event.winAward?.win ?? 2], ['Draw', '和', event.winAward?.draw ?? 1], ['Loss', '負', event.winAward?.loss ?? 0]] as const).map(([key, label, value]) => (
             <label className="field" key={key}>每{label}一圈的獎勵倍數
               <input key={value} name={'winAward' + key} type="number" min="0" max="10000" step="any" required defaultValue={value} />
             </label>
           ))}
         </div>
-        <p className="footnote">勝場獎與總排名無關。例：勝／負／和設為 2／0／1，或 2／0／0。</p>
+        <p className="footnote">勝場獎與總排名無關。例：勝／和／負設為 2／1／0，或 2／0／0。</p>
         <label className="field">
           給獎內容
           <textarea
