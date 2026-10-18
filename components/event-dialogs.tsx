@@ -247,11 +247,12 @@ export function CreateDialog({
             <EventCalendar dates={[]} value={eventDate} onChange={setEventDate} unrestricted />
           </div>
           <label className="field">
-            結束日期（選填，單日可留空）
-            <input name="endDate" type="date" min={eventDate} />
+            結束日期（選填）
+            <input name="endDate" type="date" min={eventDate} aria-describedby="create-date-help" />
           </label>
+          <p className="footnote create-details-help" id="create-date-help">單日比賽只需填開始日期。</p>
           {!competition && (
-            <label className="field">
+            <label className="field create-details-wide">
               地點
               <input name="venue" maxLength={80} placeholder="比賽地點" />
             </label>
@@ -261,7 +262,7 @@ export function CreateDialog({
             <input name="rounds" type="number" min={1} max={MAX_PLAYER_BOARDS} onChange={e => setPlannedRounds(Number(e.target.value))} placeholder="稍後設定" />
           </label>
           <label className="field">
-            每圈牌數（可稍後調整）
+            每圈牌數
             <input
               name="boardsPerRound"
               onChange={e => setPlannedBoards(Number(e.target.value))}
@@ -272,6 +273,7 @@ export function CreateDialog({
               key={kind}
             />
           </label>
+          <p className="footnote create-details-help">圈數可留空，稍後設定賽程；每圈牌數也可稍後調整。</p>
         </div>
         {kind === 'pairs' && <label className="field">排名與編排
           <select value={movementPlan} onChange={e => setMovementPlan(e.target.value)}>

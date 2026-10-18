@@ -3962,6 +3962,12 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
 .calendar-date-field > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .calendar-date-field svg { flex-shrink: 0; width: 18px; }
 .create-details-grid > .field > input:not([type='hidden']) { height: 44px; }
+.create-details-grid > .create-details-help,
+.create-details-grid > .create-details-wide { grid-column: 1 / -1; }
+.create-details-grid > .create-details-help { margin: 0 0 17px; }
+@media (max-width: 360px) {
+  .create-details-grid { grid-template-columns: minmax(0, 1fr); }
+}
 
 .team-ranking-table th:nth-child(2), .team-ranking-table td:nth-child(2) { text-align: left; }
 .team-ranking-table .participant-link { display: block; width: 100%; text-align: left; padding: 0; }
