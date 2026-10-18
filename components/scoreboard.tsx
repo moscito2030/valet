@@ -286,7 +286,7 @@ export default function Scoreboard() {
             <span className="tiny-suits">
               ♠ <b>♥ ♦</b> ♣
             </span>
-            <p>比賽無紙化，從臺大開始</p>
+            <p>比賽不浪費白紙，環保從臺大開始</p>
             <small>
               <AppVersion />
             </small>

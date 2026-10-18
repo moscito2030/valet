@@ -60,7 +60,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       <a href="/" className="brand"><span className="brand-symbol" aria-hidden="true">♦</span><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
       <div className="sidebar-label">賽事工作區</div>
       <a href="/" className="nav-item active"><Trophy size={18} />瀏覽賽事</a>
-      <div className="sidebar-bottom"><ManualLink /><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>比賽無紙化，從臺大開始</p><small><AppVersion /></small></div></div>
+      <div className="sidebar-bottom"><ManualLink /><div className="sidebar-note"><span className="tiny-suits">♠ <b>♥ ♦</b> ♣</span><p>比賽不浪費白紙，環保從臺大開始</p><small><AppVersion /></small></div></div>
     </aside>
     <div className="main-shell">
       <header className="topbar">{competitionId ? <Breadcrumbs items={[{ label: competition?.name ?? '賽事主頁' }]} /> : <nav className="breadcrumb home-navigation" aria-label="主要導覽">
