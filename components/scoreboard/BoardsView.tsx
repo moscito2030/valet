@@ -309,8 +309,8 @@ export function BoardsView({
               averageScore={boardDatums[scoreSide].datum}
               scoreSide={sideLabel}
               datumDetails={{
-                ns: boardDatums.ns.mean,
-                ew: boardDatums.ew.mean,
+                ns: boardDatums.ns.datum,
+                ew: boardDatums.ew.datum,
                 split: boardDatums.split,
               }}
               validResults={completedBoardScores.length}
@@ -322,8 +322,8 @@ export function BoardsView({
                 averageScore={boardDatums[scoreSide].datum}
                 scoreSide={sideLabel}
                 datumDetails={{
-                  ns: boardDatums.ns.mean,
-                  ew: boardDatums.ew.mean,
+                  ns: boardDatums.ns.datum,
+                  ew: boardDatums.ew.datum,
                   split: boardDatums.split,
                 }}
                 validResults={completedBoardScores.length}

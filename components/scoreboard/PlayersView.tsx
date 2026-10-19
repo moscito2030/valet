@@ -434,14 +434,14 @@ export function PlayersView({
                     })}
                     <td>
                       <button type="button" className="contract-link team-imp-average-trigger"
-                        title="查看本牌平均分" aria-label={`查看牌號 ${displayBoardNumber(b)} 平均分`}
+                        title="查看本牌 Datum" aria-label={`查看牌號 ${displayBoardNumber(b)} Datum`}
                         popoverTarget={averageId} onClick={(e) => positionDetail(e.currentTarget)}>
                         {event.teamMethod === 'bam' ? (impDiff === null ? '—' : signed(impDiff)) : <TeamImpColumns value={impDiff} />}
                       </button>
                       <div id={averageId} popover="auto" className="player-detail-popover">
-                        <strong>牌號 {displayBoardNumber(b)} · 平均分</strong>
+                        <strong>牌號 {displayBoardNumber(b)} · Datum</strong>
                         {(['ns', 'ew'] as const).map((side) => <div key={side}>
-                          {side === 'ns' ? '南北 NS' : '東西 EW'}：<span className="mono">{datums[side].mean === null ? '—' : `${datums[side].mean >= 0 ? '+' : ''}${number(datums[side].mean)}`}</span>
+                          {side === 'ns' ? '南北 NS' : '東西 EW'}：<span className="mono">{datums[side].datum === null ? '—' : signed(datums[side].datum)}</span>
                         </div>)}
                         <small className="muted">{datums.valid} 桌有效結果</small>
                       </div>
@@ -615,7 +615,7 @@ export function PlayersView({
                   .map((other) => event.results[resultKey(other.id, b)])
                   .filter((result) => result && result.status !== 'cancelled')
                   .map((result) => result);
-                const average = directionalDatum(scores)[ns ? 'ns' : 'ew'].mean;
+                const datum = directionalDatum(scores)[ns ? 'ns' : 'ew'].datum;
                 const popupId = `player-${a.id}-${b}`;
                 const openBoard = () => {
                   setSelectedResult('');
@@ -692,7 +692,7 @@ export function PlayersView({
                     <td className="mono">
                       <button
                         className="player-raw-score contract-link"
-                        title="查看本牌平均分" popoverTarget={`${popupId}-average`}
+                        title="查看本牌 Datum" popoverTarget={`${popupId}-average`}
                         onClick={(e) => positionDetail(e.currentTarget)}
                       >
                         {r && r.status !== 'cancelled'
@@ -704,8 +704,8 @@ export function PlayersView({
                         popover="auto"
                         className="player-detail-popover"
                       >
-                        牌號 {b} · {ns ? 'NS' : 'EW'} 平均分{' '}
-                        {average === null ? '—' : `${average >= 0 ? '+' : ''}${number(average)}`}（
+                        牌號 {b} · {ns ? 'NS' : 'EW'} Datum{' '}
+                        {datum === null ? '—' : signed(datum)}（
                         {scores.length} 桌有效結果）
                       </div>
                     </td>
