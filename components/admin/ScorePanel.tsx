@@ -1,4 +1,5 @@
 import type { ResultInput, Seat } from '@/lib/model';
+import { dealHcp } from '@/lib/recorded-hcp';
 import { resultKey } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { contractScore } from '@/lib/scoring';
@@ -319,7 +320,7 @@ export function ScorePanel({
             />
           </label>
           <div className="score-preview">
-            {event.gameMode === 'minibridge' && <DeclarerWarning value={input} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} />}
+            {event.gameMode === 'minibridge' && <DeclarerWarning value={input} actualHcp={dealHcp(event.boards.find(b => b.number === board)?.deal)} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} />}
             <span>NS 原始分</span>
             <strong>
               {input.level < 0 ? '—' : signed(

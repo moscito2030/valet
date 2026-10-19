@@ -19,9 +19,9 @@ export function HcpSummary({ hcp }: { hcp?: ResultInput['hcp'] }) {
   return hcp && Object.keys(hcp).length ? <small>大牌點：{(['N','E','S','W'] as const).map(s => `${labels[s]} ${hcp[s] ?? '—'}`).join(' · ')}</small> : null;
 }
 
-export function DeclarerWarning({ value, dealer }: { value: ResultInput; dealer: Seat }) {
-  const valid = recordedHcpSchema.safeParse(value.hcp ?? {});
+export function DeclarerWarning({ value, dealer, actualHcp }: { value: ResultInput; dealer: Seat; actualHcp?: RecordedHcp }) {
+  const valid = recordedHcpSchema.safeParse(actualHcp ?? {});
   const declarer = valid.success ? hcpDeclarer(valid.data, dealer) : undefined;
   if (declarer === undefined || declarer === value.declarer) return null;
-  return <p className="declarer-warning" role="alert">{declarer === null ? '兩方各 20 點，依迷你橋牌規則應重新發牌。' : `莊家方位不正確：依輸入大牌點應為${labels[declarer]}家，目前選擇${labels[value.declarer]}家。請核對或交由裁判處理。`}</p>;
+  return <p className="declarer-warning" role="alert">{declarer === null ? '兩方各 20 點，依迷你橋牌規則應重新發牌。' : `莊家方位不正確：依實際牌型大牌點應為${labels[declarer]}家，目前選擇${labels[value.declarer]}家。請核對或交由裁判處理。`}</p>;
 }
