@@ -249,3 +249,20 @@ test('round VP dialog uses actual match board count and handles pending and BAM 
   assert.match(bam,/3／1／0 VP/);
   assert.doesNotMatch(bam,/VP 換算表/);
 });
+test('ongoing team matches show provisional VP without changing official standings', async () => {
+  const { seedEvents } = await import('../lib/domain/demo-events');
+  const stored = seedEvents()[0];
+  const event = audienceEvent(stored.event, stored.projection);
+  const match = event.projection.matches.find((m) => m.completed > 0 && m.completed < m.total)!;
+  const before = JSON.stringify(event.projection);
+  const html = renderToStaticMarkup(createElement(MatchVpScale, {event, match}));
+  assert.match(html, /暫計 VP/);
+  assert.match(html, /尚未計入總排名/);
+  assert.match(html, /vp-scale-current/);
+  assert.equal(match.vpA, null);
+  assert.equal(JSON.stringify(event.projection), before);
+  const empty = renderToStaticMarkup(createElement(MatchVpScale, {event: {...event, results:{}}, match}));
+  assert.doesNotMatch(empty, /暫計 VP/);
+  const finished = event.projection.matches.find((m) => m.vpA !== null)!;
+  assert.doesNotMatch(renderToStaticMarkup(createElement(MatchVpScale, {event, match:finished})), /暫計 VP/);
+});

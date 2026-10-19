@@ -2,6 +2,7 @@
 import { useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { MatchScore, PublicEvent } from '@/lib/model';
+import { resultKey } from '@/lib/model';
 import { vp } from '@/lib/scoring';
 import { number, signed } from './scoreboard-shared';
 
@@ -9,6 +10,17 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const bam = event.teamMethod === 'bam';
+  const assignments = event.assignments.filter((a) => a.matchId === match.id);
+  const open = assignments.find((a) => a.room === 'open');
+  const closed = assignments.find((a) => a.room === 'closed');
+  const hasComparedScore = !!open && !!closed && open.boards.some((board) => {
+    const results = [event.results[resultKey(open.id, board)], event.results[resultKey(closed.id, board)]];
+    return results.every((r) => r && r.status !== 'cancelled' && r.status !== 'average');
+  });
+  const provisional = (match.vpA === null || match.vpB === null) &&
+    match.completed < match.total && match.total > 0 && hasComparedScore;
+  const vpA = provisional ? (bam ? match.bamA ?? 0 : vp(match.marginA, match.total)) : match.vpA;
+  const vpB = provisional ? (bam ? match.bamB ?? 0 : vp(match.marginB, match.total)) : match.vpB;
   const scale =
     !bam && match.total > 0
       ? Array.from({ length: Math.ceil(15 * Math.sqrt(match.total)) + 1 }, (_, margin) => ({
@@ -41,10 +53,10 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
           }
         }}
       >
-        <span className="muted">VP</span>{' '}
+        <span className="muted">{provisional ? '暫計 VP' : 'VP'}</span>{' '}
         <b>
-          <span className="team-home">{number(match.vpA)}</span> :{' '}
-          <span className="team-away">{number(match.vpB)}</span>
+          <span className="team-home">{number(vpA)}</span> :{' '}
+          <span className="team-away">{number(vpB)}</span>
         </b>
       </button>
       <dialog
@@ -72,14 +84,15 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
             : 'WBF 20–0 · 依原訂牌數換算'}
         </p>
         <p>
-          {match.vpA === null || match.vpB === null
+          {vpA === null || vpB === null
             ? '成績未齊，尚未換算 VP'
             : bam
-              ? `${number(match.vpA)} : ${number(match.vpB)} VP`
+              ? `${number(vpA)} : ${number(vpB)} VP`
               : match.split
-                ? `雙方 IMP 淨差 ${signed(match.marginA)} / ${signed(match.marginB)} → ${number(match.vpA)} / ${number(match.vpB)} VP`
-                : `${name(match.a)} ${signed(margins[0])} IMP → ${number(match.vpA)} VP`}
+                ? `雙方 IMP 淨差 ${signed(match.marginA)} / ${signed(match.marginB)} → ${number(vpA)} / ${number(vpB)} VP`
+                : `${name(match.a)} ${signed(margins[0])} IMP → ${number(vpA)} VP`}
         </p>
+        {provisional && <p>暫計成績：依目前已比對成績計算，尚未計入總排名。</p>}
         {scale.length > 0 && (
           <div className="vp-scale-scroll">
             <table aria-label={`${match.total} 牌 VP 換算表`}>
@@ -95,8 +108,8 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
                   <tr
                     key={row.margin}
                     className={
-                      match.vpA !== null &&
-                      match.vpB !== null &&
+                      vpA !== null &&
+                      vpB !== null &&
                       margins.some((m) => Math.min(Math.abs(m), scale.length - 1) === row.margin)
                         ? 'vp-scale-current'
                         : undefined
