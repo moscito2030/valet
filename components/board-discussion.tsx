@@ -64,7 +64,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
       <div className="panel-heading">
         <div>
           <h2>牌局討論</h2>
-          <p>打橋牌的人最喜歡大談了！<br />請聚焦本牌，勿張貼敏感個資。</p>
+          <p>打橋牌的人最喜歡大談了！請聚焦本牌，勿張貼敏感個資。</p>
         </div>
         <button
           className="button secondary"
