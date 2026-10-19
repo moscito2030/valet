@@ -7,6 +7,6 @@ test('mini score reference includes the ten legal contracts and standard non-vul
  const html = renderToStaticMarkup(createElement(MiniScoreReference));
  assert.equal((html.match(/<tr/g) ?? []).length,6);
  for(const score of [70,80,90,400,420]) assert.ok(html.includes(`+${score}`));
- assert.match(html,/每少一墩 −50 分/);
+ assert.match(html,/每少一墩 <span class="mini-score-penalty">−50 分/);
  assert.match(html,/一線合約即使取得成局墩數/);
 });
