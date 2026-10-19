@@ -4,6 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PublicationPanel } from '../components/admin/PublicationPanel';
 import { BoardsView } from '../components/scoreboard/BoardsView';
+import { MatchVpScale } from '../components/match-vp-scale';
 import { PlayersView } from '../components/scoreboard/PlayersView';
 import { RoundsView } from '../components/scoreboard/RoundsView';
 import { StandingsView } from '../components/scoreboard/StandingsView';
@@ -235,4 +236,16 @@ test('contract Butler display is opt-in and does not remove raw scores or summar
   const action = findAction(PlayersView({...props,setShowContractButler:(v)=>{enabled=v;}}),'顯示合約 Butler');
   action.props.onClick();
   assert.equal(enabled,true);
+});
+
+test('round VP dialog uses actual match board count and handles pending and BAM scores', () => {
+  const raw = fixture(), event = audienceEvent(raw, project(raw));
+  const match = {...event.projection.matches[0],total:14,vpA:null,vpB:null};
+  const html = renderToStaticMarkup(createElement(MatchVpScale,{event,match}));
+  assert.match(html,/14 牌 VP 換算表/);
+  assert.match(html,/成績未齊/);
+  assert.doesNotMatch(html,/vp-scale-current/);
+  const bam = renderToStaticMarkup(createElement(MatchVpScale,{event:{...event,teamMethod:'bam',bam:{win:3,draw:1,loss:0}},match}));
+  assert.match(bam,/3／1／0 VP/);
+  assert.doesNotMatch(bam,/VP 換算表/);
 });

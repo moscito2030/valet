@@ -5,6 +5,7 @@ import { participantNumber } from '@/lib/participant-number';
 import { pairStandingsBeforeRound, teamStandingsThroughRound } from '@/lib/scoring';
 import { roundLabel } from '@/lib/team-movement';
 import { ArrowRight } from 'lucide-react';
+import { MatchVpScale } from '../match-vp-scale';
 import { InterleavedRound } from '../interleaved-round';
 import { number, signed, Tab } from '../scoreboard-shared';
 import { RoundSelect } from '../scoreboard-widgets';
@@ -122,13 +123,7 @@ export function RoundsView({
                 );
               })}
               <div className="match-bottom">
-                <span>
-                  VP{' '}
-                  <b>
-                    <span className="team-home">{number(m.vpA)}</span> :{' '}
-                    <span className="team-away">{number(m.vpB)}</span>
-                  </b>
-                </span>
+                <MatchVpScale event={event} match={m} />
                 <button
                   onClick={() => {
                     setPerson(m.a);
