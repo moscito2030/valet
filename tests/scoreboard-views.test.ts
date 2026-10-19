@@ -264,6 +264,11 @@ test('ongoing team matches show provisional VP without changing official standin
   assert.match(html, /暫計 VP/);
   assert.match(html, /尚未計入總排名/);
   assert.match(html, /vp-scale-current/);
+  const playerProps = {event,person:match.a,playerRound:match.round,playerSort:'round' as const,setBoard:noop,setPerson:noop,setPlayerRound:noop,setPlayerSort:noop,setRound:noop,setSelectedResult:noop,setTab:noop,setTravellerSide:noop};
+  const playerHtml = renderToStaticMarkup(createElement(PlayersView, playerProps));
+  assert.match(playerHtml, /暫計 VP/);
+  assert.match(playerHtml, /vp-scale-current/);
+  assert.doesNotMatch(renderToStaticMarkup(createElement(PlayersView, {...playerProps,event:{...event,results:{}}})), /暫計 VP/);
   assert.equal(match.vpA, null);
   assert.equal(JSON.stringify(event.projection), before);
   const empty = renderToStaticMarkup(createElement(MatchVpScale, {event: {...event, results:{}}, match}));

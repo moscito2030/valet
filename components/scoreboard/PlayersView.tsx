@@ -170,16 +170,29 @@ export function PlayersView({
   const playerMatchScore = event?.projection.matches.find(
     (match) => match.id === playerMatch?.matchId,
   );
+  const provisionalVp = !!playerMatchScore &&
+    (playerMatchScore.vpA === null || playerMatchScore.vpB === null) &&
+    playerMatchScore.completed < playerMatchScore.total && playerMatchScore.total > 0 &&
+    teamPlayerRows.some(({ a, b, closed }) => closed && [a, closed].every((assignment) => {
+      const result = event.results[resultKey(assignment.id, b)];
+      return result && result.status !== 'cancelled' && result.status !== 'average';
+    }));
+  const vpA = playerMatchScore && provisionalVp
+    ? event.teamMethod === 'bam' ? playerMatchScore.bamA ?? 0 : vp(playerMatchScore.marginA, playerMatchScore.total)
+    : playerMatchScore?.vpA ?? null;
+  const vpB = playerMatchScore && provisionalVp
+    ? event.teamMethod === 'bam' ? playerMatchScore.bamB ?? 0 : vp(playerMatchScore.marginB, playerMatchScore.total)
+    : playerMatchScore?.vpB ?? null;
   const playerMatchVp = playerMatchScore
     ? playerMatchScore.a === playerId
-      ? playerMatchScore.vpA
-      : playerMatchScore.vpB
+      ? vpA
+      : vpB
     : null;
   const playerVpBoards = playerMatchScore?.total ?? teamPlayerRows.length;
   const opponentMatchVp = playerMatchScore
     ? playerMatchScore.a === playerId
-      ? playerMatchScore.vpB
-      : playerMatchScore.vpA
+      ? vpB
+      : vpA
     : null;
   const playerVpScale =
     event.teamMethod !== 'bam' && playerVpBoards > 0
@@ -487,7 +500,7 @@ export function PlayersView({
                       title={event.teamMethod === 'bam' ? '查看 BAM 計分規則' : '查看 VP 換算表'} popoverTarget="player-vp-scale"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
-                      {event.teamMethod === 'bam' ? '計分規則' : '換算 VP'}
+                      {provisionalVp ? '暫計 VP' : event.teamMethod === 'bam' ? '計分規則' : '換算 VP'}
                     </button>
                     <button
                       type="button"
@@ -534,6 +547,7 @@ export function PlayersView({
                       第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 計分
                     </strong>
                     <p>{event.teamMethod === 'bam' ? `每牌勝／和／負 ${event.bam?.win ?? 2}／${event.bam?.draw ?? 1}／${event.bam?.loss ?? 0} VP，直接加總` : 'WBF 20–0 · 依原訂牌數換算'}</p>
+                    {provisionalVp && <p className="muted">暫計 VP：依目前已比對成績估算，尚未計入累積 VP 與排名。</p>}
                     <p>
                       {playerMatchVp === null
                         ? '成績未齊，尚未換算 VP'
