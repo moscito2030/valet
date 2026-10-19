@@ -7,7 +7,11 @@ import { project } from '../scoring';
 export function hydrateEvent(stored: StoredEvent, competition: CompetitionInfo): StoredEvent {
   const inherited = inheritCompetition(stored, competition);
   const event = { ...inherited.event, results: normalizeResults(inherited.event.results) };
-  const legacy = Object.values(inherited.event.results).some((r) => r.status === 'average');
+  const legacy = Object.values(inherited.event.results).some((r) => r.status === 'average') ||
+    (event.kind === 'teams' && stored.projection.matches.some((match) =>
+      !Number.isFinite(match.marginA) || !Number.isFinite(match.marginB) ||
+      typeof match.split !== 'boolean',
+    ));
   const projection = legacy ? project(event) : stored.projection;
   // Persisted projections may predate numeric tie ordering. Normalize on read,
   // without recalculating scores or writing a new event revision.
