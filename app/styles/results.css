@@ -648,3 +648,6 @@ table a:focus-visible {
 .team-butler-title-link { border: 0; background: transparent; padding: 4px 0; color: var(--muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
 .team-butler-title-link:hover { color: var(--forest); }
 .team-butler-title-link:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; border-radius: 4px; }
+.team-imp-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; width: 100%; text-align: center; }
+.team-imp-labels { font-size: 10px; margin-top: 4px; }
+.team-imp-neutral { display: block; text-align: center; font-size: 11px; white-space: nowrap; }

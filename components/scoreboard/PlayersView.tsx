@@ -1,3 +1,4 @@
+import { TeamImpColumns } from '../team-imp-columns';
 import { displayedBoardNumber } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
 import type { Assignment, PublicEvent } from '@/lib/model';
@@ -365,7 +366,7 @@ export function PlayersView({
                 <th>牌號</th>
                 <th>公開</th>
                 <th>關閉</th>
-                <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP 差'}</th>
+                <th>{event.teamMethod === 'bam' ? 'VP' : <><span>IMP</span><span className="team-imp-columns team-imp-labels"><span>我方</span><span>對手</span></span></>}</th>
               </tr>
             </thead>
             <tbody>
@@ -423,7 +424,7 @@ export function PlayersView({
                         </td>
                       );
                     })}
-                    <td className={`mono ${event.teamMethod === 'bam' ? '' : pairTone(impDiff, 0, 'butler')}`}>{impDiff === null ? '—' : signed(impDiff)}</td>
+                    <td>{event.teamMethod === 'bam' ? (impDiff === null ? '—' : signed(impDiff)) : <TeamImpColumns value={impDiff} />}</td>
                   </tr>
                 );
               })}

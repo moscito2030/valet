@@ -1,9 +1,10 @@
+import { TeamImpColumns } from './team-imp-columns';
 import { boardRange } from '@/lib/board-groups';
 import { roundLabel } from '@/lib/team-movement';
 import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { awardedResult, teamBoardPoints } from '@/lib/scoring';
-import { Contract, signed, pairTone } from './scoreboard-shared';
+import { Contract, signed } from './scoreboard-shared';
 import { ArrowLeftRight } from 'lucide-react';
 
 export function InterleavedRound({
@@ -82,7 +83,7 @@ export function InterleavedRound({
                       <th>
                         我方東西：第 {roundLabel(event, other.round)} 圈／{other.table} 桌
                       </th>
-                      <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP 差'}</th>
+                      <th>{event.teamMethod === 'bam' ? 'VP' : <><span>IMP</span><span className="team-imp-columns team-imp-labels"><span>我方</span><span>對手</span></span></>}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -119,7 +120,7 @@ export function InterleavedRound({
                               </td>
                             );
                           })}
-                          <td className={event.teamMethod === 'bam' ? undefined : pairTone(imp, 0, 'butler')}>{imp === null ? '—' : imp}</td>
+                          <td>{event.teamMethod === 'bam' ? (imp === null ? '—' : imp) : <TeamImpColumns value={imp} />}</td>
                         </tr>
                       );
                     })}
