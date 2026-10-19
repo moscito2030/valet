@@ -1,5 +1,9 @@
 import type { Comment } from './discussion';
 export type BulletComment = Pick<Comment, 'id' | 'nickname' | 'text' | 'hidden' | 'deleted'>;
+/** Preserve mobile timing; give wider boards proportionally more travel time. */
+export function bulletDuration(width: number) {
+  return Math.max(7500, (width / 600) * 7500);
+}
 /** Each cycle includes every visible comment once, without mutating the source. */
 export function shuffledBullets(
   comments: BulletComment[],

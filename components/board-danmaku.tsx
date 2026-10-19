@@ -3,7 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { CommentText } from './comment-text';
 import { useDiscussion } from './board-discussion-context';
-import { shuffledBullets, freeBulletLane, type BulletComment } from '@/lib/discussion-bullets';
+import {
+  shuffledBullets,
+  freeBulletLane,
+  bulletDuration,
+  type BulletComment,
+} from '@/lib/discussion-bullets';
 export function DanmakuToggle({ className = 'discussion-action' }: { className?: string }) {
   const { live, setLive } = useDiscussion();
   return (
@@ -21,11 +26,18 @@ export function DanmakuToggle({ className = 'discussion-action' }: { className?:
 export function BoardDanmaku() {
   const { data, live, visible } = useDiscussion();
   const [active, setActive] = useState<
-    (BulletComment & { lane: number; top: number; started: number; instance: number })[]
+    (BulletComment & {
+      lane: number;
+      top: number;
+      started: number;
+      duration: number;
+      instance: number;
+    })[]
   >([]);
+  const overlay = useRef<HTMLDivElement>(null);
   const queue = useRef<BulletComment[]>([]),
     comments = useRef<BulletComment[]>([]),
-    occupied = useRef<{ lane: number; started: number }[]>([]),
+    occupied = useRef<{ lane: number; started: number; duration: number }[]>([]),
     previous = useRef<string | undefined>(undefined),
     sequence = useRef(0);
   const playable = live && visible && !!data?.published;
@@ -52,7 +64,8 @@ export function BoardDanmaku() {
     if (!playable) return;
     const launch = () => {
       const now = Date.now();
-      occupied.current = occupied.current.filter((c) => now - c.started < 7500);
+      const duration = bulletDuration(overlay.current?.getBoundingClientRect().width ?? 0);
+      occupied.current = occupied.current.filter((c) => now - c.started < c.duration);
       const lane = freeBulletLane(occupied.current.map((c) => c.lane));
       if (lane === undefined) return;
       if (!queue.current.length)
@@ -64,15 +77,16 @@ export function BoardDanmaku() {
             lane,
             top: 8 + lane * 21 + Math.random() * 6,
             started: now,
+            duration,
             instance: sequence.current++,
           }
         : null;
       if (bullet) {
-        occupied.current.push({ lane, started: now });
+        occupied.current.push({ lane, started: now, duration });
         previous.current = bullet.id;
       }
       setActive((old) => [
-        ...old.filter((c) => now - c.started < 7500),
+        ...old.filter((c) => now - c.started < c.duration),
         ...(bullet ? [bullet] : []),
       ]);
     };
@@ -82,9 +96,13 @@ export function BoardDanmaku() {
   }, [playable]);
   if (!playable) return null;
   return (
-    <div className="board-danmaku" aria-hidden="true">
+    <div ref={overlay} className="board-danmaku" aria-hidden="true">
       {active.map((c) => (
-        <div key={c.instance} className="danmaku-message" style={{ top: `${c.top}%` }}>
+        <div
+          key={c.instance}
+          className="danmaku-message"
+          style={{ top: `${c.top}%`, animationDuration: `${c.duration}ms` }}
+        >
           <span className="danmaku-author">{c.nickname}：</span>
           <CommentText
             text={

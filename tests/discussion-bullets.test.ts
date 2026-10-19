@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { shuffledBullets, freeBulletLane, type BulletComment } from '../lib/discussion-bullets';
+import {
+  shuffledBullets,
+  freeBulletLane,
+  bulletDuration,
+  type BulletComment,
+} from '../lib/discussion-bullets';
 const comments = Array.from({ length: 40 }, (_, i): BulletComment => ({
   id: String(i),
   nickname: 'Player',
@@ -42,4 +47,11 @@ test('random lane selection never reuses an occupied lane', () => {
     freeBulletLane([], () => 0.99),
     3,
   );
+});
+
+test('mobile duration stays unchanged while wide boards get more travel time', () => {
+  assert.equal(bulletDuration(390), 7500);
+  assert.equal(bulletDuration(600), 7500);
+  assert.equal(bulletDuration(960), 12000);
+  assert.equal(bulletDuration(1200), 15000);
 });
