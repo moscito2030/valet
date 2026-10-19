@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Settings2,
 } from 'lucide-react';
+import { CommentText } from './comment-text';
 import type { Comment } from '@/lib/discussion';
 type Data = {
   published: boolean;
@@ -179,7 +180,9 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                         {data.comments.find((r) => r.id === c.replyTo)?.nickname ?? '已移除留言'}
                       </div>
                     )}
-                    <p className="discussion-text">{c.text}</p>
+                    <p className="discussion-text">
+                      <CommentText text={c.text} />
+                    </p>
                     <div className="discussion-actions">
                       {!data.closed && !data.globalClosed && !c.hidden && (
                         <button
@@ -277,7 +280,9 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                     <div className="discussion-reply-context" role="status">
                       <div>
                         <span>回覆 {replying?.nickname ?? '留言'}</span>
-                        <p>{replying?.text ?? '原留言已移除'}</p>
+                        <p>
+                          <CommentText text={replying?.text ?? '原留言已移除'} />
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -319,7 +324,8 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                     </button>
                   </div>
                   <p className="footnote discussion-help">
-                    每 10 分鐘最多 5 次、每日 30
+                    花色可輸入 !s !h !d !c（♠ ♥ ♦ ♣），大小寫皆可。
+                    <br />每 10 分鐘最多 5 次、每日 30
                     次發文嘗試；同一網路來源另有限制。同一瀏覽器可刪除自己的留言，清除 Cookie
                     後將失去此權限。
                   </p>

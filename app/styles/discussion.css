@@ -252,3 +252,10 @@
     max-width: none;
   }
 }
+.discussion-suit {
+  color: var(--ink);
+  font-weight: 600;
+}
+.discussion-suit-red {
+  color: var(--accent);
+}
