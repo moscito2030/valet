@@ -6,7 +6,7 @@ import { resultKey } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { awardedResult, imps, teamBoardPoints, teamStandingsThroughRound, vp } from '@/lib/scoring';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
-import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { InterleavedRound } from '../interleaved-round';
 import { Contract, number, pairTone, pairValue, signed, Tab } from '../scoreboard-shared';
 import { TeamButlerPopover } from '../team-butler-popover';
@@ -216,15 +216,12 @@ export function PlayersView({
                 </p>
               )}
           </div>
-          {event.kind === 'teams' && !event.teamMovement && <button type="button" className="team-options-trigger" popoverTarget="team-result-options" onClick={(e) => positionDetail(e.currentTarget)}><SlidersHorizontal size={15} />顯示設定</button>}
-        {event.kind === 'teams' && !event.teamMovement && (
-          <div id="team-result-options" popover="auto" className="team-result-tools team-result-menu">
-            {!event.teamMovement && <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
+          {event.kind === 'teams' && !event.teamMovement && (
+            <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
               <span className="butler-toggle-track" aria-hidden="true"><span /></span>
               顯示合約 Butler
-            </button>}
-          </div>
-        )}
+            </button>
+          )}
         </div>
         <div
           className={`player-result-filters${event.kind === 'teams' ? '' : ' pairs-result-filters'}`}

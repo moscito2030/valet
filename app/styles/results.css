@@ -603,7 +603,6 @@ table a:focus-visible {
   background: var(--white);
   border-radius: 8px;
 }
-.team-result-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .butler-display-toggle, .team-perspective-switch {
   display: inline-flex; align-items: center; gap: 8px; min-height: 40px;
   padding: 6px 0; border: 0; background: transparent; color: var(--muted);
@@ -613,7 +612,6 @@ table a:focus-visible {
 .butler-toggle-track > span { display: block; height: 12px; width: 12px; border-radius: 50%; background: white; transition: transform .15s; }
 .butler-display-toggle[aria-checked='true'] .butler-toggle-track { background: var(--forest); }
 .butler-display-toggle[aria-checked='true'] .butler-toggle-track > span { transform: translateX(12px); }
-.team-result-tools .team-butler-trigger { min-height: 40px; padding: 6px 0; border: 0; background: transparent; box-shadow: none; font-size: 12px; color: var(--muted); margin-left: auto; }
 .team-results-heading .player-round-context { display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0; }
 .match-perspective-action { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .match-perspective-action .team-perspective-switch, .match-perspective-action .team-perspective-switch:hover { margin-left: 0; color: var(--muted); text-decoration: none; }
@@ -623,7 +621,7 @@ table a:focus-visible {
 .match-context-trigger:hover .match-context-opponent { text-decoration: underline; text-underline-offset: 3px; }
 .match-context-trigger:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; border-radius: 4px; }
 .team-perspective-switch { color: var(--forest); flex-shrink: 0; white-space: nowrap; }
-.team-perspective-switch:hover, .team-result-tools .team-butler-trigger:hover { text-decoration: underline; text-underline-offset: 3px; }
+.team-perspective-switch:hover { text-decoration: underline; text-underline-offset: 3px; }
 .butler-display-toggle:focus-visible, .team-perspective-switch:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; border-radius: 4px; }
 @media (max-width: 600px) {
   .team-results-heading .player-round-context { flex-wrap: wrap; padding: 0; }
@@ -636,13 +634,6 @@ table a:focus-visible {
 .match-vp-dialog table tr > :nth-child(n) { padding: 7px 8px; font-size: 12px; }
 
 .team-results-heading .team-result-intro { flex-wrap: nowrap; gap: 12px; align-items: flex-start; }
-.team-options-trigger { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
-.team-options-trigger:hover { color: var(--forest); }
-.team-options-trigger:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
-.team-result-menu { position: fixed; margin: 0; width: min(260px, calc(100vw - 32px)); box-sizing: border-box; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); box-shadow: 0 8px 28px #183d3020; }
-.team-result-menu:not(:popover-open) { display: none; }
-.team-result-menu:popover-open { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-.team-result-menu .team-butler-trigger { margin-left: 0; justify-content: flex-start; }
 .team-result-title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
 .team-result-title-action { display: inline-flex; align-items: baseline; gap: 8px; }
 .team-butler-title-link { border: 0; background: transparent; padding: 4px 0; color: var(--muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
@@ -651,3 +642,6 @@ table a:focus-visible {
 .team-imp-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; width: 100%; text-align: center; }
 .team-imp-labels { font-size: 10px; margin-top: 4px; }
 .team-imp-neutral { display: block; text-align: center; font-size: 11px; white-space: nowrap; }
+
+.team-results-heading .team-result-intro { flex-wrap: wrap; }
+.team-result-intro > .butler-display-toggle { flex-shrink: 0; margin-left: auto; white-space: nowrap; }
