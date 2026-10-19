@@ -386,7 +386,7 @@ export function PlayersView({
                 return (
                   <tr key={`${a.matchId}-${b}`}>
                     <td>
-                      <button className="text-button" onClick={() => openBoard(a)}>
+                      <button className="text-button" title="查看牌局" onClick={() => openBoard(a)}>
                         {displayBoardNumber(b)}
                       </button>
                     </td>
@@ -407,7 +407,7 @@ export function PlayersView({
                           <button
                             className="contract-link"
                             aria-label={`查看牌號 ${displayBoardNumber(b)} ${index === 0 ? '公開' : '關閉'}室成績`}
-                            onClick={() => openBoard(assignment)}
+                            title="查看牌局" onClick={() => openBoard(assignment)}
                           >
                             <Contract result={result} />
 
@@ -648,7 +648,7 @@ export function PlayersView({
                       </td>
                     )}
                     <td>
-                      <button className="text-button" onClick={openBoard}>
+                      <button className="text-button" title="查看牌局" onClick={openBoard}>
                         {b}
                       </button>
                     </td>
@@ -691,7 +691,7 @@ export function PlayersView({
                         type="button"
                         className="contract-link"
                         aria-label={`查看牌號 ${b} 的逐副成績`}
-                        onClick={openBoard}
+                        title="查看牌局" onClick={openBoard}
                       >
                         <Contract result={r} />
                       </button>

@@ -108,7 +108,7 @@ export function InterleavedRound({
                                 <button
                                   className="contract-link"
                                   aria-label={`查看第 ${roundLabel(event, a.round)} 圈 ${a.table} 桌牌號 ${board}`}
-                                  onClick={() => onBoard(board, a.id)}
+                                  title="查看牌局" onClick={() => onBoard(board, a.id)}
                                 >
                                   <Contract result={r} />
                                   <small className="block mono">
