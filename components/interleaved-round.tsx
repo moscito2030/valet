@@ -3,7 +3,7 @@ import { roundLabel } from '@/lib/team-movement';
 import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { awardedResult, teamBoardPoints } from '@/lib/scoring';
-import { Contract, signed } from './scoreboard-shared';
+import { Contract, signed, pairTone } from './scoreboard-shared';
 import { ArrowLeftRight } from 'lucide-react';
 
 export function InterleavedRound({
@@ -119,7 +119,7 @@ export function InterleavedRound({
                               </td>
                             );
                           })}
-                          <td>{imp === null ? '—' : imp}</td>
+                          <td className={event.teamMethod === 'bam' ? undefined : pairTone(imp, 0, 'butler')}>{imp === null ? '—' : imp}</td>
                         </tr>
                       );
                     })}

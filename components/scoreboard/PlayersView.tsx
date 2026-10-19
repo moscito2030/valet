@@ -418,7 +418,7 @@ export function PlayersView({
                         </td>
                       );
                     })}
-                    <td className="mono">{impDiff === null ? '—' : signed(impDiff)}</td>
+                    <td className={`mono ${event.teamMethod === 'bam' ? '' : pairTone(impDiff, 0, 'butler')}`}>{impDiff === null ? '—' : signed(impDiff)}</td>
                   </tr>
                 );
               })}
