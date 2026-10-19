@@ -57,6 +57,7 @@
 
 .club-board-result { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; }
 .club-board-result small { margin-left: auto; white-space: nowrap; }
+.club-board-result > button { margin-left: 12px; flex-shrink: 0; }
 .club-admin .field small { overflow-wrap: anywhere; }
 
 
