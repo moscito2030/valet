@@ -23,6 +23,7 @@ export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
   const stats = useMemo(() => teamButlerStats(event), [event]);
   const rows = stats[mode].filter((r) => !team || r.teamId === team);
   const pairs = mode === 'pairs';
+  const selectedTeam = event.participants.find((participant) => participant.id === team);
   return (
     <>
       <button
@@ -79,6 +80,13 @@ export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
                 </select>
               </label>
             </div>
+            {selectedTeam && <section className="team-butler-roster" aria-label="隊伍成員資訊">
+              <strong>{selectedTeam.name}</strong>
+              <dl>
+                <div><dt>隊長</dt><dd>{selectedTeam.captain || '尚未提供'}</dd></div>
+                <div><dt>隊員</dt><dd>{selectedTeam.players || '尚未提供'}</dd></div>
+              </dl>
+            </section>}
             <p className="team-butler-scope">
               {stats.rounds.length
                 ? `已納入第 ${stats.rounds.map(r => roundLabel(event, r)).join('、')} 圈 · 共 ${stats.rounds.length} 圈`

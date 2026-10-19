@@ -217,28 +217,6 @@ export function PlayersView({
               <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
               {event.kind === 'teams' && <span className="team-result-title-action"><span className="muted" aria-hidden="true">·</span><TeamButlerPopover event={event} teamId={playerId} inline /></span>}
             </div>
-            {event.kind === 'teams' &&
-              event.participants.find((p) => p.id === (person || event.participants[0].id))
-                ?.captain && (
-                <p>
-                  隊長：
-                  {
-                    event.participants.find((p) => p.id === (person || event.participants[0].id))
-                      ?.captain
-                  }
-                </p>
-              )}
-            {event.kind === 'teams' &&
-              event.participants.find((p) => p.id === (person || event.participants[0].id))
-                ?.players && (
-                <p>
-                  隊員：
-                  {
-                    event.participants.find((p) => p.id === (person || event.participants[0].id))
-                      ?.players
-                  }
-                </p>
-              )}
           </div>
           {event.kind === 'teams' && !event.teamMovement && (
             <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
