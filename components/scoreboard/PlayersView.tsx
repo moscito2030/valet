@@ -60,6 +60,15 @@ export function PlayersView({
           : Math.max(8, anchor.top - box.height - 6);
       popup.style.left = `${left}px`;
       popup.style.top = `${top}px`;
+      const scroller = popup.querySelector<HTMLElement>('.vp-scale-scroll');
+      const current = popup.querySelector<HTMLElement>('.vp-scale-current');
+      if (scroller) {
+        scroller.scrollTop = current
+          ? scroller.scrollTop + current.getBoundingClientRect().top -
+            scroller.getBoundingClientRect().top -
+            (scroller.clientHeight - current.offsetHeight) / 2
+          : 0;
+      }
     });
   }
   const name = (pid: string) => event?.participants.find((p) => p.id === pid)?.name ?? pid;
