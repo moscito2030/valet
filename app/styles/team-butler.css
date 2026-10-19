@@ -1,5 +1,9 @@
 .team-result-intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; width: 100%; }
 .team-result-intro > div { min-width: 0; }
+.team-result-intro { container-type: inline-size; container-name: team-result-heading; }
+@container team-result-heading (max-width: 520px) {
+  .team-butler-title-prefix { display: none; }
+}
 .team-result-intro p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
 .team-butler-trigger { flex-shrink: 0; }
 .team-butler-popover { width: min(1240px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid #dce4d8; border-radius: 14px; background: #fff; color: var(--ink); box-shadow: 0 16px 60px #203f3340; overflow-y: auto; overscroll-behavior: contain; }

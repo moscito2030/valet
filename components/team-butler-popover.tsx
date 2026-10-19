@@ -33,7 +33,7 @@ export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
         onClick={() => setTeam(teamId)}
       >
         {!inline && <BarChart3 size={16} />}
-        {inline ? '選手、搭檔 Butler 統計' : 'Butler 統計'}
+        {inline ? <><span className="team-butler-title-prefix">選手、搭檔 Butler </span>統計</> : 'Butler 統計'}
       </button>
       {mounted &&
         createPortal(
