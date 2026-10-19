@@ -106,7 +106,7 @@
 .mini-score-popover .mini-score-heading { padding-right: 24px; }
 @media (max-width: 480px) { .mini-score-reference.mini-score-popover { padding: 20px 12px; } .mini-score-popover .mini-score-heading { align-items: flex-start; flex-direction: column; gap: 8px; } }
 
-.club-page .club-page-heading { padding: 4px 0 20px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.club-page .club-page-heading { padding: 4px 0 8px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
 .club-page-heading > .eyebrow { color: var(--muted); font-size: 10px; letter-spacing: .18em; }
 .club-page-heading h1 { margin: 8px 0 4px; font-size: 28px; line-height: 1.3; font-weight: 600; }
 .club-page-heading .club-event-name { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
