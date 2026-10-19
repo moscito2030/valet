@@ -380,6 +380,8 @@ table a:focus-visible {
   }
 }
 /* Share content-proportional columns across every viewport. */
+.datum-popover { width: max-content; text-align: left; }
+.datum-popover > div { white-space: nowrap; }
 .player-detail-popover {
   margin: 0;
   inset: auto;

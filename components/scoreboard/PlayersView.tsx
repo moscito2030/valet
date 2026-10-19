@@ -444,7 +444,7 @@ export function PlayersView({
                           {content}
                         </button>
                       )} />}
-                      <div id={averageId} popover="auto" className="player-detail-popover">
+                      <div id={averageId} popover="auto" className="player-detail-popover datum-popover">
                         <strong>牌號 {displayBoardNumber(b)} · Datum</strong>
                         {(['ns', 'ew'] as const).map((side) => <div key={side}>
                           {side === 'ns' ? '南北 NS' : '東西 EW'}：<span className="mono">{datums[side].datum === null ? '—' : signed(datums[side].datum)}</span>
