@@ -120,9 +120,11 @@
 .club-heading-meta .club-heading-tools { margin-top: 0; }
 .club-heading-separator { color: var(--muted); }
 
-.club-matchup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin: 16px 0 8px; }
+.club-matchup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin: 16px 0 8px; padding: 14px 16px; background: #f5f6ef; border-radius: 8px; }
 .club-matchup > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.club-seat-label { color: var(--muted); font-size: 12px; }
+.club-seat-label { color: var(--muted); font-size: 11px; font-weight: 600; }
+.club-matchup-name { display: flex; align-items: baseline; gap: 6px; }
+.club-matchup small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .club-seat-label > span { margin-left: 4px; font-size: 11px; }
 .club-matchup strong { font-size: 15px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
 .club-section .club-entry-hint { margin: 10px 0 12px; font-size: 12px; color: var(--muted); line-height: 1.6; }

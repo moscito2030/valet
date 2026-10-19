@@ -123,8 +123,10 @@ export default function ClubPage() {
         <h2>{data.deviceLabel ?? (data.assignment ? `第 ${data.assignment.table} 桌` : data.pair.toUpperCase())} · {data.round ? `第 ${data.roundLabel} 圈` : '尚未開始'}</h2>
         {data.assignment ? <>
           <div className="club-matchup" aria-label="本桌搭檔">
-            <div><span className="club-seat-label">南北 <span>NS</span></span><strong>{data.names?.ns}</strong></div>
-            <div><span className="club-seat-label">東西 <span>EW</span></span><strong>{data.names?.ew}</strong></div>
+            {(['ns', 'ew'] as const).map(side => <div key={side}>
+              <div className="club-matchup-name"><span className="club-seat-label">{side.toUpperCase()}</span><strong>{data.names?.[side]}</strong></div>
+              <small>{data.assignment![side].toUpperCase()} / {data.roles?.inputPair === data.assignment![side] ? '輸入方' : '確認方'}</small>
+            </div>)}
           </div>
           <p className="club-entry-hint">{data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
