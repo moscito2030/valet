@@ -627,7 +627,7 @@ table a:focus-visible {
   .team-results-heading .player-round-context { flex-wrap: wrap; padding: 0; }
   .team-perspective-switch { margin-left: auto; }
 }
-.match-bottom .match-vp-trigger { font-size: 14px; min-height: 32px; cursor: pointer; border-radius: 4px; align-items: baseline; }
+.match-bottom .match-vp-trigger { font-size: 14px; min-height: 32px; padding-block: 6px; box-sizing: border-box; cursor: pointer; border-radius: 4px; align-items: baseline; }
 .match-vp-trigger:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
 .match-vp-dialog.vp-scale-popover { width: min(390px, calc(100vw - 32px)); box-sizing: border-box; }
 .match-vp-dialog .modal-heading h2 { font-size: 18px; margin: 0; }
