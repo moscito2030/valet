@@ -64,7 +64,7 @@ export function teamStandingsThroughRound(
     rows.find((p) => p.id === match.a)!.score += match.vpA;
     rows.find((p) => p.id === match.b)!.score += match.vpB;
   }
-  rows.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, 'zh-Hant'));
+  rows.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id, 'en', { numeric: true }));
   rows.forEach((row, i) => {
     row.rank = i > 0 && Math.abs(row.score - rows[i - 1].score) < 1e-8 ? rows[i - 1].rank : i + 1;
   });
@@ -400,7 +400,7 @@ export function project(e: ProjectionInput): Projection {
               : 1
             : b.score === null
               ? -1
-              : b.score - a.score) || a.name.localeCompare(b.name, 'zh-Hant'),
+              : b.score - a.score) || a.id.localeCompare(b.id, 'en', { numeric: true }),
       );
     rows.forEach((row, i) => {
       const previous = rows[i - 1];
