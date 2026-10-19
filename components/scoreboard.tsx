@@ -529,13 +529,19 @@ export default function Scoreboard() {
                         ? '賽事已結束'
                         : progressRound
                           ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
-                          : '裁判尚未指定目前圈數'}
+                          : '比賽尚未開始'}
                     </strong>
+                    {!progressRound ? (
+                      !competitionComplete && event.roundTimes?.[1] ? (
+                        <div>預計於 {new Date(event.roundTimes[1].startAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })} 開始</div>
+                      ) : null
+                    ) : (
                     <div>
                       {currentTiming
                         ? `${new Date(currentTiming.startAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })} — ${new Date(currentTiming.endAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })}（臺灣時間）`
                         : '尚未設定本圈時間區間'}
                     </div>
+                    )}
                   </div>
                   <div
                     id="current-round-progress"
