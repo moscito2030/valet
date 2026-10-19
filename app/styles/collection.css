@@ -105,3 +105,14 @@
 .mini-score-close { position: absolute; right: 10px; top: 10px; }
 .mini-score-popover .mini-score-heading { padding-right: 24px; }
 @media (max-width: 480px) { .mini-score-reference.mini-score-popover { padding: 20px 12px; } .mini-score-popover .mini-score-heading { align-items: flex-start; flex-direction: column; gap: 8px; } }
+
+.club-page .club-page-heading { padding: 4px 0 20px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.club-page-heading > .eyebrow { color: var(--muted); font-size: 10px; letter-spacing: .18em; }
+.club-page-heading h1 { margin: 8px 0 4px; font-size: 28px; line-height: 1.3; font-weight: 600; }
+.club-page-heading .club-event-name { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.club-heading-tools { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 13px; }
+.club-heading-tools > span { color: var(--muted); }
+.club-heading-tools a, .mini-score-inline-trigger { color: var(--forest); font: inherit; text-decoration: none; }
+.mini-score-inline-trigger { border: 0; padding: 4px 0; background: transparent; cursor: pointer; }
+.club-heading-tools a:hover, .mini-score-inline-trigger:hover { color: var(--muted); }
+.mini-score-inline-trigger:focus-visible { outline: 2px solid #7a9c85; outline-offset: 4px; border-radius: 2px; }

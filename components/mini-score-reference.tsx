@@ -5,9 +5,9 @@ import type { ResultInput } from '@/lib/model';
 import { contractScore, miniGameLevel } from '@/lib/scoring';
 
 const suits = [['C', '♣'], ['D', '♦'], ['H', '♥'], ['S', '♠'], ['NT', 'NT']] as const;
-export function MiniScoreReference({ value }: { value?: ResultInput | null }) {
+export function MiniScoreReference({ value, inline = false }: { value?: ResultInput | null; inline?: boolean }) {
   const id = useId();
-  return <><button type="button" className="button subtle mini-score-trigger" popoverTarget={id}><Table2 size={16} />合約分數表</button>
+  return <><button type="button" className={inline ? 'mini-score-inline-trigger' : 'button subtle mini-score-trigger'} popoverTarget={id}>{!inline && <Table2 size={16} />}合約分數表</button>
   <section id={id} popover="auto" role="dialog" className="mini-score-reference mini-score-popover" aria-label="迷你橋牌合約分數表">
     <button type="button" className="icon-button mini-score-close" aria-label="關閉合約分數表" popoverTarget={id} popoverTargetAction="hide"><X size={18} /></button>
     <div className="mini-score-heading"><div><span className="eyebrow">MINIBRIDGE</span><h3>合約分數表</h3></div><span className="mini-score-badge">無身價 · 不加倍</span></div>

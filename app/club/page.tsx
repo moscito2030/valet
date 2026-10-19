@@ -86,7 +86,15 @@ export default function ClubPage() {
   const inputIsEW = !!data?.assignment && data.roles?.inputPair === data.assignment.ew;
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
   return <main className="club-page">
-    <header><span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span><h1>{data?.deviceLabel ?? data?.pairName ?? '裝置收分'}</h1><p>{data?.name}</p><a href="/manual/players.html">收分操作手冊</a></header>
+    <header className="club-page-heading">
+      <span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span>
+      <h1>{data?.deviceLabel ?? data?.pairName ?? '裝置收分'}</h1>
+      <p className="club-event-name">{data?.name}</p>
+      <nav className="club-heading-tools" aria-label="收分參考工具">
+        <a href="/manual/players.html">收分操作手冊</a>
+        {data?.gameMode === 'minibridge' && <><span aria-hidden="true">·</span><MiniScoreReference value={draft} inline /></>}
+      </nav>
+    </header>
     {error && <div className="alert error" role="alert">{error}</div>}
     {notice && <div className="alert success" role="status">{notice}</div>}
     {!data ? <p>正在讀取專屬收分卡…</p> : <>
@@ -138,7 +146,6 @@ export default function ClubPage() {
         <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">{inputIsEW ? 'EW' : 'NS'} 原始分 <b>{board ? (inputIsEW ? -1 : 1) * contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} actualHcp={board?.hcp} dealer={board?.dealer ?? 'N'} />}</div>
         <div className="button-row"><button className="button primary" disabled={busy}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
       </form>}
-      {data.gameMode === 'minibridge' && <MiniScoreReference value={draft} />}
       {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 {data.roles?.confirmPair.toUpperCase()} 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}
       {data.assignment && (data.role === 'confirm' || data.role === 'shared' && !!reviewing) && <section className="panel club-section"><h3>本圈確認</h3><p>請核對上方全部成績。確認後本桌成績獲認可，雙方均無法再修改。</p>
         {missing > 0 && <p role="status">尚缺 {missing} 副成績，等待輸入方補齊；未完成的牌請裁判處理。</p>}
