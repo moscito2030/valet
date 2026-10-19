@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, useId } from 'react';
+import { useState, useRef, useId } from 'react';
 import {
   Reply,
   Trash2,
@@ -11,45 +11,17 @@ import {
   Settings2,
 } from 'lucide-react';
 import { CommentText } from './comment-text';
-import type { Comment } from '@/lib/discussion';
-type Data = {
-  published: boolean;
-  director: boolean;
-  globalClosed: boolean;
-  closed?: boolean;
-  comments: (Omit<Comment, 'author'> & { own: boolean })[];
-};
+import { useDiscussion } from './board-discussion-context';
+import { DanmakuToggle } from './board-danmaku';
 export function BoardDiscussion({ eventId, board }: { eventId: string; board: number }) {
   const composer = useRef<HTMLTextAreaElement>(null);
   const menuId = useId();
   const url = `/api/events/${eventId}/boards/${board}/discussion`;
-  const [data, setData] = useState<Data | null>(null),
-    [error, setError] = useState(''),
-    [busy, setBusy] = useState(false);
+  const { data, error, setError, refresh: load, live } = useDiscussion();
+  const [busy, setBusy] = useState(false);
   const [nickname, setNickname] = useState(''),
     [text, setText] = useState(''),
     [replyTo, setReplyTo] = useState<string>();
-  async function load() {
-    const r = await fetch(url, { cache: 'no-store' });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    setData(d);
-  }
-  useEffect(() => {
-    let current = true;
-    fetch(url, { cache: 'no-store' })
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        if (current) setData(d);
-      })
-      .catch((e) => {
-        if (current) setError(e.message);
-      });
-    return () => {
-      current = false;
-    };
-  }, [url]);
   async function send(method: string, body: object) {
     setBusy(true);
     setError('');
@@ -86,6 +58,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
           <p>打橋牌的人最喜歡大談了！請聚焦本牌，勿張貼敏感個資。</p>
         </div>
         <div className="discussion-tools">
+          <DanmakuToggle />
           <button
             className="discussion-action"
             disabled={busy}
@@ -95,7 +68,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
             }}
           >
             <RefreshCw size={15} aria-hidden="true" />
-            更新留言
+            {live ? '自動更新中' : '更新留言'}
           </button>
           {data?.director && (
             <>

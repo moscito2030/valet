@@ -1,3 +1,5 @@
+import { DiscussionProvider } from '../board-discussion-context';
+import { BoardDanmaku, DanmakuToggle } from '../board-danmaku';
 import { BoardDiscussion } from '../board-discussion';
 import { displayedBoardNumber, boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
@@ -250,7 +252,7 @@ export function BoardsView({
     ) : null;
   if (!selectedBoard) return null;
   return (
-    <>
+    <DiscussionProvider key={`${event.id}:${selectedBoard?.number}:${selectedBoard?.published}`} eventId={event.id} board={selectedBoard?.number ?? board}>
       <div className="board-layout">
         {activeResult?.split && (
           <section className="panel">
@@ -291,6 +293,8 @@ export function BoardsView({
               </button>
             </div>
           )}
+          <div className="danmaku-controls"><DanmakuToggle /></div>
+          <div className="danmaku-stage">
           {displayBoard && hasDeal(displayBoard) && displayBoard.deal.N.length === 13 ? (
             <DealExplorer
               key={`${event.id}:${selectedBoard.number}`}
@@ -332,6 +336,8 @@ export function BoardsView({
               />
             </div>
           )}
+          <BoardDanmaku />
+          </div>
           {hasDeal(selectedBoard) && selectedBoard.deal.N.length > 0 && (
             <div className="board-export-actions">
               <button
@@ -596,6 +602,6 @@ export function BoardsView({
         </section>
       </div>
       {selectedBoard && <BoardDiscussion key={`${event.id}:${selectedBoard.number}:${selectedBoard.published}`} eventId={event.id} board={selectedBoard.number} />}
-    </>
+    </DiscussionProvider>
   );
 }

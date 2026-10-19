@@ -259,3 +259,56 @@
 .discussion-suit-red {
   color: var(--accent);
 }
+.danmaku-stage {
+  position: relative;
+  min-width: 0;
+}
+.danmaku-controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.danmaku-toggle[aria-pressed='true'] {
+  color: var(--forest);
+  background: var(--soft);
+}
+.board-danmaku {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 4;
+  container-type: inline-size;
+}
+.danmaku-message {
+  position: absolute;
+  left: 100%;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--forest);
+  opacity: 0.72;
+  box-shadow: 0 1px 5px #203c3214;
+  animation: board-danmaku-travel 7.5s linear forwards;
+}
+.danmaku-author {
+  font-weight: 600;
+}
+@keyframes board-danmaku-travel {
+  to {
+    transform: translateX(calc(-100cqw - 100%));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .danmaku-message {
+    animation: none;
+    left: 8px;
+    right: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
