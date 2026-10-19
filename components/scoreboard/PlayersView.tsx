@@ -1,3 +1,4 @@
+import { CompactImp } from '../compact-imp';
 import { TeamImpColumns } from '../team-imp-columns';
 import { displayedBoardNumber } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
@@ -724,7 +725,7 @@ export function PlayersView({
                         }
                       >
                         <span className="player-points-value">
-                          {value !== null && mp ? pairValue(value, mp.top, pairMethod) : '—'}
+                          {value !== null && mp ? pairMethod === 'mp' ? pairValue(value, mp.top, pairMethod) : <CompactImp text={pairValue(value, mp.top, pairMethod)} /> : '—'}
                         </span>
                       </td>
                     )}

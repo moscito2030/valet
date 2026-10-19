@@ -674,3 +674,5 @@ table a:focus-visible {
 @media (max-width: 1000px) { .team-match-summary > :nth-child(even) { padding-inline: 5px; } }
 @media (max-width: 560px) { .team-match-summary > :nth-child(even) { padding-inline: 3px; font-size: 10px; } }
 .team-match-summary > :nth-child(even) > span:last-child { font-weight: 400; }
+.compact-imp { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.compact-imp-fraction { font-size: .7em; font-weight: 400; vertical-align: baseline; }
