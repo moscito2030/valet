@@ -655,6 +655,7 @@ table a:focus-visible {
 
 .team-imp-columns { font-size: 15px; font-weight: 400; }
 .score-placeholder { color: var(--muted); font-weight: 300; }
+.team-imp-average-trigger { display: block; width: 100%; }
 /* Board links use the same readable, neutral treatment in team and pair results. */
 .player-results tbody .text-button {
   color: var(--forest);

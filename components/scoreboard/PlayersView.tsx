@@ -144,6 +144,7 @@ export function PlayersView({
         b,
         closed,
         impDiff,
+        datums,
         butlers: calculateButlers(),
         opponentButlers: calculateButlers(true),
       };
@@ -376,7 +377,8 @@ export function PlayersView({
               </tr>
             </thead>
             <tbody>
-              {teamPlayerRows.map(({ a, b, closed, impDiff, butlers }) => {
+              {teamPlayerRows.map(({ a, b, closed, impDiff, butlers, datums }) => {
+                const averageId = `team-board-average-${a.id}-${b}`;
                 const openBoard = (assignment?: Assignment) => {
                   setSelectedResult(assignment?.id ?? '');
                   setBoard(b);
@@ -430,7 +432,20 @@ export function PlayersView({
                         </td>
                       );
                     })}
-                    <td>{event.teamMethod === 'bam' ? (impDiff === null ? '—' : signed(impDiff)) : <TeamImpColumns value={impDiff} />}</td>
+                    <td>
+                      <button type="button" className="contract-link team-imp-average-trigger"
+                        title="查看本牌平均分" aria-label={`查看牌號 ${displayBoardNumber(b)} 平均分`}
+                        popoverTarget={averageId} onClick={(e) => positionDetail(e.currentTarget)}>
+                        {event.teamMethod === 'bam' ? (impDiff === null ? '—' : signed(impDiff)) : <TeamImpColumns value={impDiff} />}
+                      </button>
+                      <div id={averageId} popover="auto" className="player-detail-popover">
+                        <strong>牌號 {displayBoardNumber(b)} · 平均分</strong>
+                        {(['ns', 'ew'] as const).map((side) => <div key={side}>
+                          {side === 'ns' ? '南北 NS' : '東西 EW'}：<span className="mono">{datums[side].mean === null ? '—' : `${datums[side].mean >= 0 ? '+' : ''}${number(datums[side].mean)}`}</span>
+                        </div>)}
+                        <small className="muted">{datums.valid} 桌有效結果</small>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
