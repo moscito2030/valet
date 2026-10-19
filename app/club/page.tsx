@@ -120,9 +120,13 @@ export default function ClubPage() {
         </> : <><h2>沒有下一圈</h2><p>本賽段賽程已到最後，請依裁判指示結束。</p></>}
       </section>}
       <section className="panel club-section">
-        <h2>{data.deviceLabel ?? data.pair.toUpperCase()} · {data.round ? `第 ${data.roundLabel} 圈` : '尚未開始'}</h2>
-        {data.assignment ? <><p>桌 {data.assignment.table} · NS {data.names?.ns} ／ EW {data.names?.ew}</p>
-          <p>{data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
+        <h2>{data.deviceLabel ?? (data.assignment ? `第 ${data.assignment.table} 桌` : data.pair.toUpperCase())} · {data.round ? `第 ${data.roundLabel} 圈` : '尚未開始'}</h2>
+        {data.assignment ? <>
+          <div className="club-matchup" aria-label="本桌搭檔">
+            <div><span className="club-seat-label">南北 <span>NS</span></span><strong>{data.names?.ns}</strong></div>
+            <div><span className="club-seat-label">東西 <span>EW</span></span><strong>{data.names?.ew}</strong></div>
+          </div>
+          <p className="club-entry-hint">{data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
             <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} ／ EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
             {b.result && b.result.status !== 'cancelled' && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
