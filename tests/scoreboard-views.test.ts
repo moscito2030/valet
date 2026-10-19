@@ -4,6 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PublicationPanel } from '../components/admin/PublicationPanel';
 import { BoardsView } from '../components/scoreboard/BoardsView';
+import { PlayersView } from '../components/scoreboard/PlayersView';
 import { RoundsView } from '../components/scoreboard/RoundsView';
 import { StandingsView } from '../components/scoreboard/StandingsView';
 import { audienceEvent } from '../lib/club-view';
@@ -58,6 +59,7 @@ test('round cards remain identical when only final-ranking penalties change', ()
       createElement(RoundsView, {
         event: audienceEvent(raw, project(raw)),
         round: 1,
+        setPlayerRound: noop,
         setBoard: noop,
         setPerson: noop,
         setRound: noop,
@@ -181,4 +183,37 @@ test('tied rank ranges use full standings despite search and plain ranks have no
   assert.match(render(event.projection.standings[1].name),/2-3/);
   assert.match(render(''),/rank-4[^>]*>4<\/span>/);
   assert.doesNotMatch(render(''),/>04</);
+});
+
+function findAction(node: any, label: string): any {
+  if (!node || typeof node !== 'object') return undefined;
+  const text = (n: any): string => typeof n === 'string' ? n : Array.isArray(n) ? n.map(text).join('') : n?.props ? text(n.props.children) : '';
+  if (node.type === 'button' && text(node.props.children) === label) return node;
+  for (const child of [node.props?.children].flat(Infinity)) {
+    const found = findAction(child, label);
+    if (found) return found;
+  }
+}
+test('match action opens the home team and preserves the selected round', () => {
+  const raw = createEvent({name:'導覽測試',kind:'teams',date:'2026-10-20',venue:'',names:['甲','乙','丙','丁'],rounds:2,boardsPerRound:2});
+  const event = audienceEvent(raw, project(raw));
+  let person = '', selectedRound = 0, tab = '';
+  const view = RoundsView({event,round:2,setBoard:()=>{throw new Error('Must not open board view');},setPerson:(v)=>{person=String(v);},setPlayerRound:(v)=>{selectedRound=Number(v);},setRound:noop,setSelectedResult:noop,setTab:(v)=>{tab=String(v);}});
+  findAction(view, '本場成績 ').props.onClick();
+  assert.equal(person, event.projection.matches.find(m=>m.round===2)!.a);
+  assert.equal(selectedRound,2);
+  assert.equal(tab,'players');
+});
+
+test('team perspective swaps to opponent and back without changing round', () => {
+  const raw = fixture(), event = audienceEvent(raw, project(raw));
+  const match = event.projection.matches[0];
+  let person = match.a;
+  const props = {event,playerRound:1,playerSort:'round' as const,setBoard:noop,setPerson:(v:any)=>{person=v;},setPlayerRound:()=>{throw new Error('Round must stay unchanged');},setPlayerSort:noop,setRound:noop,setSelectedResult:noop,setTab:noop,setTravellerSide:noop};
+  findAction(PlayersView({...props,person}), '交換視角').props.onClick();
+  assert.equal(person,match.b);
+  findAction(PlayersView({...props,person}), '交換視角').props.onClick();
+  assert.equal(person,match.a);
+  const empty = {...event, assignments:[], projection:{...event.projection,matches:[]}};
+  assert.equal(findAction(PlayersView({...props,event:empty,person}), '交換視角'),undefined);
 });

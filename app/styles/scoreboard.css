@@ -450,7 +450,7 @@ select {
 .team-home { color: #315e86; }
 .team-away { color: #984850; }
 .match-team-link { min-width: 0; border: 0; padding: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
-.match-team-link strong { display: block; overflow-wrap: anywhere; }
+.match-team-link strong { display: block; overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .match-team-link small { display: block; margin-top: 4px; font-size: 11px; line-height: 1.5; }
 .match-team { gap: 12px; }
 .match-team > b { flex-shrink: 0; }

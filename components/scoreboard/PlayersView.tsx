@@ -5,7 +5,7 @@ import { resultKey } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { awardedResult, imps, teamBoardPoints, teamStandingsThroughRound, vp } from '@/lib/scoring';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
-import { ChevronDown } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown } from 'lucide-react';
 import { InterleavedRound } from '../interleaved-round';
 import { Contract, number, pairTone, pairValue, signed, Tab } from '../scoreboard-shared';
 import { TeamButlerPopover } from '../team-butler-popover';
@@ -290,6 +290,9 @@ export function PlayersView({
                   第 {playerMatch.table} 桌 · 對手：
                   {name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}
                 </button>
+                <button type="button" className="button subtle" onClick={() => setPerson(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}>
+                  <ArrowLeftRight size={15} />交換視角
+                </button>
                 <div
                   key={`${playerId}-${playerRound}`}
                   id="player-preround-summary"
@@ -330,6 +333,7 @@ export function PlayersView({
             event={event}
             round={playerRound}
             teamId={playerId}
+            onSwapTeam={setPerson}
             onBoard={(b, a) => {
               setBoard(b);
               setSelectedResult(a);

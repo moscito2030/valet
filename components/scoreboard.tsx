@@ -610,6 +610,7 @@ export default function Scoreboard() {
                       round={round}
                       setBoard={setBoard}
                       setPerson={setPerson}
+                      setPlayerRound={setPlayerRound}
                       setRound={setRound}
                       setSelectedResult={setSelectedResult}
                       setTab={setTab}

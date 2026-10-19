@@ -4,17 +4,20 @@ import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { awardedResult, teamBoardPoints } from '@/lib/scoring';
 import { Contract, signed } from './scoreboard-shared';
+import { ArrowLeftRight } from 'lucide-react';
 
 export function InterleavedRound({
   event,
   round,
   teamId,
   onBoard,
+  onSwapTeam,
 }: {
   event: PublicEvent;
   round: number;
   teamId?: string;
   onBoard: (board: number, assignmentId: string) => void;
+  onSwapTeam?: (teamId: string) => void;
 }) {
   const name = (id: string) => event.participants.find((p) => p.id === id)?.name ?? id;
   const tables = event.assignments.filter(
@@ -61,6 +64,9 @@ export function InterleavedRound({
               <h4>
                 {name(teamId)} vs {name(teamId === m.a ? m.b : m.a)}
               </h4>
+              {onSwapTeam && <button type="button" className="button subtle" onClick={() => onSwapTeam(teamId === m.a ? m.b : m.a)}>
+                <ArrowLeftRight size={15} />交換視角
+              </button>}
               <p>
                 VP {number(teamId === m.a ? m.vpA : m.vpB)} :{' '}
                 {number(teamId === m.a ? m.vpB : m.vpA)} · 已比對 {m.completed} / {m.total} 副

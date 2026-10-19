@@ -14,6 +14,7 @@ type Props = {
   round: number;
   setBoard: React.Dispatch<React.SetStateAction<number>>;
   setPerson: React.Dispatch<React.SetStateAction<string>>;
+  setPlayerRound: React.Dispatch<React.SetStateAction<number>>;
   setRound: React.Dispatch<React.SetStateAction<number>>;
   setSelectedResult: React.Dispatch<React.SetStateAction<string>>;
   setTab: React.Dispatch<React.SetStateAction<Tab>>;
@@ -23,6 +24,7 @@ export function RoundsView({
   round,
   setBoard,
   setPerson,
+  setPlayerRound,
   setRound,
   setSelectedResult,
   setTab,
@@ -97,6 +99,7 @@ export function RoundsView({
                       className="match-team-link"
                       onClick={() => {
                         setPerson(id);
+                        setPlayerRound(round);
                         setTab('players');
                       }}
                     >
@@ -128,11 +131,12 @@ export function RoundsView({
                 </span>
                 <button
                   onClick={() => {
-                    setBoard(event.assignments.find((a) => a.matchId === m.id)!.boards[0]);
-                    setTab('boards');
+                    setPerson(m.a);
+                    setPlayerRound(round);
+                    setTab('players');
                   }}
                 >
-                  逐副比較 <ArrowRight size={14} />
+                  本場成績 <ArrowRight size={14} />
                 </button>
               </div>
             </div>
