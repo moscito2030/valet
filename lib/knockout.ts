@@ -195,3 +195,53 @@ export function seedKnockout(
 export function currentKnockoutScore(event: BridgeEvent, node: KnockoutNode) {
   return knockoutScore(event, node, project(event));
 }
+
+/** Unused outcomes can feed any subsequent placement match, at any depth. */
+export function availableKnockoutOutputs(nodes: KnockoutNode[]): KnockoutSource[] {
+  const used = new Set(
+    nodes
+      .flatMap((n) => [n.a, n.b])
+      .filter((s) => s.kind === 'winner' || s.kind === 'loser')
+      .map((s) => s.kind + ':' + s.id),
+  );
+  return (['loser', 'winner'] as const).flatMap((kind) =>
+    nodes
+      .filter(
+        (n) =>
+          !used.has(kind + ':' + n.id) &&
+          !(kind === 'loser'
+            ? n.loserPlace || n.a.kind === 'bye' || n.b.kind === 'bye'
+            : n.winnerPlace),
+      )
+      .map((n) => ({ kind, id: n.id })),
+  );
+}
+export function newKnockoutPlacement(
+  nodes: KnockoutNode[],
+  rounds: number,
+  boardsPerRound: number,
+): KnockoutNode {
+  const sources = availableKnockoutOutputs(nodes);
+  if (sources.length < 2) throw new DomainError('至少需要兩個未接續、未指定最終名次的勝方或敗方');
+  const [a, b] = sources;
+  const startRound = Math.max(
+    ...[a, b].map((s) => {
+      const n = nodes.find((n) => s.kind !== 'bye' && n.id === s.id)!;
+      return n.startRound + n.rounds;
+    }),
+  );
+  let id = 'placement' + (nodes.length + 1);
+  while (nodes.some((n) => n.id === id)) id += 'x';
+  let table = 1;
+  while (
+    nodes.some(
+      (n) =>
+        n.table === table &&
+        n.startRound < startRound + rounds &&
+        startRound < n.startRound + n.rounds,
+    )
+  )
+    table++;
+  if (table > 32) throw new DomainError('此時段沒有可用桌號，請先調整對局時段');
+  return { id, name: '排名賽', a, b, startRound, rounds, boardsPerRound, table };
+}

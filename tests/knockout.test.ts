@@ -1,3 +1,4 @@
+import { availableKnockoutOutputs, newKnockoutPlacement } from '../lib/knockout';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -208,4 +209,94 @@ test('score mutation cannot silently change confirmed knockout advancement', () 
   e = apply(e, { action: 'knockout-reopen', nodeId: 's1m1' });
   e = apply(e, { action: 'clear-result', assignmentId: a.id, board: a.boards[0] });
   assert.equal(e.results[resultKey(a.id, a.boards[0])], undefined);
+});
+
+test('two teams can be created, play a multi-round final, and finish with places one and two', () => {
+  for (const bam of [false, true]) {
+    let e = setup(2, 2, bam);
+    assert.equal(e.knockout!.nodes.length, 1);
+    assert.equal(e.assignments.length, 4);
+    fill(e);
+    e = apply(e, { action: 'knockout-decide', nodeId: 's1m1' });
+    assert.equal(e.knockout!.nodes[0].winnerPlace, 1);
+    assert.equal(e.knockout!.nodes[0].loserPlace, 2);
+    e = apply(e, { action: 'settings', status: 'finished' });
+    assert.equal(e.status, 'finished');
+  }
+  assert.throws(() => fixture(1));
+  const e = fixture(2);
+  assert.throws(() =>
+    createEvent({ name: 'pairs', kind: 'pairs', date: e.date, venue: '', names: ['A', 'B'] }),
+  );
+});
+
+test('quarterfinal losers can play multi-level fifth through eighth placement matches', () => {
+  let e = fixture(8);
+  const nodes = seedKnockout(
+    e.participants.map((p) => p.id),
+    1,
+    1,
+    true,
+  );
+  const first = newKnockoutPlacement(nodes, 1, 1);
+  first.name = '5–8 名賽 A';
+  nodes.push(first);
+  const second = newKnockoutPlacement(nodes, 1, 1);
+  second.name = '5–8 名賽 B';
+  nodes.push(second);
+  assert.deepEqual(
+    [first.a, first.b, second.a, second.b].map((s) => (s.kind === 'bye' ? 'bye' : s.id)),
+    ['s1m1', 's1m2', 's1m3', 's1m4'],
+  );
+  const seventh = newKnockoutPlacement(nodes, 1, 1);
+  seventh.name = '7／8 名賽';
+  seventh.winnerPlace = 7;
+  seventh.loserPlace = 8;
+  nodes.push(seventh);
+  const fifth = newKnockoutPlacement(nodes, 1, 1);
+  fifth.name = '5／6 名賽';
+  fifth.winnerPlace = 5;
+  fifth.loserPlace = 6;
+  nodes.push(fifth);
+  assert.equal(fifth.a.kind, 'winner');
+  assert.equal(seventh.a.kind, 'loser');
+  validateKnockout(nodes, e);
+  assert.equal(availableKnockoutOutputs(nodes).length, 0);
+  e = apply(e, { action: 'knockout-config', nodes });
+  e = apply(e, { action: 'knockout-publish' });
+  for (let stage = 0; stage < 3; stage++) {
+    fill(e);
+    for (const n of e.knockout!.nodes)
+      if (e.knockout!.published[n.id]?.b && !e.knockout!.decisions[n.id])
+        e = apply(e, { action: 'knockout-decide', nodeId: n.id });
+    if (stage < 2) e = apply(e, { action: 'knockout-publish' });
+  }
+  const placements = e.knockout!.nodes.flatMap((n) => {
+    const d = e.knockout!.decisions[n.id];
+    return [
+      ...(n.winnerPlace ? [[n.winnerPlace, d.winner]] : []),
+      ...(n.loserPlace ? [[n.loserPlace, d.loser]] : []),
+    ];
+  });
+  assert.equal(new Set(placements.map((p) => p[0])).size, 8);
+  assert.equal(new Set(placements.map((p) => p[1])).size, 8);
+  const quarterLosers = new Set(
+    ['s1m1', 's1m2', 's1m3', 's1m4'].map((id) => e.knockout!.decisions[id].loser),
+  );
+  assert.ok(
+    placements.filter((p) => Number(p[0]) >= 5).every((p) => quarterLosers.has(String(p[1]))),
+  );
+  assert.equal(apply(e, { action: 'settings', status: 'finished' }).status, 'finished');
+});
+
+test('placement drafts exclude bye losers, consumed outcomes and already assigned final places', () => {
+  const nodes = seedKnockout(['a', 'b', 'c', 'd', 'e'], 1, 1, true);
+  const outputs = availableKnockoutOutputs(nodes);
+  for (const s of outputs)
+    if (s.kind === 'loser') {
+      const n = nodes.find((n) => n.id === s.id)!;
+      assert.notEqual(n.a.kind, 'bye');
+      assert.notEqual(n.b.kind, 'bye');
+    }
+  assert.throws(() => newKnockoutPlacement(seedKnockout(['a', 'b']), 1, 1), /至少需要兩個/);
 });

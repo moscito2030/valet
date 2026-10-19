@@ -141,7 +141,7 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
     return [];
   if (event.kind === 'teams') {
     const n = event.participants.length;
-    if (n < 3 || n > 32) return [];
+    if (n < 2 || n > 32) return [];
     const options: MovementPlan[] = [
       {
         id: 'team-round-robin',

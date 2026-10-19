@@ -284,7 +284,7 @@ export function CreateDialog({
             <textarea name={group === 'NS' ? 'nsNames' : 'ewNames'} rows={5} required />
           </label>)}
         </div> : <label className="field">
-          {kind === 'teams' ? '隊伍名稱（一行一隊，至少三隊）' : '搭檔名稱（一行一對，至少四對）'}
+          {kind === 'teams' ? '隊伍名稱（一行一隊，至少兩隊）' : '搭檔名稱（一行一對，至少四對）'}
           <textarea
             name="names"
             rows={5}

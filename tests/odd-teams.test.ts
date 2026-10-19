@@ -93,7 +93,8 @@ test('every odd team size 3–31 has one bye per round, one bye per team, and al
       }
     }
   }
-  assert.throws(() => fixture(2));
+  assert.throws(() => fixture(1));
+  assert.equal(fixture(2).participants.length, 2);
   assert.throws(() => fixture(33));
   assert.equal(fixture(31, 31, 5).boards.length, 155);
 });

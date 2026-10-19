@@ -181,7 +181,7 @@ export const createSchema = z
     endDate: dateSchema.optional(),
     venue: z.string().trim().max(80),
     venueOverride: z.string().trim().max(80).optional(),
-    names: z.array(z.string().trim().min(1).max(60)).min(3).max(80),
+    names: z.array(z.string().trim().min(1).max(60)).min(2).max(80),
     rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS).optional(),
     boardsPerRound: z.number().int().min(1).max(16).optional(),
   })

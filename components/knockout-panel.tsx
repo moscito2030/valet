@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import type { KnockoutNode, KnockoutSource } from '@/lib/knockout-schema';
 import { knockoutScore, seedKnockout, validateKnockout } from '@/lib/knockout';
+import { availableKnockoutOutputs, newKnockoutPlacement } from '@/lib/knockout';
 import { project } from '@/lib/scoring';
 import { Modal } from './event-dialogs';
 export function KnockoutPanel({
@@ -37,6 +38,14 @@ export function KnockoutPanel({
     s === 'bye'
       ? { kind: 'bye' }
       : { kind: s.split(':')[0] as 'team' | 'winner' | 'loser', id: s.split(':')[1] };
+  const sourceName = (s: KnockoutSource) =>
+    s.kind === 'bye'
+      ? '輪空'
+      : s.kind === 'team'
+        ? name(s.id)
+        : (nodes.find((n) => n.id === s.id)?.name ?? s.id) +
+          (s.kind === 'winner' ? ' 勝方' : ' 敗方');
+  const outputs = availableKnockoutOutputs(nodes);
   const projection = project(event);
   let validation = '',
     maxBoards = 0;
@@ -48,7 +57,7 @@ export function KnockoutPanel({
     }
   return (
     <section className="import-export-section">
-      <h4>隊制淘汰賽與順位賽</h4>
+      <h4>隊制淘汰賽與排名賽</h4>
       <p>先安排完整對戰表，再公布已確定雙方的對局。種子順序由高至低；後續來源可指定勝方或敗方。</p>
       {!locked && (
         <>
@@ -74,9 +83,9 @@ export function KnockoutPanel({
               />
             </label>
             <label className="field">
-              銅牌戰
+              初始排名賽
               <select value={bronze} onChange={(e) => setBronze(e.target.value)}>
-                <option value="yes">加入銅牌戰（至少四隊）</option>
+                <option value="yes">先加入銅牌戰（至少四隊，可再新增其他排名賽）</option>
                 <option value="no">不加入</option>
               </select>
             </label>
@@ -125,6 +134,9 @@ export function KnockoutPanel({
           <div>
             <strong>{n.name}</strong>
             <p>
+              {sourceName(n.a)} 對 {sourceName(n.b)}
+            </p>
+            <p>
               第 {n.startRound} 圈起 · {n.rounds} 圈 × {n.boardsPerRound} 牌 · 第 {n.table} 桌
             </p>
           </div>
@@ -135,31 +147,23 @@ export function KnockoutPanel({
           )}
         </div>
       ))}
+      <p className="footnote">
+        排名賽不限銅牌戰：可讓八強敗隊接到第 5–8 名賽，再將其勝方與敗方分別接到第 5／6 名及第 7／8
+        名賽。請在公布對戰前安排完成，僅在最後一場填最終名次。
+      </p>
       {!locked && !!nodes.length && (
         <div className="form-grid">
           <button
             type="button"
             className="button secondary"
+            disabled={busy || outputs.length < 2 || legs < 1 || boards < 1 || boards > 16}
             onClick={() => {
-              let id = 'm' + (nodes.length + 1);
-              while (nodes.some((n) => n.id === id)) id += 'x';
-              setNodes([
-                ...nodes,
-                {
-                  id,
-                  name: '順位賽',
-                  a: { kind: 'loser', id: nodes[0].id },
-                  b: { kind: 'loser', id: nodes[1]?.id ?? nodes[0].id },
-                  startRound: Math.max(...nodes.map((n) => n.startRound + n.rounds)),
-                  rounds: legs,
-                  boardsPerRound: boards,
-                  table: 1,
-                },
-              ]);
-              setEditing(id);
+              const next = newKnockoutPlacement(nodes, legs, boards);
+              setNodes([...nodes, next]);
+              setEditing(next.id);
             }}
           >
-            新增順位對局
+            新增排名賽（可接任一輪勝／敗方）
           </button>
           <button
             type="button"
