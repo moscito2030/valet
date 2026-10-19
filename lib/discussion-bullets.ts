@@ -1,8 +1,22 @@
 import type { Comment } from './discussion';
 export type BulletComment = Pick<Comment, 'id' | 'nickname' | 'text' | 'hidden' | 'deleted'>;
-/** Only a small recent backlog is played on activation; refreshes never replay IDs. */
-export function nextBullets(comments: BulletComment[], seen: Set<string>, initial: boolean) {
-  const eligible = comments.filter((c) => !c.hidden && !c.deleted);
-  const fresh = initial ? eligible.slice(-8) : eligible.filter((c) => !seen.has(c.id));
-  return { fresh: fresh.slice(-30), seen: new Set(comments.map((c) => c.id)) };
+/** Each cycle includes every visible comment once, without mutating the source. */
+export function shuffledBullets(
+  comments: BulletComment[],
+  previous?: string,
+  random = Math.random,
+) {
+  const result = comments.filter((c) => !c.hidden && !c.deleted);
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  if (result.length > 1 && result[0].id === previous) {
+    [result[0], result[1]] = [result[1], result[0]];
+  }
+  return result;
+}
+export function freeBulletLane(occupied: number[], random = Math.random) {
+  const free = [0, 1, 2, 3].filter((lane) => !occupied.includes(lane));
+  return free.length ? free[Math.floor(random() * free.length)] : undefined;
 }
