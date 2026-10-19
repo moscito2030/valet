@@ -232,6 +232,10 @@ test('contract Butler display is opt-in and does not remove raw scores or summar
   assert.match(on,/aria-checked="true"/);
   assert.match(off,/400/);
   assert.match(off,/Butler 統計/);
+  assert.match(off,/查看賽前與賽後累積 VP/);
+  assert.match(off,/賽前 → 賽後/);
+  assert.doesNotMatch(off,/player-cumulative-vp/);
+  assert.equal((off.match(/popoverTarget="player-vp-scale"/gi) ?? []).length, 2);
   let enabled = false;
   const action = findAction(PlayersView({...props,setShowContractButler:(v)=>{enabled=v;}}),'顯示單副 Butler');
   action.props.onClick();

@@ -305,7 +305,7 @@ export function PlayersView({
                 <button
                   type="button"
                   className="match-context-trigger"
-                  title="查看賽前成績" popoverTarget="player-preround-summary"
+                  title="查看賽前與賽後累積 VP" popoverTarget="player-preround-summary"
                   onClick={(e) => positionDetail(e.currentTarget)}
                 >
                   <span className="match-context-label">第 {playerMatch.table} 桌</span>
@@ -324,22 +324,21 @@ export function PlayersView({
                   popover="auto"
                   className="player-detail-popover"
                 >
-                  <small>
-                    {playerRound === 1 ? '賽前' : `截至第 ${roundLabel(event, playerRound - 1)} 圈`}
-                  </small>
+                  <strong>第 {roundLabel(event, playerRound)} 圈 · 累積 VP</strong>
+                  <p>賽前 → {playerMatchScore?.vpA != null ? '賽後' : '目前已結算'}</p>
                   {[playerId!, playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns].map(
                     (id, i) => {
                       const standing = previousStandings.find((s) => s.id === id);
+                      const after = cumulativePlayerStandings.find((s) => s.id === id);
                       return (
                         <div key={id}>
-                          {i === 0 ? '我方' : '對手'}：
-                          {playerRound === 1
-                            ? '0.00 VP · 尚無排名'
-                            : `${number(standing?.score ?? null)} VP · #${standing?.rank ?? '—'}`}
+                          {i === 0 ? '我方' : '對手'} · {name(id)}：
+                          <span className="mono">{number(playerRound === 1 ? 0 : standing?.score ?? null)} → {number(after?.score ?? null)} VP</span>
                         </div>
                       );
                     },
                   )}
+                  <small className="muted">計入已完成對戰與已結算輪空的 VP。</small>
                 </div>
               </>
             ) : (
@@ -467,39 +466,12 @@ export function PlayersView({
                     <button
                       type="button"
                       className="contract-link mono"
-                      aria-label="查看雙方累積 VP"
-                      title="查看雙方累積 VP" popoverTarget="player-cumulative-vp"
+                      aria-label={event.teamMethod === 'bam' ? '查看 BAM 計分規則' : '查看 VP 換算表'}
+                      title={event.teamMethod === 'bam' ? '查看 BAM 計分規則' : '查看 VP 換算表'} popoverTarget="player-vp-scale"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
                       <span>{number(playerMatchVp)}</span><span>{number(opponentMatchVp)}</span>
                     </button>
-                  </div>
-                  <div
-                    key={`${playerId}-${playerRound}-cumulative`}
-                    id="player-cumulative-vp"
-                    popover="auto"
-                    className="player-detail-popover"
-                  >
-                    <strong>截至第 {roundLabel(event, playerRound)} 圈 · 累積 VP</strong>
-                    {[
-                      playerId,
-                      playerMatch
-                        ? playerMatch.ns === playerId
-                          ? playerMatch.ew
-                          : playerMatch.ns
-                        : undefined,
-                    ].map((id, index) => (
-                      <div key={index}>
-                        {index === 0 ? '我方' : '對手'} · {id ? name(id) : '—'}：
-                        <span className="mono">
-                          {number(
-                            cumulativePlayerStandings.find((s) => s.id === id)?.score ?? null,
-                          )}{' '}
-                          VP
-                        </span>
-                      </div>
-                    ))}
-                    <small className="muted">計入已完成對戰與已結算輪空的 VP。</small>
                   </div>
                   <div
                     key={`${playerId}-${playerRound}-butler`}
