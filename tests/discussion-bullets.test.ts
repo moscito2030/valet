@@ -67,3 +67,11 @@ test('all five distinct font stacks are selectable', () => {
     ),
   );
 });
+
+test('Latin faces match five styles and every Chinese stack has a Traditional fallback', () => {
+  const latin = bulletFonts.map((font) => font.split(',')[0]);
+  assert.equal(new Set(latin).size, 5);
+  for (const font of bulletFonts) assert.match(font, /Noto (Sans|Serif) TC/);
+  assert.match(bulletFonts[3], /Iansui/);
+  assert.match(bulletFonts[4], /Huninn/);
+});

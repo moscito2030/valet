@@ -2,11 +2,13 @@ import type { Comment } from './discussion';
 export type BulletComment = Pick<Comment, 'id' | 'nickname' | 'text' | 'hidden' | 'deleted'>;
 export const bulletFonts = [
   '"IBM Plex Sans", Arial, "Noto Sans TC", sans-serif',
-  '"IBM Plex Sans", Arial, "Noto Serif TC", serif',
-  '"IBM Plex Sans", Arial, "LXGW WenKai TC", serif',
-  '"IBM Plex Sans", Arial, "Ma Shan Zheng", "LXGW WenKai TC", serif',
-  '"IBM Plex Sans", Arial, "ZCOOL KuaiLe", "LXGW WenKai TC", sans-serif',
+  '"Source Serif 4", Georgia, "Noto Serif TC", serif',
+  '"Kalam", "LXGW WenKai TC", "Noto Sans TC", sans-serif',
+  '"Caveat", "Iansui", "Noto Serif TC", serif',
+  '"Patrick Hand", "Huninn", "Noto Sans TC", sans-serif',
 ] as const;
+export const bulletFontStylesheet =
+  'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500&family=Source+Serif+4:wght@500&family=Kalam&family=Caveat:wght@500&family=Patrick+Hand&family=Noto+Sans+TC:wght@500&family=Noto+Serif+TC:wght@500&family=LXGW+WenKai+TC&family=Iansui&family=Huninn&display=swap';
 export function randomBulletFont(random = Math.random) {
   return bulletFonts[Math.floor(random() * bulletFonts.length)];
 }

@@ -8,6 +8,7 @@ import {
   freeBulletLane,
   bulletDuration,
   randomBulletFont,
+  bulletFontStylesheet,
   type BulletComment,
 } from '@/lib/discussion-bullets';
 export function DanmakuToggle({ className = 'discussion-action' }: { className?: string }) {
@@ -100,10 +101,7 @@ export function BoardDanmaku() {
   if (!playable) return null;
   return (
     <div ref={overlay} className="board-danmaku" aria-hidden="true">
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500&family=Noto+Serif+TC:wght@500&family=LXGW+WenKai+TC&family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap"
-      />
+      <link rel="stylesheet" href={bulletFontStylesheet} />
       {active.map((c) => (
         <div
           key={c.instance}
