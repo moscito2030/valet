@@ -667,3 +667,9 @@ table a:focus-visible {
   outline-offset: 3px;
   border-radius: 3px;
 }
+.player-results .team-player-results > tfoot > tr > td:nth-child(n) { padding-left: 0; padding-right: 0; }
+.team-match-summary { width: 100%; max-width: none; grid-template-columns: 84% 16%; column-gap: 0; }
+.team-match-summary > :nth-child(odd) { text-align: right; padding-right: 16px; }
+.team-match-summary > :nth-child(even) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; padding-inline: 8px; }
+@media (max-width: 1000px) { .team-match-summary > :nth-child(even) { padding-inline: 5px; } }
+@media (max-width: 560px) { .team-match-summary > :nth-child(even) { padding-inline: 3px; font-size: 10px; } }

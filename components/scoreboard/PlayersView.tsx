@@ -449,11 +449,11 @@ export function PlayersView({
                       popoverTarget="player-butler-summary"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
-                      {teamPlayerRows.some((row) => row.impDiff !== null)
+                      {(teamPlayerRows.some((row) => row.impDiff !== null)
                         ? event.teamMethod === 'bam' ? `${number(playerMatchScore?.a === playerId ? playerMatchScore?.bamA ?? null : playerMatchScore?.bamB ?? null)} : ${number(playerMatchScore?.a === playerId ? playerMatchScore?.bamB ?? null : playerMatchScore?.bamA ?? null)}` : playerMatchScore?.split
                           ? `${signed(playerMatchScore.a === playerId ? playerMatchScore.marginA : playerMatchScore.marginB)} : ${signed(playerMatchScore.a === playerId ? playerMatchScore.marginB : playerMatchScore.marginA)}`
                           : `${playerImpFor} : ${playerImpAgainst}`
-                        : '— : —'}
+                        : '— : —').split(' : ').map((value, index) => <span key={index}>{value}</span>)}
                     </button>
                     <button
                       type="button"
@@ -470,7 +470,7 @@ export function PlayersView({
                       popoverTarget="player-cumulative-vp"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
-                      {number(playerMatchVp)} : {number(opponentMatchVp)}
+                      <span>{number(playerMatchVp)}</span><span>{number(opponentMatchVp)}</span>
                     </button>
                   </div>
                   <div
