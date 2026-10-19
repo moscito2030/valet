@@ -89,11 +89,14 @@ export default function ClubPage() {
     <header className="club-page-heading">
       <span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span>
       <h1>{data?.deviceLabel ?? data?.pairName ?? '裝置收分'}</h1>
+      <div className="club-heading-meta">
       <p className="club-event-name">{data?.name}</p>
+      <span className="club-heading-separator" aria-hidden="true">·</span>
       <nav className="club-heading-tools" aria-label="收分參考工具">
         <a href="/manual/players.html">收分操作手冊</a>
         {data?.gameMode === 'minibridge' && <><span aria-hidden="true">·</span><MiniScoreReference value={draft} inline /></>}
       </nav>
+      </div>
     </header>
     {error && <div className="alert error" role="alert">{error}</div>}
     {notice && <div className="alert success" role="status">{notice}</div>}

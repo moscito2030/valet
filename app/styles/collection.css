@@ -116,3 +116,6 @@
 .mini-score-inline-trigger { border: 0; padding: 4px 0; background: transparent; cursor: pointer; }
 .club-heading-tools a:hover, .mini-score-inline-trigger:hover { color: var(--muted); }
 .mini-score-inline-trigger:focus-visible { outline: 2px solid #7a9c85; outline-offset: 4px; border-radius: 2px; }
+.club-heading-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.club-heading-meta .club-heading-tools { margin-top: 0; }
+.club-heading-separator { color: var(--muted); }
