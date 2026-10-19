@@ -439,9 +439,14 @@ export function PlayersView({
               <tr>
                 <td colSpan={4}>
                   <div className="team-match-summary" aria-label="本圈比數，我方在左、對手在右">
-                    <span className="muted">
+                    <button
+                      type="button"
+                      className="contract-link"
+                      title="查看本圈雙方 Butler IMP" popoverTarget="player-butler-summary"
+                      onClick={(e) => positionDetail(e.currentTarget)}
+                    >
                       {event.teamMethod === 'bam' ? 'BAM VP 合計' : playerMatchScore?.split ? 'IMP 淨差' : 'IMP 合計'}
-                    </span>
+                    </button>
                     <button
                       type="button"
                       className="contract-link mono"
