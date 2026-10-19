@@ -643,3 +643,8 @@ table a:focus-visible {
 .team-result-menu:not(:popover-open) { display: none; }
 .team-result-menu:popover-open { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .team-result-menu .team-butler-trigger { margin-left: 0; justify-content: flex-start; }
+.team-result-title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.team-result-title-action { display: inline-flex; align-items: baseline; gap: 8px; }
+.team-butler-title-link { border: 0; background: transparent; padding: 4px 0; color: var(--muted); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.team-butler-title-link:hover { color: var(--forest); }
+.team-butler-title-link:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; border-radius: 4px; }

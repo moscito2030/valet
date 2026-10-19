@@ -10,10 +10,11 @@ import { teamButlerStats } from '@/lib/team-butler';
 type Props = {
   event: Pick<BridgeEvent, 'teamMovement' | 'kind' | 'rounds' | 'assignments' | 'results' | 'participants'>;
   teamId: string;
+  inline?: boolean;
 };
 const decimal = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : '∞');
 const signed = (n: number) => `${n > 0 ? '+' : ''}${decimal(n)}`;
-export function TeamButlerPopover({ event, teamId }: Props) {
+export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
   const id = useId();
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<'individual' | 'pairs'>('individual');
@@ -26,12 +27,12 @@ export function TeamButlerPopover({ event, teamId }: Props) {
     <>
       <button
         type="button"
-        className="button subtle team-butler-trigger"
+        className={inline ? 'team-butler-title-link' : 'button subtle team-butler-trigger'}
         popoverTarget={id}
         onClick={() => setTeam(teamId)}
       >
-        <BarChart3 size={16} />
-        Butler 統計
+        {!inline && <BarChart3 size={16} />}
+        {inline ? '選手、搭檔 Butler 統計' : 'Butler 統計'}
       </button>
       {mounted &&
         createPortal(

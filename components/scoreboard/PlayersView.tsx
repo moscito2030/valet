@@ -188,7 +188,10 @@ export function PlayersView({
       <div className={`panel-heading${event.kind === 'teams' ? ' team-results-heading' : ''}`}>
         <div className="team-result-intro">
           <div>
-            <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
+            <div className="team-result-title-row">
+              <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
+              {event.kind === 'teams' && <span className="team-result-title-action"><span className="muted" aria-hidden="true">·</span><TeamButlerPopover event={event} teamId={playerId} inline /></span>}
+            </div>
             {event.kind === 'teams' &&
               event.participants.find((p) => p.id === (person || event.participants[0].id))
                 ?.captain && (
@@ -212,14 +215,13 @@ export function PlayersView({
                 </p>
               )}
           </div>
-          {event.kind === 'teams' && <button type="button" className="team-options-trigger" popoverTarget="team-result-options" onClick={(e) => positionDetail(e.currentTarget)}><SlidersHorizontal size={15} />顯示與統計</button>}
-        {event.kind === 'teams' && (
+          {event.kind === 'teams' && !event.teamMovement && <button type="button" className="team-options-trigger" popoverTarget="team-result-options" onClick={(e) => positionDetail(e.currentTarget)}><SlidersHorizontal size={15} />顯示設定</button>}
+        {event.kind === 'teams' && !event.teamMovement && (
           <div id="team-result-options" popover="auto" className="team-result-tools team-result-menu">
             {!event.teamMovement && <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
               <span className="butler-toggle-track" aria-hidden="true"><span /></span>
               顯示合約 Butler
             </button>}
-            <TeamButlerPopover event={event} teamId={playerId} />
           </div>
         )}
         </div>
