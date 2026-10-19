@@ -1,4 +1,5 @@
 'use client';
+import { MiniScoreReference } from '@/components/mini-score-reference';
 import { DeclarerWarning, HcpFields, HcpSummary } from '@/components/hcp-fields';
 import { useEffect, useRef, useState } from 'react';
 import type { ClubView } from '@/lib/club-view';
@@ -20,6 +21,7 @@ export default function ClubPage() {
   const [reviewing, setReviewing] = useState('');
   const context = useRef({ id: '', token: '' });
   const submitting = useRef(false);
+  const preview = useRef(false);
   async function read() {
     const { id, token } = context.current;
     const response = await fetch(`/api/club/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
@@ -29,6 +31,14 @@ export default function ClubPage() {
     return body as ClubView;
   }
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && new URLSearchParams(location.search).get('preview') === 'minibridge') {
+      preview.current = true;
+      void import('@/lib/mini-club-preview').then(({miniClubPreview}) => {
+        const view = miniClubPreview(); setData(view); setDraftRound(view.round);
+        const first = view.boards[0].result!; setDraft({...first, miniBridge:true});
+      });
+      return;
+    }
     context.current = { id: new URLSearchParams(location.search).get('event') ?? '', token: location.hash.slice(1) };
     void read().catch(e => setError(e.message));
     const timer = setInterval(() => { void read().catch(e => setError(e.message)); }, 10000);
@@ -49,6 +59,11 @@ export default function ClubPage() {
   }
   async function submit(confirm: boolean) {
     if (!data || submitting.current) return;
+    if (preview.current) {
+      if (confirm) { setData({...data, accepted:true, locked:true}); setNotice('預覽：本圈已確認，未寫入賽事。'); }
+      else if (draft) { setData({...data, boards:data.boards.map(b => b.number === draft.board ? {...b,result:{...draft,nsScore:contractScore(draft,'None',true),updatedAt:new Date().toISOString()}} : b)}); setDraft(null); }
+      return;
+    }
     submitting.current = true; setBusy(true); setError(''); setNotice('');
     try {
       const response = await fetch(`/api/club/${encodeURIComponent(context.current.id)}`, {
@@ -123,6 +138,7 @@ export default function ClubPage() {
         <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">{inputIsEW ? 'EW' : 'NS'} 原始分 <b>{board ? (inputIsEW ? -1 : 1) * contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} actualHcp={board?.hcp} dealer={board?.dealer ?? 'N'} />}</div>
         <div className="button-row"><button className="button primary" disabled={busy}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
       </form>}
+      {data.gameMode === 'minibridge' && <MiniScoreReference value={draft} />}
       {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 {data.roles?.confirmPair.toUpperCase()} 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}
       {data.assignment && (data.role === 'confirm' || data.role === 'shared' && !!reviewing) && <section className="panel club-section"><h3>本圈確認</h3><p>請核對上方全部成績。確認後本桌成績獲認可，雙方均無法再修改。</p>
         {missing > 0 && <p role="status">尚缺 {missing} 副成績，等待輸入方補齊；未完成的牌請裁判處理。</p>}

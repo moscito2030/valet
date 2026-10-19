@@ -1,3 +1,4 @@
+import { MiniScoreReference } from '@/components/mini-score-reference';
 import type { ResultInput, Seat } from '@/lib/model';
 import { dealHcp } from '@/lib/recorded-hcp';
 import { resultKey } from '@/lib/model';
@@ -336,6 +337,7 @@ export function ScorePanel({
             </small>
           </div>
         </div>
+        {event.gameMode === 'minibridge' && <MiniScoreReference value={input} />}
         <label className="field">
           {existing ? '更正原因（選填）' : '紀錄說明（選填）'}
           <input maxLength={200} value={reason} onChange={(e) => setReason(e.target.value)} />

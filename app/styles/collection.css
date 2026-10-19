@@ -76,3 +76,26 @@
 .table-score-review-board { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
 .table-score-review-scores { margin: 8px 0; font-variant-numeric: tabular-nums; }
 .table-score-review-board small { color: var(--muted); }
+
+.mini-score-reference { margin: 20px 0; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.mini-score-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mini-score-heading h3 { margin: 4px 0 0; font-size: 20px; }
+.mini-score-heading .eyebrow { font-size: 10px; letter-spacing: .18em; color: var(--muted); }
+.mini-score-badge { font-size: 12px; color: var(--forest); border: 1px solid #d6e1d8; border-radius: 20px; padding: 5px 10px; white-space: nowrap; }
+.mini-score-reference > p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.mini-score-reference table { width: 100%; border-collapse: collapse; table-layout: fixed; background: white; }
+.mini-score-reference th, .mini-score-reference td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--line); }
+.mini-score-reference thead th { font-size: 12px; font-weight: 500; color: var(--muted); background: var(--soft); }
+.mini-score-reference th:first-child { width: 13%; }
+.mini-score-reference tbody th { font-size: 22px; font-weight: 500; }
+.mini-score-reference .mini-red-suit { color: #a3484c; }
+.mini-score-contract { display: block; font-size: 12px; white-space: nowrap; }
+.mini-score-contract small { font-size: 11px; color: var(--muted); }
+.mini-score-reference td strong { display: block; font-size: 18px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mini-score-reference .mini-score-selected { background: #e8efe8; box-shadow: inset 0 -2px #7a9c85; }
+.mini-overtrick { font-size: 14px; color: var(--muted); }
+.mini-score-note { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0 0; font-size: 13px; }
+.mini-score-note strong { font-weight: 500; }
+.mini-score-reference .mini-score-footnote { margin-bottom: 0; font-size: 12px; }
+@media (max-width: 480px) { .mini-score-reference { padding: 14px 10px; } .mini-score-reference th, .mini-score-reference td { padding: 9px 3px; } .mini-score-badge { font-size: 10px; padding: 4px 7px; } }
+.mini-score-current { display: block; font-size: 10px; color: var(--forest); }
