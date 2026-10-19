@@ -1,3 +1,4 @@
+import { BoardDiscussion } from '../board-discussion';
 import { displayedBoardNumber, boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
 import { exportPbn } from '@/lib/imports';
@@ -594,6 +595,7 @@ export function BoardsView({
           )}
         </section>
       </div>
+      {selectedBoard && <BoardDiscussion key={`${event.id}:${selectedBoard.number}:${selectedBoard.published}`} eventId={event.id} board={selectedBoard.number} />}
     </>
   );
 }

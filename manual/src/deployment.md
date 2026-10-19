@@ -60,3 +60,11 @@ Vercel 使用系統提供的 `VERCEL_GIT_COMMIT_SHA` 與 `VERCEL_GIT_COMMIT_MESS
 ### 共用檢視器依賴
 
 部署使用 `vendor/` 內的共用檢視器封裝檔，不能依賴開發電腦的相鄰專案目錄。建置前會檢查 lockfile 是否含本機連結或不可攜路徑；更新套件後也應在獨立目錄執行乾淨安裝，避免既有 `node_modules` 掩蓋依賴問題。
+
+## 討論區資料
+
+首次部署留言功能須先執行 `npm run db:migrate`，建立獨立的 `bridge_discussions` 資料表；若部署原本使用 `npm run db:migrate && npm run build`，可沿用。沿用既有 `SESSION_SECRET`，不需要 reCAPTCHA 金鑰。更換此秘密會讓既有瀏覽器身分失去原留言的管理權限。
+
+留言、關閉設定、瀏覽器身分封鎖及限流紀錄與賽段文件分開儲存，留言不增加賽段版本、不觸發成績重算。Neon 模式使用資料庫版本檢查避免併發覆寫；本機模式使用資料目錄下的 `discussions` 子目錄，展示模式不提供留言。正式站限流使用 Vercel 提供的來源 IP 並以 HMAC 雜湊儲存，不記錄原始 IP；本機請求共用來源額度。
+
+資料庫備份請包含 `bridge_discussions`，本機備份請包含 `discussions`。賽段 JSON 匯出、複製賽段不包含留言。刪除賽段後留言無法再透過原 API 存取，獨立留言資料仍保留於備份／資料庫，需另外清理。討論 API 一律不快取；發文失敗不影響登分。限流與裁判管理可以減輕灌文，但並非完整的 DDoS 防護。

@@ -1,3 +1,4 @@
+import { discussionTableSql } from '../lib/storage/discussions';
 import { neon } from '@neondatabase/serverless';
 import { loadEnvConfig } from '@next/env';
 loadEnvConfig(process.cwd());
@@ -6,6 +7,7 @@ const sql = neon(process.env.DATABASE_URL);
 async function main() {
   await sql`CREATE TABLE IF NOT EXISTS bridge_events (id text PRIMARY KEY, revision integer NOT NULL CHECK (revision > 0), document jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`;
   await sql`CREATE TABLE IF NOT EXISTS bridge_login_limits (key text PRIMARY KEY, attempts integer NOT NULL, window_end timestamptz NOT NULL)`;
+  await sql.query(discussionTableSql);
   console.log('Migration complete: bridge_events');
 }
 main().catch(() => {

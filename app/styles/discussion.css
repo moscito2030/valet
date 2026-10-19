@@ -1,0 +1,41 @@
+.board-discussion {
+  margin-top: 24px;
+  min-width: 0;
+}
+.discussion-body {
+  padding: 24px;
+}
+.discussion-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.discussion-list li {
+  padding: 16px 0;
+  border-bottom: 1px solid #dce3dc;
+}
+.discussion-list time {
+  font-size: 0.8rem;
+  color: #738176;
+}
+.discussion-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.discussion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+.board-discussion input,
+.board-discussion textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (max-width: 600px) {
+  .discussion-body {
+    padding: 16px;
+  }
+}
