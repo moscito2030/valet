@@ -1,3 +1,5 @@
+import { ParticipantsSetup } from '../participants-setup';
+import { PairNames } from '../pair-names';
 import { KnockoutPanel } from '../knockout-panel';
 import {
   exportMovement,
@@ -121,6 +123,8 @@ export function ImportPanel({
 
   return (
     <>
+      {event.canDirect && <ParticipantsSetup key={event.revision} event={event as BridgeEvent} busy={busy} save={save} />}
+      {event.canDirect && event.kind==='pairs' && event.participants.length>0 && <PairNames participants={event.participants} busy={busy} save={save} />}
       <form
         className="round-settings-form import-export-section"
         key={`board-number-${event.maxBoardNumber}`}

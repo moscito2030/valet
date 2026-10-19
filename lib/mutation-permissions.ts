@@ -8,6 +8,7 @@ const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
   'knockout-reopen': 'director',
   'stage-archive': 'director',
   'pair-name': 'director',
+  'participants-setup': 'director',
   'rosters-import': 'director',
   'lineups-import': 'director',
   'clear-results': 'director',

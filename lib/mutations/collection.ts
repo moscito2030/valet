@@ -22,6 +22,7 @@ export function applyCollectionCommand(
   const { event: e, at, changes } = context;
   let detail: string | undefined;
   if (command.action === 'club-config') {
+    if ((command.enabled || command.tokenHash) && (!e.participants.length || !e.assignments.length)) throw new DomainError('請先完成參賽名單與賽程編排，再啟用收分或簽發連結');
     const mode = command.mode ?? e.club?.mode ?? 'pair';
     if (e.kind !== 'pairs' && mode !== 'table') throw new DomainError('隊制賽請使用大賽收分模式');
     if (mode === 'table' && !validDeviceSchedule(e))

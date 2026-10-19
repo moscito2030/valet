@@ -79,6 +79,7 @@ export function ClubAdmin({
   const round = event.currentRound ?? 0;
   const assignments = event.assignments.filter((a) => a.round === round);
   const finalized = event.club?.finalized.includes(round);
+  if (!event.participants.length || !event.assignments.length) return <p>請先在「賽程編排與牌局管理」完成參賽名單及編排，再設定圈次與裝置收分。</p>;
   return (
     <div className="club-admin">
       {reviewAssignment && (

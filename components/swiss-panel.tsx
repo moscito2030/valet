@@ -28,7 +28,7 @@ export function SwissPanel({
   const [partial, setPartial] = useState(false);
   const [preview, setPreview] = useState<ReturnType<typeof swissPreview> | null>(null);
   const [error, setError] = useState('');
-  if (event.kind !== 'teams' || event.teamMovement || isInterleaved(event.assignments)) return null;
+  if (event.participants.length<2 || event.kind !== 'teams' || event.teamMovement || isInterleaved(event.assignments)) return null;
   const locked = event.status === 'finished';
   const name = (id: string) => event.participants.find((p) => p.id === id)?.name ?? id;
   const changed = event.swiss?.publications.filter((p) => swissBasisChanged(event, p)) ?? [];

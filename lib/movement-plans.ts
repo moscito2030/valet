@@ -188,6 +188,7 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
       }
     return options;
   }
+  if(event.participants.length<4)return [];
   const tables = Math.ceil(event.participants.length / 2),
     rounds = event.rounds;
   const options: MovementPlan[] = [

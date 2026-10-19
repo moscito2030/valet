@@ -145,6 +145,7 @@ export function applyScheduleCommand(
         };
       });
       e.participants = plan.participants;
+      if(e.kind==='pairs') e.rankingMode=plan.participants.some(p=>p.group)?'double':'single';
       parseMovement(exportMovement({ ...e, assignments: plan.assignments }), e);
       e.assignments = plan.assignments;
       e.teamMovement = plan.option.interleavedSize ? 'interleaved' : undefined;

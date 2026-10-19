@@ -80,9 +80,6 @@ export function CreateDialog({
     setBusy(true);
     setError('');
     try {
-      const lines = (field: string) => String(form.get(field) ?? '').split('\n').map(s => s.trim()).filter(Boolean);
-      const grouped = kind === 'pairs' && rankingMode === 'double';
-      if (grouped && lines('nsNames').length !== lines('ewNames').length) throw new Error('NS 與 EW 組需有相同搭檔數');
       const stage = {
         kind,
         ...(kind === 'teams' ? teamScoringPayload(form) : {}),
@@ -97,7 +94,7 @@ export function CreateDialog({
         ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
         venue: competition?.venue ?? form.get('venue'),
         ...(competition && String(form.get('venueOverride') ?? '').trim() ? { venueOverride: String(form.get('venueOverride')).trim() } : {}),
-        names: grouped ? [...lines('nsNames'), ...lines('ewNames')] : lines('names'),
+        names: [],
       };
       const res = await api<{ id: string }>(
         competition ? `/api/competitions/${competition.id}/stages` : '/api/events',
@@ -279,25 +276,8 @@ export function CreateDialog({
           </select>
           <span className="footnote">建立後再至裁判「賽程編排與牌局管理 → 指定賽程編排」選擇具體編排、圈數與每圈牌數。</span>
         </label>}
-        {kind === 'pairs' && rankingMode === 'double' ? <div className="form-grid">
-          {(['NS', 'EW'] as const).map(group => <label className="field" key={group}>{group} 組搭檔（一行一組，3–40 組）
-            <textarea name={group === 'NS' ? 'nsNames' : 'ewNames'} rows={5} required />
-          </label>)}
-        </div> : <label className="field">
-          {kind === 'teams' ? '隊伍名稱（一行一隊，至少兩隊）' : '搭檔名稱（一行一對，至少四對）'}
-          <textarea
-            name="names"
-            rows={5}
-            required
-            placeholder={
-              kind === 'teams'
-                ? '臺北隊\n新竹隊\n臺中隊\n高雄隊'
-                : '林冠宇 / 陳思妤\n張哲維 / 王品涵\n李柏翰 / 黃詠晴\n吳承恩 / 劉芷瑜'
-            }
-          />
-        </label>}
         <p className="footnote">
-          先建立賽段與名單，不產生牌號或桌次；進入賽段後至裁判「賽程編排與牌局管理 → 指定賽程編排」，一起設定圈數、每圈牌數與編排，預覽並套用後才能開始收分。
+          先建立空賽段，不需填名單或人數，也不產生牌號或桌次；進入賽段後至裁判「賽程編排與牌局管理」，先設定名單，再一起設定圈數、每圈牌數與編排，預覽並套用後才能開始收分。
         </p>
         {error && (
           <p className="error-text" role="alert">

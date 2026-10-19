@@ -41,6 +41,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   const context: MutationContext = { event: e, at, changes };
   if (e.knockout && ['movement', 'movement-plan', 'swiss-config'].includes(command.action))
     throw new DomainError('淘汰賽請使用對戰表安排，不可覆寫為其他編排');
+  if(e.participants.length < (e.kind==='teams'?2:4) && ['movement-plan','movement','swiss-config','knockout-config','round-control'].includes(command.action))throw new DomainError('請先在賽程編排與牌局管理完成參賽名單');
   dispatchMutation(context, command);
   assertKnockoutDecisions(e);
   detail = context.detail;
@@ -92,6 +93,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'table-lineup': '桌次上場名單',
       'club-config': '裝置收分設定',
       'pair-name': '修改搭檔名稱',
+      'participants-setup': '設定參賽名單',
       'club-play': '收分卡提交／確認',
       'club-finalize': '圈次結算',
       'club-complete-table': '裁判取消剩餘牌並確認本桌',

@@ -23,7 +23,7 @@ export function KnockoutPanel({
   const [editing, setEditing] = useState<string | null>(null),
     [reason, setReason] = useState(''),
     [winners, setWinners] = useState<Record<string, string>>({});
-  if (event.kind !== 'teams' || event.swiss) return null;
+  if (event.kind !== 'teams' || event.swiss || event.participants.length<2) return null;
   const locked =
     Object.keys(event.results).length > 0 ||
     !!(event.knockout && Object.keys(event.knockout.published).length) ||

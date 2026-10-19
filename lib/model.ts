@@ -116,6 +116,7 @@ export type BridgeEvent = {
   name: string;
   prefix?: string;
   kind: Kind;
+  rankingMode?: 'single' | 'double';
   gameMode?: 'bridge' | 'minibridge';
   teamMethod?: 'imp' | 'bam';
   bam?: { win: number; draw: number; loss: number };
@@ -181,7 +182,7 @@ export const createSchema = z
     endDate: dateSchema.optional(),
     venue: z.string().trim().max(80),
     venueOverride: z.string().trim().max(80).optional(),
-    names: z.array(z.string().trim().min(1).max(60)).min(2).max(80),
+    names: z.array(z.string().trim().min(1).max(60)).max(80),
     rounds: z.number().int().min(1).max(MAX_PLAYER_BOARDS).optional(),
     boardsPerRound: z.number().int().min(1).max(16).optional(),
   })
@@ -198,7 +199,7 @@ export const createSchema = z
         code: 'custom',
         message: '排名方式僅用於先建立雙人賽名單，賽程請於建立後設定',
       });
-    if (v.rankingMode === 'double' && (v.names.length < 6 || v.names.length % 2))
+    if (v.rankingMode === 'double' && v.names.length > 0 && (v.names.length < 6 || v.names.length % 2))
       ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–40 組完整搭檔' });
     if (v.endDate && v.endDate < v.date)
       ctx.addIssue({ code: 'custom', path: ['endDate'], message: '結束日期不可早於開始日期' });
@@ -217,10 +218,13 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: '雙冠軍需 3–40 桌完整搭檔，共牌／中繼僅適用偶數桌' });
     if (new Set(v.names).size !== v.names.length)
       ctx.addIssue({ code: 'custom', message: '名稱不可重複' });
-    if (v.kind === 'pairs' && v.names.length < 4)
+    if (v.names.length === 0 && (v.rounds || v.movementPlan)) ctx.addIssue({code:'custom', message:'請先設定名單，再安排賽程'});
+    if (v.kind === 'teams' && v.names.length === 1) ctx.addIssue({code:'custom', message:'隊制賽至少兩隊'});
+    if (v.kind === 'pairs' && v.names.length > 0 && v.names.length < 4)
       ctx.addIssue({ code: 'custom', message: '雙人賽至少四對' });
   });
 export const mutationSchema = z.discriminatedUnion('action', [
+ z.object({action:z.literal('participants-setup'),revision:z.number().int().min(1),requestId:z.string().uuid(),reason:z.string().trim().min(2).max(200),names:z.array(z.string().trim().min(1).max(60)).max(80),rankingMode:z.enum(['single','double']).optional()}).strict(),
   z
     .object({
       action: z.literal('knockout-config'),

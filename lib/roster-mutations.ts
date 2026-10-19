@@ -5,16 +5,32 @@ import { parseRosters } from './roster-import';
 import { parseLineups, lineupRosterAdditions } from './lineup-import';
 type RosterMutation = Extract<
   Mutation,
-  { action: 'lineups-import' | 'rosters-import' | 'team-roster' | 'table-lineup' | 'pair-name' }
+  { action: 'lineups-import' | 'rosters-import' | 'team-roster' | 'table-lineup' | 'pair-name' | 'participants-setup' }
 >;
 export function isRosterMutation(command: Mutation): command is RosterMutation {
-  return ['lineups-import', 'rosters-import', 'team-roster', 'table-lineup', 'pair-name'].includes(
+  return ['lineups-import', 'rosters-import', 'team-roster', 'table-lineup', 'pair-name', 'participants-setup'].includes(
     command.action,
   );
 }
 export function applyRosterMutation(e: BridgeEvent, command: RosterMutation) {
   let detail = '';
-  if (command.action === 'pair-name') {
+  if (command.action === 'participants-setup') {
+    if(e.status!=='live'||e.assignments.length||Object.keys(e.results).length||e.knockout||e.swiss||Object.keys(e.club?.tokens??{}).length)throw new DomainError('名單須在編排與簽發收分連結前設定；已有賽程請使用名稱修改功能');
+    const count=command.names.length, mode=command.rankingMode??e.rankingMode??(e.participants.some(p=>p.group)?'double':'single');
+    if(new Set(command.names).size!==count)throw new DomainError('名稱不可重複');
+    if(e.kind==='teams'&&(count===1||count>32||command.rankingMode))throw new DomainError('隊制賽需 2–32 隊，或留空稍後設定');
+    if(e.kind==='pairs'&&count>0&&(count<4||(mode==='double'&&(count<6||count%2))))throw new DomainError('雙人賽至少四對；Double Winner 須 NS／EW 各 3–40 對');
+    if(e.participants.some(p=>!command.names.includes(p.name)&&(p.players||p.captain||e.penalties?.[p.id])))throw new DomainError('移除的隊伍已有賽員或判罰資料，請先處理原有資料');
+    let next=Math.max(0,...e.participants.map(p=>Number(p.id.slice(1))||0))+1;
+    e.participants=command.names.map((name,i)=>{
+      const previous=e.participants.find(p=>p.name===name);
+      const {group,...p}=previous??{id:(e.kind==='teams'?'t':'p')+next++,name,players:''};
+      return {...p,...(e.kind==='pairs'&&mode==='double'?{group:i<count/2?'NS' as const:'EW' as const}:{})};
+    });
+    if(e.kind==='pairs')e.rankingMode=mode;
+    if(e.kind==='teams'&&count%2&&e.byeVp===undefined)e.byeVp=e.teamMethod==='bam'?0:12;
+    detail='設定 '+count+' 個參賽單位';
+  } else if (command.action === 'pair-name') {
     const pair = e.participants.find(p => p.id === command.participantId);
     if (e.kind !== 'pairs' || !pair) throw new DomainError('找不到雙人賽搭檔');
     if (e.participants.some(p => p.id !== pair.id && p.name.trim() === command.name)) throw new DomainError('搭檔名稱不可重複');

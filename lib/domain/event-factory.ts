@@ -24,6 +24,7 @@ export function createEvent(
     prefix: data.prefix ?? '',
     ...(data.firstStageName ? { hasStages: true, stageName: data.firstStageName } : {}),
     kind: data.kind,
+    ...(data.kind==='pairs'?{rankingMode:data.rankingMode??(data.movementPlan?'double':'single')}:{ }),
     ...(data.kind === 'teams' ? { teamMethod: data.teamMethod ?? 'imp', ...(data.teamMethod === 'bam' ? { bam: data.bam ?? {win:2,draw:1,loss:0} } : {}) } : {}),
     ...(data.kind === 'teams' && participants.length % 2 ? { byeVp: data.teamMethod === 'bam' ? 0 : 12 } : {}),
     maxBoardNumber: data.kind === 'pairs' ? 0 : 32,
