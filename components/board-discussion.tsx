@@ -142,18 +142,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                           回覆
                         </button>
                       )}
-                    </div>
-                    {c.replyTo && (
-                      <div className="discussion-reference">
-                        <Reply size={13} aria-hidden="true" />
-                        回覆{' '}
-                        {data.comments.find((r) => r.id === c.replyTo)?.nickname ?? '已移除留言'}
-                      </div>
-                    )}
-                    <p className="discussion-text">
-                      <CommentText text={c.text} />
-                    </p>
-                    <div className="discussion-actions">
                       {(c.own || data.director) && (
                         <button
                           className="discussion-action discussion-delete"
@@ -167,6 +155,18 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                           刪除
                         </button>
                       )}
+                    </div>
+                    {c.replyTo && (
+                      <div className="discussion-reference">
+                        <Reply size={13} aria-hidden="true" />
+                        回覆{' '}
+                        {data.comments.find((r) => r.id === c.replyTo)?.nickname ?? '已移除留言'}
+                      </div>
+                    )}
+                    <p className="discussion-text">
+                      <CommentText text={c.text} />
+                    </p>
+                    <div className="discussion-actions">
                       {data.director && (
                         <>
                           <button

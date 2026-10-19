@@ -250,6 +250,9 @@
   cursor: wait;
 }
 @media (max-width: 600px) {
+  .discussion-meta {
+    column-gap: 6px;
+  }
   .discussion-body {
     padding: 0 20px 20px;
   }
