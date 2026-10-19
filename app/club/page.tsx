@@ -34,7 +34,7 @@ export default function ClubPage() {
     if (process.env.NODE_ENV === 'development' && new URLSearchParams(location.search).get('preview') === 'minibridge') {
       preview.current = true;
       void import('@/lib/mini-club-preview').then(({miniClubPreview}) => {
-        const view = miniClubPreview(); setData(view); setDraftRound(view.round);
+        const view = miniClubPreview(new URLSearchParams(location.search).get('mode') === 'pair'); setData(view); setDraftRound(view.round);
         const first = view.boards[0].result!; setDraft({...first, miniBridge:true});
       });
       return;
