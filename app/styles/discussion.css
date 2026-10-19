@@ -68,15 +68,23 @@
 }
 .discussion-meta {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 6px 12px;
   overflow-wrap: anywhere;
 }
 .discussion-meta strong {
+  min-width: 0;
   font-size: 14px;
   color: var(--forest);
   font-weight: 600;
+}
+.discussion-meta time,
+.discussion-meta .discussion-action {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.discussion-actions:empty {
+  display: none;
 }
 .discussion-meta time,
 .discussion-count {

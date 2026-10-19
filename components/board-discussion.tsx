@@ -133,6 +133,17 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                         })}
                       </time>
                       {c.hidden && <span className="discussion-badge">已隱藏</span>}
+                      {!data.closed && !data.globalClosed && !c.hidden && (
+                        <button
+                          type="button"
+                          className="discussion-action"
+                          disabled={busy}
+                          onClick={() => beginReply(c.id)}
+                        >
+                          <Reply size={15} aria-hidden="true" />
+                          回覆
+                        </button>
+                      )}
                     </div>
                     {c.replyTo && (
                       <div className="discussion-reference">
@@ -145,17 +156,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                       <CommentText text={c.text} />
                     </p>
                     <div className="discussion-actions">
-                      {!data.closed && !data.globalClosed && !c.hidden && (
-                        <button
-                          type="button"
-                          className="discussion-action"
-                          disabled={busy}
-                          onClick={() => beginReply(c.id)}
-                        >
-                          <Reply size={15} aria-hidden="true" />
-                          回覆
-                        </button>
-                      )}
                       {(c.own || data.director) && (
                         <button
                           className="discussion-action discussion-delete"
