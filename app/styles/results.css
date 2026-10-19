@@ -645,3 +645,9 @@ table a:focus-visible {
 
 .team-results-heading .team-result-intro { flex-wrap: wrap; }
 .team-result-intro > .butler-display-toggle { flex-shrink: 0; margin-left: auto; white-space: nowrap; }
+/* Compact two-line team scores without changing text size or column widths. */
+.player-results .team-player-results > tbody > tr > td:nth-child(n) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.team-player-results .team-raw-score { margin-top: 2px; }
