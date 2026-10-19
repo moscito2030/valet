@@ -155,7 +155,7 @@ export function RoundsView({
                 .filter((a) => a.round === round)
                 .map((a) => (
                   <tr key={a.id}>
-                    <td className="mono">{a.table}</td>
+                    <td className="round-table-number">第 {a.table} 桌</td>
                     {[a.ns, a.ew].map((id) => {
                       const standing = roundPairStandings.find((s) => s.id === id);
                       const score = standing?.score;
@@ -184,7 +184,8 @@ export function RoundsView({
                     })}
                     <td>
                       <button
-                        className="text-button"
+                        className="text-button round-board-numbers"
+                        title="查看牌局"
                         onClick={() => {
                           setBoard(a.boards[0]);
                           setTab('boards');

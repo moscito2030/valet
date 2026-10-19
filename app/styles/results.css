@@ -658,6 +658,8 @@ table a:focus-visible {
 .team-imp-columns { font-size: 15px; font-weight: 400; }
 .score-placeholder { color: var(--muted); font-weight: 300; }
 .team-imp-average-trigger { display: block; width: 100%; text-align: center; }
+.round-pairs-table .round-table-number { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
+.round-pairs-table .round-board-numbers { color: var(--forest); font-family: inherit; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .team-player-results .team-imp-average-trigger:is(:hover, :focus-visible) > span,
 .team-player-results .team-match-summary .contract-link:is(:hover, :focus-visible) > span {
   text-decoration: none;
