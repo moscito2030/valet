@@ -38,14 +38,14 @@ test('random lane selection never reuses an occupied lane', () => {
     freeBulletLane([0, 1, 2], () => 0),
     3,
   );
-  assert.equal(freeBulletLane([0, 1, 2, 3]), undefined);
+  assert.equal(freeBulletLane([0, 1, 2, 3, 4, 5]), undefined);
   assert.equal(
     freeBulletLane([], () => 0),
     0,
   );
   assert.equal(
     freeBulletLane([], () => 0.99),
-    3,
+    5,
   );
 });
 

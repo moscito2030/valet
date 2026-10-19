@@ -75,7 +75,7 @@ export function BoardDanmaku() {
         ? {
             ...next,
             lane,
-            top: 8 + lane * 21 + Math.random() * 6,
+            top: 5 + lane * 14 + Math.random() * 3,
             started: now,
             duration,
             instance: sequence.current++,
@@ -91,7 +91,7 @@ export function BoardDanmaku() {
       ]);
     };
     launch();
-    const timer = setInterval(launch, 2800);
+    const timer = setInterval(launch, 1500);
     return () => clearInterval(timer);
   }, [playable]);
   if (!playable) return null;

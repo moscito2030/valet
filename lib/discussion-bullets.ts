@@ -21,6 +21,6 @@ export function shuffledBullets(
   return result;
 }
 export function freeBulletLane(occupied: number[], random = Math.random) {
-  const free = [0, 1, 2, 3].filter((lane) => !occupied.includes(lane));
+  const free = [0, 1, 2, 3, 4, 5].filter((lane) => !occupied.includes(lane));
   return free.length ? free[Math.floor(random() * free.length)] : undefined;
 }
