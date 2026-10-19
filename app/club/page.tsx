@@ -137,12 +137,12 @@ export default function ClubPage() {
             <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} ／ EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
             {b.result && b.result.status !== 'cancelled' && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
             {b.result && <HcpSummary hcp={b.result.hcp} />}
-            {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} onClick={() => edit(b.number)}>{b.result ? '更正' : '輸入'}</button>}
+            {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} title={draft?.board === b.number ? b.result ? '關閉更正介面' : '關閉輸入介面' : undefined} aria-expanded={draft?.board === b.number} aria-controls={draft?.board === b.number ? 'club-score-editor' : undefined} onClick={() => draft?.board === b.number ? setDraft(null) : edit(b.number)}>{draft?.board === b.number ? '關閉' : b.result ? '更正' : '輸入'}</button>}
           </div>)}</div>
           <p>輸入：<PairDisplayName name={roleName(data.roles?.inputPair)} /> ／ 確認：<PairDisplayName name={roleName(data.roles?.confirmPair)} /> · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
         </> : <p>{data.round ? data.mode === 'table' ? '本桌本圈尚無可收分安排，請等待裁判。' : '本圈輪空，無需輸入或確認。' : '等待裁判指定目前圈數。'}</p>}
       </section>
-      {draft && editable && <form className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
+      {draft && editable && <form id="club-score-editor" className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
         <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? '迷你橋牌 · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
         <div className="form-grid">
           {data.gameMode === 'minibridge' ? <><HcpFields value={draft} onChange={setDraft} dealer={board?.dealer ?? 'N'} expected={board?.hcp} /><MiniContractFields value={draft} onChange={setDraft} /></> : <>
