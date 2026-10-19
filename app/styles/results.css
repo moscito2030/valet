@@ -677,3 +677,4 @@ table a:focus-visible {
 .compact-imp { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .compact-imp-fraction { display: inline-block; font-size: .7em; font-weight: 400; position: relative; top: -.15em; transform: scaleX(.9); transform-origin: left center; margin-right: -.2ch; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .compact-imp-separator { visibility: hidden; }
+.match-bottom .match-results-link { color: var(--forest); cursor: pointer; }

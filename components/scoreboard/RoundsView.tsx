@@ -125,6 +125,7 @@ export function RoundsView({
               <div className="match-bottom">
                 <MatchVpScale event={event} match={m} />
                 <button
+                  className="match-results-link"
                   onClick={() => {
                     setPerson(m.a);
                     setPlayerRound(round);
