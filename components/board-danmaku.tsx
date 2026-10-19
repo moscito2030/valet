@@ -7,6 +7,7 @@ import {
   shuffledBullets,
   freeBulletLane,
   bulletDuration,
+  randomBulletFont,
   type BulletComment,
 } from '@/lib/discussion-bullets';
 export function DanmakuToggle({ className = 'discussion-action' }: { className?: string }) {
@@ -32,6 +33,7 @@ export function BoardDanmaku() {
       started: number;
       duration: number;
       instance: number;
+      fontFamily: string;
     })[]
   >([]);
   const overlay = useRef<HTMLDivElement>(null);
@@ -79,6 +81,7 @@ export function BoardDanmaku() {
             started: now,
             duration,
             instance: sequence.current++,
+            fontFamily: randomBulletFont(),
           }
         : null;
       if (bullet) {
@@ -97,11 +100,19 @@ export function BoardDanmaku() {
   if (!playable) return null;
   return (
     <div ref={overlay} className="board-danmaku" aria-hidden="true">
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500&family=Noto+Serif+TC:wght@500&family=LXGW+WenKai+TC&family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap"
+      />
       {active.map((c) => (
         <div
           key={c.instance}
           className="danmaku-message"
-          style={{ top: `${c.top}%`, animationDuration: `${c.duration}ms` }}
+          style={{
+            top: `${c.top}%`,
+            animationDuration: `${c.duration}ms`,
+            fontFamily: c.fontFamily,
+          }}
         >
           <span className="danmaku-author">{c.nickname}：</span>
           <CommentText

@@ -4,6 +4,8 @@ import {
   shuffledBullets,
   freeBulletLane,
   bulletDuration,
+  bulletFonts,
+  randomBulletFont,
   type BulletComment,
 } from '../lib/discussion-bullets';
 const comments = Array.from({ length: 40 }, (_, i): BulletComment => ({
@@ -54,4 +56,14 @@ test('mobile duration stays unchanged while wide boards get more travel time', (
   assert.equal(bulletDuration(600), 7500);
   assert.equal(bulletDuration(960), 12000);
   assert.equal(bulletDuration(1200), 15000);
+});
+
+test('all five distinct font stacks are selectable', () => {
+  assert.equal(new Set(bulletFonts).size, 5);
+  bulletFonts.forEach((font, i) =>
+    assert.equal(
+      randomBulletFont(() => (i + 0.5) / 5),
+      font,
+    ),
+  );
 });
