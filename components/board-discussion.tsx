@@ -4,7 +4,6 @@ import {
   Reply,
   Trash2,
   MoreHorizontal,
-  RefreshCw,
   Send,
   X,
   MessageSquare,
@@ -17,7 +16,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
   const composer = useRef<HTMLTextAreaElement>(null);
   const menuId = useId();
   const url = `/api/events/${eventId}/boards/${board}/discussion`;
-  const { data, error, setError, refresh: load, live } = useDiscussion();
+  const { data, error, setError, refresh: load } = useDiscussion();
   const [busy, setBusy] = useState(false);
   const [nickname, setNickname] = useState(''),
     [text, setText] = useState(''),
@@ -59,17 +58,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
         </div>
         <div className="discussion-tools">
           <DanmakuToggle />
-          <button
-            className="discussion-action"
-            disabled={busy}
-            onClick={() => {
-              setError('');
-              load().catch((e) => setError(e.message));
-            }}
-          >
-            <RefreshCw size={15} aria-hidden="true" />
-            {live ? '自動更新中' : '更新留言'}
-          </button>
           {data?.director && (
             <>
               <button className="discussion-action" popoverTarget={`${menuId}-settings`}>
