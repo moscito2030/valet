@@ -305,7 +305,7 @@ export function PlayersView({
                 <button
                   type="button"
                   className="match-context-trigger"
-                  popoverTarget="player-preround-summary"
+                  title="查看賽前成績" popoverTarget="player-preround-summary"
                   onClick={(e) => positionDetail(e.currentTarget)}
                 >
                   <span className="match-context-label">第 {playerMatch.table} 桌</span>
@@ -447,7 +447,7 @@ export function PlayersView({
                       type="button"
                       className="contract-link mono"
                       aria-label="查看本圈雙方 Butler IMP"
-                      popoverTarget="player-butler-summary"
+                      title="查看本圈雙方 Butler IMP" popoverTarget="player-butler-summary"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
                       {(teamPlayerRows.some((row) => row.impDiff !== null)
@@ -459,7 +459,7 @@ export function PlayersView({
                     <button
                       type="button"
                       className="contract-link"
-                      popoverTarget="player-vp-scale"
+                      title={event.teamMethod === 'bam' ? '查看 BAM 計分規則' : '查看 VP 換算表'} popoverTarget="player-vp-scale"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
                       {event.teamMethod === 'bam' ? '計分規則' : '換算 VP'}
@@ -468,7 +468,7 @@ export function PlayersView({
                       type="button"
                       className="contract-link mono"
                       aria-label="查看雙方累積 VP"
-                      popoverTarget="player-cumulative-vp"
+                      title="查看雙方累積 VP" popoverTarget="player-cumulative-vp"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
                       <span>{number(playerMatchVp)}</span><span>{number(opponentMatchVp)}</span>
@@ -637,6 +637,7 @@ export function PlayersView({
                       <td>
                         <button
                           className="contract-link"
+                          title="查看本圈對戰"
                           onClick={() => {
                             setRound(a.round);
                             setTab('rounds');
@@ -671,7 +672,7 @@ export function PlayersView({
                         </span>
                         <button
                           className="opponent-number contract-link"
-                          popoverTarget={`${popupId}-opponent`}
+                          title="查看對手姓名" popoverTarget={`${popupId}-opponent`}
                           onClick={(e) => positionDetail(e.currentTarget)}
                         >
                           {participantNumber(ns ? a.ew : a.ns, event.kind)}
@@ -699,7 +700,7 @@ export function PlayersView({
                     <td className="mono">
                       <button
                         className="player-raw-score contract-link"
-                        popoverTarget={`${popupId}-average`}
+                        title="查看本牌平均分" popoverTarget={`${popupId}-average`}
                         onClick={(e) => positionDetail(e.currentTarget)}
                       >
                         {r && r.status !== 'cancelled'
