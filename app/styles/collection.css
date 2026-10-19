@@ -100,7 +100,7 @@
 .mini-score-note > span:last-child { white-space: nowrap; }
 .mini-score-penalty { font-variant-numeric: tabular-nums; font-weight: 400; }
 .mini-score-note, .mini-score-note strong { font-weight: 400; }
-.mini-score-reference .mini-score-footnote { margin-bottom: 0; font-size: 12px; }
+.mini-score-reference .mini-score-footnote { margin: 8px 0 0; font-size: 12px; line-height: 1.7; }
 @media (max-width: 480px) { .mini-score-reference { padding: 14px 10px; } .mini-score-reference th, .mini-score-reference td { padding: 9px 3px; } .mini-score-badge { font-size: 10px; padding: 4px 7px; } }
 .mini-score-current { display: block; font-size: 10px; color: var(--forest); }
 .mini-score-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 12px 0; }
