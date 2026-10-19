@@ -656,6 +656,15 @@ table a:focus-visible {
 .team-imp-columns { font-size: 15px; font-weight: 400; }
 .score-placeholder { color: var(--muted); font-weight: 300; }
 .team-imp-average-trigger { display: block; width: 100%; }
+.team-player-results .team-imp-average-trigger:is(:hover, :focus-visible) > span,
+.team-player-results .team-match-summary .contract-link:is(:hover, :focus-visible) > span {
+  text-decoration: none;
+}
+.team-player-results .team-imp-average-trigger:hover,
+.team-player-results .team-match-summary .contract-link:nth-child(even):hover {
+  background: rgb(32 60 50 / 5%);
+  border-radius: 4px;
+}
 /* Board links use the same readable, neutral treatment in team and pair results. */
 .player-results tbody .text-button {
   color: var(--forest);
