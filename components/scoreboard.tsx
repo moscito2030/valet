@@ -59,6 +59,7 @@ export default function Scoreboard() {
   const [resultSort, setResultSort] = useState('table-asc');
   const [playerSort, setPlayerSort] = useState<'round' | 'board' | 'opponent'>('round');
   const [playerRound, setPlayerRound] = useState(1);
+  const [showContractButler, setShowContractButler] = useState(false);
   const [travellerSide, setTravellerSide] = useState<'ns' | 'ew'>('ns');
   const [awayPerspective, setAwayPerspective] = useState(false);
   const [selectedResult, setSelectedResult] = useState('');
@@ -640,6 +641,8 @@ export default function Scoreboard() {
                   )}
                   {tab === 'players' && (
                     <PlayersView
+                      showContractButler={showContractButler}
+                      setShowContractButler={setShowContractButler}
                       event={event}
                       person={person}
                       playerRound={playerRound}

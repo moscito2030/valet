@@ -64,7 +64,7 @@ export function InterleavedRound({
               <h4>
                 {name(teamId)} vs {name(teamId === m.a ? m.b : m.a)}
               </h4>
-              {onSwapTeam && <button type="button" className="button subtle" onClick={() => onSwapTeam(teamId === m.a ? m.b : m.a)}>
+              {onSwapTeam && <button type="button" className="team-perspective-switch" onClick={() => onSwapTeam(teamId === m.a ? m.b : m.a)}>
                 <ArrowLeftRight size={15} />交換視角
               </button>}
               <p>

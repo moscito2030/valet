@@ -217,3 +217,22 @@ test('team perspective swaps to opponent and back without changing round', () =>
   const empty = {...event, assignments:[], projection:{...event.projection,matches:[]}};
   assert.equal(findAction(PlayersView({...props,event:empty,person}), '交換視角'),undefined);
 });
+
+test('contract Butler display is opt-in and does not remove raw scores or summaries', () => {
+  const raw = fixture();
+  for (const a of raw.assignments) for (const b of a.boards) raw.results[`${a.id}:${b}`] = {assignmentId:a.id,board:b,level:3,strain:'NT',declarer:'N',doubled:1,tricks:9,lead:'',nsScore:400,updatedAt:raw.updatedAt};
+  const event = audienceEvent(raw, project(raw));
+  const props = {event,person:event.participants[0].id,playerRound:1,playerSort:'round' as const,setBoard:noop,setPerson:noop,setPlayerRound:noop,setPlayerSort:noop,setRound:noop,setSelectedResult:noop,setTab:noop,setTravellerSide:noop};
+  const off = renderToStaticMarkup(createElement(PlayersView, props));
+  const on = renderToStaticMarkup(createElement(PlayersView, {...props,showContractButler:true}));
+  assert.doesNotMatch(off,/class="muted butler-imp"/);
+  assert.match(on,/class="muted butler-imp"/);
+  assert.match(off,/aria-checked="false"/);
+  assert.match(on,/aria-checked="true"/);
+  assert.match(off,/400/);
+  assert.match(off,/Butler 統計/);
+  let enabled = false;
+  const action = findAction(PlayersView({...props,setShowContractButler:(v)=>{enabled=v;}}),'顯示合約 Butler');
+  action.props.onClick();
+  assert.equal(enabled,true);
+});

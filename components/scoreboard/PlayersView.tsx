@@ -11,6 +11,8 @@ import { Contract, number, pairTone, pairValue, signed, Tab } from '../scoreboar
 import { TeamButlerPopover } from '../team-butler-popover';
 
 type Props = {
+  showContractButler?: boolean;
+  setShowContractButler?: (show: boolean) => void;
   event: PublicEvent;
   person: string;
   playerRound: number;
@@ -25,6 +27,8 @@ type Props = {
   setTravellerSide: React.Dispatch<React.SetStateAction<'ns' | 'ew'>>;
 };
 export function PlayersView({
+  showContractButler = false,
+  setShowContractButler,
   event,
   person,
   playerRound,
@@ -181,7 +185,7 @@ export function PlayersView({
 
   return (
     <section className="panel player-results">
-      <div className="panel-heading">
+      <div className={`panel-heading${event.kind === 'teams' ? ' team-results-heading' : ''}`}>
         <div className="team-result-intro">
           <div>
             <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
@@ -208,9 +212,6 @@ export function PlayersView({
                 </p>
               )}
           </div>
-          {event.kind === 'teams' && (
-            <TeamButlerPopover event={event} teamId={person || event.participants[0].id} />
-          )}
         </div>
         <div
           className={`player-result-filters${event.kind === 'teams' ? '' : ' pairs-result-filters'}`}
@@ -277,6 +278,15 @@ export function PlayersView({
             </label>
           )}
         </div>
+        {event.kind === 'teams' && (
+          <div className="team-result-tools">
+            {!event.teamMovement && <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
+              <span className="butler-toggle-track" aria-hidden="true"><span /></span>
+              顯示合約 Butler
+            </button>}
+            <TeamButlerPopover event={event} teamId={playerId} />
+          </div>
+        )}
         {event.kind === 'teams' && !event.teamMovement && (
           <div className="player-round-context">
             {playerMatch ? (
@@ -287,10 +297,12 @@ export function PlayersView({
                   popoverTarget="player-preround-summary"
                   onClick={(e) => positionDetail(e.currentTarget)}
                 >
-                  第 {playerMatch.table} 桌 · 對手：
+                  <span className="match-context-label">第 {playerMatch.table} 桌 · 本場對戰</span>
+                  <span>{name(playerId)} <span className="muted">vs</span>{' '}
                   {name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}
+                  </span>
                 </button>
-                <button type="button" className="button subtle" onClick={() => setPerson(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}>
+                <button type="button" className="team-perspective-switch" onClick={() => setPerson(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}>
                   <ArrowLeftRight size={15} />交換視角
                 </button>
                 <div
@@ -392,7 +404,7 @@ export function PlayersView({
                                 : result?.status === 'cancelled' || ownScore === null
                                   ? '—'
                                   : signed(ownScore)}
-                              {butler !== null && (
+                              {showContractButler && butler !== null && (
                                 <span
                                   className="muted butler-imp"
                                   title="Butler IMP（我方視角）"
