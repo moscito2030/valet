@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { CommentText } from './comment-text';
 import { useDiscussion } from './board-discussion-context';
-import { DanmakuToggle } from './board-danmaku';
 export function BoardDiscussion({ eventId, board }: { eventId: string; board: number }) {
   const composer = useRef<HTMLTextAreaElement>(null);
   const menuId = useId();
@@ -57,7 +56,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
           <p>打橋牌的人最喜歡大談了！請聚焦本牌，勿張貼敏感個資。</p>
         </div>
         <div className="discussion-tools">
-          <DanmakuToggle />
           {data?.director && (
             <>
               <button className="discussion-action" popoverTarget={`${menuId}-settings`}>

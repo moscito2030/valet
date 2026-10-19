@@ -21,6 +21,9 @@
 .discussion-tools {
   margin-left: auto;
 }
+.discussion-tools:empty {
+  display: none;
+}
 .discussion-body {
   padding: 0 24px 24px;
 }
