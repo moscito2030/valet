@@ -25,7 +25,21 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
         type="button"
         className="match-vp-trigger"
         aria-label={`查看 ${name(match.a)} 對 ${name(match.b)} 的 ${match.total} 牌 VP 計分表`}
-        onClick={() => dialog.current?.showModal()}
+        onClick={() => {
+          const modal = dialog.current;
+          if (!modal) return;
+          modal.showModal();
+          const scroller = modal.querySelector<HTMLElement>('.vp-scale-scroll');
+          const current = modal.querySelector<HTMLElement>('.vp-scale-current');
+          if (scroller) {
+            // Scroll only the table, keeping the dialog heading and page in place.
+            scroller.scrollTop = current
+              ? scroller.scrollTop + current.getBoundingClientRect().top -
+                scroller.getBoundingClientRect().top -
+                (scroller.clientHeight - current.offsetHeight) / 2
+              : 0;
+          }
+        }}
       >
         <span className="muted">VP</span>{' '}
         <b>
