@@ -616,7 +616,7 @@ table a:focus-visible {
 .team-result-tools .team-butler-trigger { min-height: 40px; padding: 6px 0; border: 0; background: transparent; box-shadow: none; font-size: 12px; color: var(--muted); margin-left: auto; }
 .team-results-heading .player-round-context { display: flex; align-items: center; justify-content: flex-start; gap: 8px; padding: 0; }
 .match-perspective-action { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-.match-perspective-action .team-perspective-switch { margin-left: 0; text-decoration: underline; text-underline-offset: 3px; }
+.match-perspective-action .team-perspective-switch, .match-perspective-action .team-perspective-switch:hover { margin-left: 0; color: var(--muted); text-decoration: none; }
 .match-context-trigger { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; min-width: 0; min-height: 40px; padding: 8px 0; border: 0; background: transparent; color: var(--forest); font: inherit; font-size: 12px; line-height: 24px; text-align: left; cursor: pointer; }
 .match-context-label, .match-context-separator { color: var(--muted); white-space: nowrap; }
 .match-context-opponent { overflow-wrap: anywhere; }
