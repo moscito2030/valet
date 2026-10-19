@@ -405,6 +405,17 @@ table a:focus-visible {
 .player-results thead {
   display: table-header-group;
 }
+.player-results .team-player-results {
+  table-layout: fixed;
+}
+.team-player-results > thead > tr > th:first-child,
+.team-player-results > thead > tr > th:last-child {
+  width: 16%;
+}
+.team-player-results > thead > tr > th:nth-child(2),
+.team-player-results > thead > tr > th:nth-child(3) {
+  width: 34%;
+}
 .team-player-results tfoot td {
   background: #fafbf7;
 }
