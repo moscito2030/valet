@@ -1,4 +1,5 @@
 'use client';
+import { PairDisplayName } from '@/components/pair-display-name';
 import { MiniScoreReference } from '@/components/mini-score-reference';
 import { DeclarerWarning, HcpFields, HcpSummary } from '@/components/hcp-fields';
 import { useEffect, useRef, useState } from 'react';
@@ -88,7 +89,7 @@ export default function ClubPage() {
   return <main className="club-page">
     <header className="club-page-heading">
       <span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span>
-      <h1>{data?.deviceLabel ?? data?.pairName ?? '裝置收分'}</h1>
+      <h1>{data?.deviceLabel ?? (data?.pairName ? <PairDisplayName name={data.pairName} /> : '裝置收分')}</h1>
       <div className="club-heading-meta">
       <p className="club-event-name">{data?.name}</p>
       <span className="club-heading-separator" aria-hidden="true">·</span>
@@ -103,14 +104,14 @@ export default function ClubPage() {
     {!data ? <p>正在讀取專屬收分卡…</p> : <>
       {data.mode === 'table' && <p className="footnote">裝置留在本桌，換圈後自動載入本桌安排。請核對南北／東西與牌號，輸入完成後交給對方確認。</p>}
       {data.tableGuide && <section className="panel club-section" aria-label="本桌下一圈安排">
-        {data.tableGuide.kind === 'table' ? <><h2>下一圈 · 第 {data.tableGuide.roundLabel} 圈</h2><p>{data.tableGuide.label} · 南北 {data.tableGuide.ns} ／ 東西 {data.tableGuide.ew}</p><p>牌號：{boardRange(data.tableGuide.boards)}</p><p>裝置留在本桌，等待裁判開放下一圈。</p></> : data.tableGuide.kind === 'complete' ? <><h2>沒有下一圈</h2><p>請依裁判指示結束。</p></> : <><h2>等待本桌下一圈安排</h2><p>尚無可顯示的對戰，公布後會自動更新；無須將裝置帶走。</p></>}
+        {data.tableGuide.kind === 'table' ? <><h2>下一圈 · 第 {data.tableGuide.roundLabel} 圈</h2><p>{data.tableGuide.label} · 南北 <PairDisplayName name={data.tableGuide.ns} /> ／ 東西 <PairDisplayName name={data.tableGuide.ew} /></p><p>牌號：{boardRange(data.tableGuide.boards)}</p><p>裝置留在本桌，等待裁判開放下一圈。</p></> : data.tableGuide.kind === 'complete' ? <><h2>沒有下一圈</h2><p>請依裁判指示結束。</p></> : <><h2>等待本桌下一圈安排</h2><p>尚無可顯示的對戰，公布後會自動更新；無須將裝置帶走。</p></>}
       </section>}
       {data.guide && <section className="panel club-section" aria-label="下一圈 Guide card">
         <span className="eyebrow">GUIDE CARD</span>
         {data.guide.kind === 'table' ? <>
           <h2>第 {data.guide.round} 圈 · 前往第 {data.guide.table} 桌</h2>
           <p><strong>你的方向：{data.guide.direction === 'NS' ? '南北 NS' : '東西 EW'}</strong></p>
-          <p>對手：{data.guide.opponentName}（{data.guide.opponentId.toUpperCase()}）</p>
+          <p>對手：<PairDisplayName name={data.guide.opponentName} />（{data.guide.opponentId.toUpperCase()}）</p>
           <p>牌號：{boardRange(data.guide.boards)}</p>
           <p className="footnote">{data.phase === 'break' ? '本圈已結束，請移動並確認對手與牌號是否正確' : '本圈尚未結束，請等待裁判指示移動'}</p>
         </> : data.guide.kind === 'bye' ? <>
@@ -124,8 +125,8 @@ export default function ClubPage() {
         {data.assignment ? <>
           <div className="club-matchup" aria-label="本桌搭檔">
             {(['ns', 'ew'] as const).map(side => <div key={side}>
-              <div className="club-matchup-name"><span className="club-seat-label">{side.toUpperCase()}</span><strong>{data.names?.[side]}</strong></div>
-              <small>{data.assignment![side].toUpperCase()} / {data.roles?.inputPair === data.assignment![side] ? '輸入方' : '確認方'}</small>
+              <div className="club-matchup-name"><span className="club-seat-label">{side.toUpperCase()}</span><strong><PairDisplayName name={data.names?.[side]} /></strong></div>
+              <small>{data.assignment![side].toUpperCase()} · {data.roles?.inputPair === data.assignment![side] ? '輸入方' : '確認方'}</small>
             </div>)}
           </div>
           <p className="club-entry-hint">{data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
