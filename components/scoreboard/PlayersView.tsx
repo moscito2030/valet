@@ -294,13 +294,13 @@ export function PlayersView({
               <>
                 <button
                   type="button"
-                  className="contract-link"
+                  className="match-context-trigger"
                   popoverTarget="player-preround-summary"
                   onClick={(e) => positionDetail(e.currentTarget)}
                 >
-                  <span><span className="match-context-label">第 {playerMatch.table} 桌 · 對手 </span>
-                  {name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}
-                  </span>
+                  <span className="match-context-label">第 {playerMatch.table} 桌</span>
+                  <span className="match-context-separator" aria-hidden="true">·</span>
+                  <span className="match-context-opponent">對手 {name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}</span>
                 </button>
                 <button type="button" className="team-perspective-switch" onClick={() => setPerson(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}>
                   <ArrowLeftRight size={15} />交換視角
