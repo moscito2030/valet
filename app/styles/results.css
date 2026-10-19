@@ -654,3 +654,16 @@ table a:focus-visible {
 
 
 .team-imp-columns { font-size: 15px; font-weight: 600; }
+/* Board links use the same readable, neutral treatment in team and pair results. */
+.player-results tbody .text-button {
+  color: var(--forest);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.player-results tbody .text-button:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
