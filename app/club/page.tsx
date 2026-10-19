@@ -86,6 +86,9 @@ export default function ClubPage() {
   const scoreSide = data ? collectionScoreSide(data, !!reviewing) : 'NS';
   const inputIsEW = !!data?.assignment && data.roles?.inputPair === data.assignment.ew;
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
+  const roleName = (id?: string) => id === data?.assignment?.ns
+    ? data?.names?.ns || id
+    : id === data?.assignment?.ew ? data?.names?.ew || id : id ?? '—';
   return <main className="club-page">
     <header className="club-page-heading">
       <span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span>
@@ -136,7 +139,7 @@ export default function ClubPage() {
             {b.result && <HcpSummary hcp={b.result.hcp} />}
             {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} onClick={() => edit(b.number)}>{b.result ? '更正' : '輸入'}</button>}
           </div>)}</div>
-          <p>輸入：{data.roles?.inputPair.toUpperCase()} ／ 確認：{data.roles?.confirmPair.toUpperCase()} · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
+          <p>輸入：<PairDisplayName name={roleName(data.roles?.inputPair)} /> ／ 確認：<PairDisplayName name={roleName(data.roles?.confirmPair)} /> · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
         </> : <p>{data.round ? data.mode === 'table' ? '本桌本圈尚無可收分安排，請等待裁判。' : '本圈輪空，無需輸入或確認。' : '等待裁判指定目前圈數。'}</p>}
       </section>
       {draft && editable && <form className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
@@ -156,7 +159,7 @@ export default function ClubPage() {
         <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">{inputIsEW ? 'EW' : 'NS'} 原始分 <b>{board ? (inputIsEW ? -1 : 1) * contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} actualHcp={board?.hcp} dealer={board?.dealer ?? 'N'} />}</div>
         <div className="button-row"><button className="button primary" disabled={busy}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
       </form>}
-      {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 {data.roles?.confirmPair.toUpperCase()} 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}
+      {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 <PairDisplayName name={roleName(data.roles?.confirmPair)} /> 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}
       {data.assignment && (data.role === 'confirm' || data.role === 'shared' && !!reviewing) && <section className="panel club-section"><h3>本圈確認</h3><p>請核對上方全部成績。確認後本桌成績獲認可，雙方均無法再修改。</p>
         {missing > 0 && <p role="status">尚缺 {missing} 副成績，等待輸入方補齊；未完成的牌請裁判處理。</p>}
         <button className="button primary" disabled={!active || busy || missing > 0} onClick={() => { if (window.confirm('已核對全部成績，確認並鎖定本桌本圈？')) void submit(true); }}>確認本桌本圈成績</button>
