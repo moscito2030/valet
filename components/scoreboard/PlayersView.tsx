@@ -219,7 +219,7 @@ export function PlayersView({
           {event.kind === 'teams' && !event.teamMovement && (
             <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
               <span className="butler-toggle-track" aria-hidden="true"><span /></span>
-              顯示合約 Butler
+              顯示單副 Butler
             </button>
           )}
         </div>

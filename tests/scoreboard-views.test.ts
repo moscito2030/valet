@@ -233,7 +233,7 @@ test('contract Butler display is opt-in and does not remove raw scores or summar
   assert.match(off,/400/);
   assert.match(off,/Butler 統計/);
   let enabled = false;
-  const action = findAction(PlayersView({...props,setShowContractButler:(v)=>{enabled=v;}}),'顯示合約 Butler');
+  const action = findAction(PlayersView({...props,setShowContractButler:(v)=>{enabled=v;}}),'顯示單副 Butler');
   action.props.onClick();
   assert.equal(enabled,true);
 });
