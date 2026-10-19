@@ -5,7 +5,7 @@ import { resultKey } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { awardedResult, imps, teamBoardPoints, teamStandingsThroughRound, vp } from '@/lib/scoring';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
-import { ArrowLeftRight, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { InterleavedRound } from '../interleaved-round';
 import { Contract, number, pairTone, pairValue, signed, Tab } from '../scoreboard-shared';
 import { TeamButlerPopover } from '../team-butler-popover';
@@ -302,9 +302,12 @@ export function PlayersView({
                   <span className="match-context-separator" aria-hidden="true">·</span>
                   <span className="match-context-opponent">對手 {name(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}</span>
                 </button>
-                <button type="button" className="team-perspective-switch" onClick={() => setPerson(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}>
-                  <ArrowLeftRight size={15} />交換視角
-                </button>
+                <span className="match-perspective-action">
+                  <span className="muted" aria-hidden="true">·</span>
+                  <button type="button" className="team-perspective-switch" onClick={() => setPerson(playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns)}>
+                    切換視角
+                  </button>
+                </span>
                 <div
                   key={`${playerId}-${playerRound}`}
                   id="player-preround-summary"

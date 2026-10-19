@@ -211,12 +211,12 @@ test('team perspective swaps to opponent and back without changing round', () =>
   const match = event.projection.matches[0];
   let person = match.a;
   const props = {event,playerRound:1,playerSort:'round' as const,setBoard:noop,setPerson:(v:any)=>{person=v;},setPlayerRound:()=>{throw new Error('Round must stay unchanged');},setPlayerSort:noop,setRound:noop,setSelectedResult:noop,setTab:noop,setTravellerSide:noop};
-  findAction(PlayersView({...props,person}), '交換視角').props.onClick();
+  findAction(PlayersView({...props,person}), '切換視角').props.onClick();
   assert.equal(person,match.b);
-  findAction(PlayersView({...props,person}), '交換視角').props.onClick();
+  findAction(PlayersView({...props,person}), '切換視角').props.onClick();
   assert.equal(person,match.a);
   const empty = {...event, assignments:[], projection:{...event.projection,matches:[]}};
-  assert.equal(findAction(PlayersView({...props,event:empty,person}), '交換視角'),undefined);
+  assert.equal(findAction(PlayersView({...props,event:empty,person}), '切換視角'),undefined);
 });
 
 test('contract Butler display is opt-in and does not remove raw scores or summaries', () => {
