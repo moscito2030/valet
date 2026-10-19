@@ -433,11 +433,17 @@ export function PlayersView({
                       );
                     })}
                     <td>
-                      <button type="button" className="contract-link team-imp-average-trigger"
+                      {event.teamMethod === 'bam' ? <button type="button" className="contract-link team-imp-average-trigger"
                         title="查看本牌 Datum" aria-label={`查看牌號 ${displayBoardNumber(b)} Datum`}
                         popoverTarget={averageId} onClick={(e) => positionDetail(e.currentTarget)}>
-                        {event.teamMethod === 'bam' ? (impDiff === null ? '—' : signed(impDiff)) : <TeamImpColumns value={impDiff} />}
-                      </button>
+                        {impDiff === null ? '—' : signed(impDiff)}
+                      </button> : <TeamImpColumns value={impDiff} renderSide={(content, side) => (
+                        <button type="button" className="contract-link team-imp-average-trigger"
+                          title="查看本牌 Datum" aria-label={`查看牌號 ${displayBoardNumber(b)} Datum（${side === 0 ? '我方' : '對手'} IMP）`}
+                          popoverTarget={averageId} onClick={(e) => positionDetail(e.currentTarget)}>
+                          {content}
+                        </button>
+                      )} />}
                       <div id={averageId} popover="auto" className="player-detail-popover">
                         <strong>牌號 {displayBoardNumber(b)} · Datum</strong>
                         {(['ns', 'ew'] as const).map((side) => <div key={side}>
