@@ -363,7 +363,7 @@ export function PlayersView({
                 <th>牌號</th>
                 <th>公開</th>
                 <th>關閉</th>
-                <th>{event.teamMethod === 'bam' ? 'VP' : <><span>IMP</span><span className="team-imp-columns team-imp-labels"><span>我方</span><span>對手</span></span></>}</th>
+                <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP'}</th>
               </tr>
             </thead>
             <tbody>

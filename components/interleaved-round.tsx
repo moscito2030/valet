@@ -83,7 +83,7 @@ export function InterleavedRound({
                       <th>
                         我方東西：第 {roundLabel(event, other.round)} 圈／{other.table} 桌
                       </th>
-                      <th>{event.teamMethod === 'bam' ? 'VP' : <><span>IMP</span><span className="team-imp-columns team-imp-labels"><span>我方</span><span>對手</span></span></>}</th>
+                      <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP'}</th>
                     </tr>
                   </thead>
                   <tbody>
