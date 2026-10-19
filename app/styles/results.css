@@ -675,5 +675,5 @@ table a:focus-visible {
 @media (max-width: 560px) { .team-match-summary > :nth-child(even) { padding-inline: 3px; font-size: 10px; } }
 .team-match-summary > :nth-child(even) > span:last-child { font-weight: 400; }
 .compact-imp { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.compact-imp-fraction { display: inline-block; font-size: .7em; font-weight: 400; position: relative; top: -.15em; transform: scaleX(.85); transform-origin: left center; margin-right: -.3ch; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.compact-imp-fraction { display: inline-block; font-size: .7em; font-weight: 400; position: relative; top: -.15em; transform: scaleX(.9); transform-origin: left center; margin-right: -.2ch; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .compact-imp-separator { visibility: hidden; }
