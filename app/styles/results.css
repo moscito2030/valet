@@ -614,7 +614,6 @@ table a:focus-visible {
   .team-perspective-switch { margin-left: auto; }
 }
 .match-bottom .match-vp-trigger { font-size: 14px; min-height: 32px; cursor: pointer; border-radius: 4px; }
-.match-vp-trigger b { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
 .match-vp-trigger:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
 .match-vp-dialog.vp-scale-popover { width: min(390px, calc(100vw - 32px)); box-sizing: border-box; }
 .match-vp-dialog .modal-heading h2 { font-size: 18px; margin: 0; }
