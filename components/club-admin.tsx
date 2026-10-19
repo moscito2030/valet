@@ -79,7 +79,7 @@ export function ClubAdmin({
   const round = event.currentRound ?? 0;
   const assignments = event.assignments.filter((a) => a.round === round);
   const finalized = event.club?.finalized.includes(round);
-  if (!event.participants.length || !event.assignments.length) return <p>請先在「賽程編排與牌局管理」完成參賽名單及編排，再設定圈次與裝置收分。</p>;
+  if (!event.participants.length || !event.assignments.length) return <p>請先在「賽程與牌局管理」完成參賽名單及編排，再設定圈次與裝置收分。</p>;
   return (
     <div className="club-admin">
       {reviewAssignment && (
@@ -179,7 +179,7 @@ export function ClubAdmin({
             ))}
           </div>
           {!devices.length && (
-            <p>尚未公布桌次，請先至「賽程編排與牌局管理」設定賽程或公布 Swiss 首圈。</p>
+            <p>尚未公布桌次，請先至「賽程與牌局管理」設定賽程或公布 Swiss 首圈。</p>
           )}
         </>
       )}

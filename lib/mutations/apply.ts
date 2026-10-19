@@ -41,7 +41,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   const context: MutationContext = { event: e, at, changes };
   if (e.knockout && ['movement', 'movement-plan', 'swiss-config'].includes(command.action))
     throw new DomainError('淘汰賽請使用對戰表安排，不可覆寫為其他編排');
-  if(e.participants.length < (e.kind==='teams'?2:4) && ['movement-plan','movement','swiss-config','knockout-config','round-control'].includes(command.action))throw new DomainError('請先在賽程編排與牌局管理完成參賽名單');
+  if(e.participants.length < (e.kind==='teams'?2:4) && ['movement-plan','movement','swiss-config','knockout-config','round-control'].includes(command.action))throw new DomainError('請先在賽程與牌局管理完成參賽名單');
   dispatchMutation(context, command);
   assertKnockoutDecisions(e);
   detail = context.detail;
