@@ -1,11 +1,11 @@
 import type { Comment } from './discussion';
 export type BulletComment = Pick<Comment, 'id' | 'nickname' | 'text' | 'hidden' | 'deleted'>;
 export const bulletFonts = [
-  '"Noto Sans TC", sans-serif',
-  '"Noto Serif TC", serif',
-  '"LXGW WenKai TC", serif',
-  '"Ma Shan Zheng", "LXGW WenKai TC", serif',
-  '"ZCOOL KuaiLe", "LXGW WenKai TC", sans-serif',
+  '"IBM Plex Sans", Arial, "Noto Sans TC", sans-serif',
+  '"IBM Plex Sans", Arial, "Noto Serif TC", serif',
+  '"IBM Plex Sans", Arial, "LXGW WenKai TC", serif',
+  '"IBM Plex Sans", Arial, "Ma Shan Zheng", "LXGW WenKai TC", serif',
+  '"IBM Plex Sans", Arial, "ZCOOL KuaiLe", "LXGW WenKai TC", sans-serif',
 ] as const;
 export function randomBulletFont(random = Math.random) {
   return bulletFonts[Math.floor(random() * bulletFonts.length)];
