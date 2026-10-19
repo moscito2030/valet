@@ -99,3 +99,9 @@
 .mini-score-reference .mini-score-footnote { margin-bottom: 0; font-size: 12px; }
 @media (max-width: 480px) { .mini-score-reference { padding: 14px 10px; } .mini-score-reference th, .mini-score-reference td { padding: 9px 3px; } .mini-score-badge { font-size: 10px; padding: 4px 7px; } }
 .mini-score-current { display: block; font-size: 10px; color: var(--forest); }
+.mini-score-trigger { display: inline-flex; align-items: center; gap: 8px; margin: 12px 0; }
+.mini-score-reference.mini-score-popover { position: fixed; inset: 0; margin: auto; width: min(600px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; box-shadow: 0 16px 60px #203c3230; }
+.mini-score-popover::backdrop { background: rgb(32 60 50 / 18%); }
+.mini-score-close { position: absolute; right: 10px; top: 10px; }
+.mini-score-popover .mini-score-heading { padding-right: 24px; }
+@media (max-width: 480px) { .mini-score-reference.mini-score-popover { padding: 20px 12px; } .mini-score-popover .mini-score-heading { align-items: flex-start; flex-direction: column; gap: 8px; } }
