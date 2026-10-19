@@ -81,7 +81,7 @@ export function DiscussionProvider({
       try {
         await refresh();
       } catch {}
-      if (!stopped) timer = setTimeout(poll, 10000);
+      if (!stopped) timer = setTimeout(poll, 3000);
     };
     void poll();
     return () => {
