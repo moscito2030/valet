@@ -4,12 +4,12 @@ import { MessageSquare } from 'lucide-react';
 import { CommentText } from './comment-text';
 import { useDiscussion } from './board-discussion-context';
 import { shuffledBullets, freeBulletLane, type BulletComment } from '@/lib/discussion-bullets';
-export function DanmakuToggle() {
+export function DanmakuToggle({ className = 'discussion-action' }: { className?: string }) {
   const { live, setLive } = useDiscussion();
   return (
     <button
       type="button"
-      className="discussion-action danmaku-toggle"
+      className={`${className} danmaku-toggle`}
       aria-pressed={live}
       onClick={() => setLive(!live)}
     >

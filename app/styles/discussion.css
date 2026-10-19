@@ -271,11 +271,13 @@
   position: relative;
   min-width: 0;
 }
-.danmaku-controls {
+.board-share-options {
   display: flex;
-  justify-content: flex-end;
-  padding: 4px 16px;
-  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.board-share-options > .button {
+  flex: 1 1 180px;
 }
 .danmaku-toggle[aria-pressed='true'] {
   color: var(--forest);

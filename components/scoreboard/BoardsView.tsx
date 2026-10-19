@@ -1,19 +1,19 @@
 import { DiscussionProvider } from '../board-discussion-context';
-import { BoardDanmaku, DanmakuToggle } from '../board-danmaku';
+import { BoardDanmaku } from '../board-danmaku';
 import { BoardDiscussion } from '../board-discussion';
 import { displayedBoardNumber, boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
-import { exportPbn } from '@/lib/imports';
+
 import type { Assignment, Board, PublicEvent, Result } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { awardedResult, imps, teamBoardPoints } from '@/lib/scoring';
 import { tableNames } from '@/lib/table-names';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
-import { ArrowDownToLine, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { BoardInformation, DealExplorer } from '../deal-explorer';
 import { HcpSummary } from '../hcp-fields';
-import { ReviewExport } from '../review-export';
-import { Contract, download, hasDeal, pairTone, pairValue, signed } from '../scoreboard-shared';
+import { BoardShareActions } from '../board-share-actions';
+import { Contract, hasDeal, pairTone, pairValue, signed } from '../scoreboard-shared';
 import { DealDiagram } from '../scoreboard-widgets';
 
 type Props = {
@@ -293,7 +293,7 @@ export function BoardsView({
               </button>
             </div>
           )}
-          <div className="danmaku-controls"><DanmakuToggle /></div>
+
           <div className="danmaku-stage">
           {displayBoard && hasDeal(displayBoard) && displayBoard.deal.N.length === 13 ? (
             <DealExplorer
@@ -339,25 +339,7 @@ export function BoardsView({
           <BoardDanmaku />
           </div>
           {hasDeal(selectedBoard) && selectedBoard.deal.N.length > 0 && (
-            <div className="board-export-actions">
-              <button
-                className="button subtle"
-                onClick={() =>
-                  download(
-                    `board-${selectedBoard.number}.pbn`,
-                    exportPbn({ boards: [selectedBoard] }),
-                  )
-                }
-              >
-                <ArrowDownToLine size={15} />
-                下載此副 PBN
-              </button>
-              <ReviewExport
-                board={selectedBoard}
-                event={event}
-                selectedAssignmentId={selectedResult}
-              />
-            </div>
+            <BoardShareActions key={selectedBoard.number} board={selectedBoard} event={event} selectedAssignmentId={selectedResult} />
           )}
         </section>
         <section className="panel board-results">
