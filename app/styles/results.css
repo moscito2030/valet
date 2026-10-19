@@ -673,3 +673,4 @@ table a:focus-visible {
 .team-match-summary > :nth-child(even) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; padding-inline: 8px; }
 @media (max-width: 1000px) { .team-match-summary > :nth-child(even) { padding-inline: 5px; } }
 @media (max-width: 560px) { .team-match-summary > :nth-child(even) { padding-inline: 3px; font-size: 10px; } }
+.team-match-summary > :nth-child(even) > span:last-child { font-weight: 400; }
