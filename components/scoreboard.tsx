@@ -301,9 +301,6 @@ export default function Scoreboard() {
     <div className="app-shell">
       <aside className="sidebar">
         <a href="/" className="brand">
-          <span className="brand-symbol" aria-hidden="true">
-            ♦
-          </span>
           <span>
             <span className="sidebar-wordmark">VALET</span>
             <small>橋牌賽事記分</small>

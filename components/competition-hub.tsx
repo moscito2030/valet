@@ -58,7 +58,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   const matches = competitions.filter(c => (!date || c.stages.some(s => includesDate(s, date))) && (`${c.prefix} ${c.name} ${c.venue} ${c.stages.map(dateRangeLabel).join(' ')}`.toLowerCase().includes(query.toLowerCase()) || (/^\d{4}-\d{2}-\d{2}$/.test(query.trim()) && c.stages.some(s => includesDate(s, query.trim())))));
   return <div className={`app-shell competition-hub${competitionId ? ' competition-home' : ''}`}>
     <aside className="sidebar">
-      <a href="/" className="brand"><span className="brand-symbol" aria-hidden="true">♦</span><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
+      <a href="/" className="brand"><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
       <div className="sidebar-label">賽事工作區</div>
       <a href="/" className="nav-item active"><Trophy size={18} />瀏覽賽事</a>
       <ManualLink />

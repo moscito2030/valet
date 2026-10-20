@@ -57,7 +57,10 @@
     padding: 0;
     justify-content: center;
   }
-  .brand > span:last-child,
+  .brand .sidebar-wordmark {
+    font-size: 14px;
+  }
+  .brand small,
   .sidebar-label,
   .workspace-button,
   .sidebar-note,
