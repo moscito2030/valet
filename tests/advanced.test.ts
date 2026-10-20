@@ -60,13 +60,13 @@ test('clicking a trick card restores its pre-play state, including a completed t
   assert.equal(rewindToCard(history, 'N', 'invalid'), history);
 });
 
-test('DD best move maximizes declarer tricks for declarer side and minimizes for defenders', () => {
+test('DD colors maximize declarer tricks regardless of whose turn it is', () => {
   assert.equal(bestDeclarerTricks([4, 4, 5], 'N', 'N'), 5);
   assert.equal(bestDeclarerTricks([4, 4, 5], 'S', 'N'), 5);
-  assert.equal(bestDeclarerTricks([4, 4, 5], 'E', 'N'), 4);
-  assert.equal(bestDeclarerTricks([4, 4, 5], 'W', 'N'), 4);
+  assert.equal(bestDeclarerTricks([4, 4, 5], 'E', 'N'), 5);
+  assert.equal(bestDeclarerTricks([4, 4, 5], 'W', 'N'), 5);
   assert.equal(bestDeclarerTricks([8, 9], 'E', 'W'), 9);
-  assert.equal(bestDeclarerTricks([8, 9], 'S', 'W'), 8);
+  assert.equal(bestDeclarerTricks([8, 9], 'S', 'W'), 9);
   assert.equal(bestDeclarerTricks([], 'N', 'N'), undefined);
 });
 
