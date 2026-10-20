@@ -361,3 +361,20 @@
 .board-discussion .discussion-meta > .discussion-action:hover { background: transparent; text-decoration: underline; text-underline-offset: 3px; }
 .discussion-permalink { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .discussion-permalink:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.discussion-list > .discussion-comment {
+  margin-left: calc(var(--reply-depth, 0) * 24px);
+}
+.discussion-list > .discussion-thread-reply {
+  position: relative;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+}
+.discussion-thread-reply::before {
+  content: ''; position: absolute; top: 36px; left: -12px;
+  width: 12px; border-top: 1px solid var(--line);
+}
+@media (max-width: 600px) {
+  .discussion-list > .discussion-comment { margin-left: calc(var(--reply-depth-mobile, 0) * 12px); }
+  .discussion-list > .discussion-thread-reply { padding-left: 10px; }
+}

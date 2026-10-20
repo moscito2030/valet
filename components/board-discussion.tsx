@@ -7,6 +7,8 @@ import {
   MessageSquare,
   Settings2,
 } from 'lucide-react';
+import { discussionThreads } from '@/lib/discussion-threads';
+import type { CSSProperties } from 'react';
 import { CommentText } from './comment-text';
 import { useDiscussion } from './board-discussion-context';
 export function BoardDiscussion({ eventId, board }: { eventId: string; board: number }) {
@@ -133,8 +135,8 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                 </div>
               )}
               <ol className="discussion-list">
-                {data.comments.map((c) => (
-                  <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className={c.hidden ? 'discussion-hidden' : undefined}>
+                {discussionThreads(data.comments).map(({ comment: c, depth }) => (
+                  <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className={`discussion-comment${depth > 0 ? ' discussion-thread-reply' : ''}${c.hidden ? ' discussion-hidden' : ''}`} style={{ '--reply-depth': Math.min(depth, 3), '--reply-depth-mobile': Math.min(depth, 2) } as CSSProperties}>
                     <div className="discussion-meta">
                       <strong>{c.nickname}</strong>
                       {!data.closed && !data.globalClosed && !c.hidden && (
@@ -225,7 +227,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                       {c.hidden && <span className="discussion-badge">已隱藏</span>}
 
                     </div>
-                    {c.replyTo && (
+                    {c.replyTo && (depth === 0 || depth > 3) && (
                       <div className="discussion-reference">
                         <Reply size={13} aria-hidden="true" />
                         回覆{' '}
