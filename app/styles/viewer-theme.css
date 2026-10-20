@@ -71,6 +71,14 @@
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
 }
+:root[data-theme="sepia"]:not([data-theme="forest"]) .bridge-hand header.vulnerable {
+  background: color-mix(in srgb, var(--sidebar-brand) 24%, var(--surface-bg));
+  color: var(--sidebar-bg);
+}
+:root[data-theme="sepia"]:not([data-theme="forest"]) .bridge-hand header.vulnerable b {
+  background: var(--sidebar-brand);
+  color: var(--sidebar-bg);
+}
 :root[data-theme]:not([data-theme="forest"]) .bridge-suit .red {
   color: var(--theme-negative, #b54843);
 }
