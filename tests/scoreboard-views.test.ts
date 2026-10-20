@@ -9,7 +9,8 @@ import { PlayersView } from '../components/scoreboard/PlayersView';
 import { RoundsView } from '../components/scoreboard/RoundsView';
 import { StandingsView } from '../components/scoreboard/StandingsView';
 import { audienceEvent } from '../lib/club-view';
-import { createEvent } from '../lib/events';
+import { applyMutation, createEvent } from '../lib/events';
+import { mutationSchema, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
 
 const noop = () => {};
@@ -195,6 +196,38 @@ function findAction(node: any, label: string): any {
     if (found) return found;
   }
 }
+test('finish-review button submits a valid audited command without a score correction reason', async () => {
+  const raw = fixture();
+  for (const a of raw.assignments) for (const board of a.boards) {
+    raw.results[`${a.id}:${board}`] = {
+      assignmentId: a.id, board, level: 3, strain: 'NT', declarer: 'N',
+      doubled: 1, tricks: 9, lead: '', nsScore: 400, updatedAt: raw.updatedAt,
+    };
+  }
+  raw.status = 'review';
+  const state: StoredEvent = { event: raw, projection: project(raw), requests: [] };
+  let updated = state;
+  const panel = PublicationPanel({
+    section: 'information', event: { ...audienceEvent(raw, state.projection), canDirect: true },
+    busy: false, deleteName: '', eventId: raw.id, onDeleted: async () => {},
+    setBusy: noop, setDeleteName: noop, setError: noop,
+    save: async (payload) => {
+      const command = mutationSchema.parse({
+        ...payload, revision: raw.revision,
+        requestId: 'a91bef9c-cbad-43dc-9ed0-9393d70569b4',
+        reason: payload.reason ?? '',
+      });
+      updated = applyMutation(state, command);
+      return true;
+    },
+  });
+  const button = findAction(panel, '完成覆核並結束賽段');
+  assert.equal(button.props.disabled, false);
+  await button.props.onClick();
+  assert.equal(updated.event.status, 'finished');
+  assert.deepEqual(updated.event.results, raw.results);
+  assert.equal(updated.event.audit.at(-1)?.reason, '完成覆核並結束賽段');
+});
 test('match action opens the home team and preserves the selected round', () => {
   const raw = createEvent({name:'導覽測試',kind:'teams',date:'2026-10-20',venue:'',names:['甲','乙','丙','丁'],rounds:2,boardsPerRound:2});
   const event = audienceEvent(raw, project(raw));

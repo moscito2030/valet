@@ -200,6 +200,7 @@ export function PublicationPanel({
             save({
               action: 'settings',
               status: 'finished',
+              reason: '完成覆核並結束賽段',
             })
           }
         >
