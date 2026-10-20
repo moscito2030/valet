@@ -346,7 +346,7 @@ export default function Scoreboard() {
               />
             ) : (
               <button className="session-role session-login" onClick={openAdmin}>
-                登入
+                賽事管理
               </button>
             )}
           </div>
