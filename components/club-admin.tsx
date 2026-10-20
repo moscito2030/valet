@@ -32,7 +32,7 @@ export function ClubAdmin({
   const [link, setLink] = useState('');
   const [qr, setQr] = useState('');
   const [pair, setPair] = useState('');
-  const [settingsOpen, setSettingsOpen] = useState(!event.club?.enabled);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [showTables, setShowTables] = useState(false);
   const [forceRound, setForceRound] = useState<number | null>(null);
   const [base, setBase] = useState('');
@@ -357,14 +357,23 @@ export function ClubAdmin({
         <button
           type="button"
           className="button subtle"
-          aria-expanded={settingsOpen}
-          aria-controls="club-device-settings"
-          onClick={() => setSettingsOpen(!settingsOpen)}
+          aria-haspopup="dialog"
+          onClick={() => setSettingsOpen(true)}
         >
-          {settingsOpen ? '收起裝置與輸入方設定' : '裝置、QRCode 與輸入方設定'}
+          裝置、QRCode 與輸入方設定
         </button>
         {settingsOpen && (
-          <div id="club-device-settings">
+          <Modal title="裝置、QRCode 與輸入方設定" onClose={() => setSettingsOpen(false)}>
+            {error && (
+              <p className="alert error" role="alert">
+                {error}
+              </p>
+            )}
+            {notice && (
+              <p className="alert success" role="status">
+                {notice}
+              </p>
+            )}
             <label className="field">
               收分模式
               <select
@@ -579,7 +588,7 @@ export function ClubAdmin({
                 );
               })}
             {!event.assignments.some((a) => a.round === settingsRound) && <p>此圈尚未安排桌次。</p>}
-          </div>
+          </Modal>
         )}
       </section>
     </div>
