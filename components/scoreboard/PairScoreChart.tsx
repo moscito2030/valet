@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PublicEvent } from '@/lib/model';
 import { pairScoreHistory, usesCommonBoards } from '@/lib/pair-score-history';
 
-export function PairScoreChart({ event, person }: { event: PublicEvent; person: string }) {
+export function PairScoreChart({ event, person, hoveredBoard = null }: { event: PublicEvent; person: string; hoveredBoard?: number | null }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [focused, setFocused] = useState<number | null>(null);
@@ -25,7 +25,7 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
   const mp = (event.pairMethod ?? 'mp') === 'mp';
   const unit = mp ? '%' : ' IMP';
   const format = (v: number) => `${v.toFixed(2)}${unit}`;
-  const highlighted = hovered ?? focused;
+  const highlighted = hovered ?? hoveredBoard ?? focused;
   const active = points.find(p => p.board === (highlighted ?? selected)) ?? valid.at(-1);
   const latest = valid.at(-1);
   const base = mp ? 50 : 0;

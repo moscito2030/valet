@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CompactImp } from '../compact-imp';
 import { TeamImpColumns } from '../team-imp-columns';
 import { displayedBoardNumber } from '@/lib/board-navigation';
@@ -75,6 +76,7 @@ export function PlayersView({
   }
   const name = (pid: string) => event?.participants.find((p) => p.id === pid)?.name ?? pid;
   const playerId = person || event?.participants[0]?.id;
+  const [hoveredRow, setHoveredRow] = useState<{ playerId: string; board: number } | null>(null);
   const playerMatch = event?.assignments.find(
     (a) => a.round === playerRound && a.room === 'open' && (a.ns === playerId || a.ew === playerId),
   );
@@ -625,7 +627,9 @@ export function PlayersView({
                   setTab('boards');
                 };
                 return (
-                  <tr key={resultKey(a.id, b)} className={shaded ? 'even-round' : undefined}>
+                  <tr key={resultKey(a.id, b)} className={shaded ? 'even-round' : undefined}
+                    onMouseEnter={() => setHoveredRow({ playerId, board: b })}
+                    onMouseLeave={() => setHoveredRow(null)}>
                     {event.kind !== 'teams' && (
                       <td>
                         <button
@@ -731,7 +735,7 @@ export function PlayersView({
         )}
       </div>
     </section>
-      {event.kind === 'pairs' && event.showScoreCandles !== false && <PairScoreChart key={`${event.id}:${playerId}`} event={event} person={playerId} />}
+      {event.kind === 'pairs' && event.showScoreCandles !== false && <PairScoreChart key={`${event.id}:${playerId}`} event={event} person={playerId} hoveredBoard={hoveredRow?.playerId === playerId ? hoveredRow.board : null} />}
     </div>
     </div>
   );

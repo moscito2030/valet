@@ -14,6 +14,18 @@ function fixture() {
     date: '2026-10-20', venue: '',
   }));
 }
+test('table hover highlights the matching candle and clears without an external hover', () => {
+  const event = fixture();
+  const a = event.assignments.find(a => a.ns === 'p1')!;
+  const board = a.boards[0];
+  event.projection.pairScores[`${a.id}:${board}`] = { ns: 2, ew: 2, top: 4, provisional: false };
+  const render = (hoveredBoard: number | null) => renderToStaticMarkup(createElement(PairScoreChart, { event, person: 'p1', hoveredBoard }));
+  assert.match(render(board), /pair-chart-crosshair/);
+  assert.match(render(board), /pair-chart-candle flat selected/);
+  assert.doesNotMatch(render(null), /pair-chart-crosshair/);
+  assert.doesNotMatch(render(null), /pair-chart-candle flat selected/);
+});
+
 test('common-board detection uses scheduled boards, independent of movement labels', () => {
   const e = fixture();
   assert.ok(usesCommonBoards(e));
