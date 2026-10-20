@@ -122,7 +122,7 @@ export function ImportPanel({
 
   const boardNumberSettings = (
     <form
-      className="round-settings-form"
+      className="round-settings-form import-export-section"
       key={`board-number-${event.maxBoardNumber}`}
       onSubmit={(e) => {
         e.preventDefault();
@@ -157,7 +157,6 @@ export function ImportPanel({
   return (
     <>
       {event.canDirect && <ParticipantsSetup key={event.revision} event={event as BridgeEvent} busy={busy} save={save} />}
-      {(event.swiss || event.knockout) && boardNumberSettings}
       <KnockoutPanel
         key={`knockout-${event.id}-${event.revision}`}
         event={event as BridgeEvent}
@@ -175,12 +174,12 @@ export function ImportPanel({
       {!event.swiss && !event.knockout && (
         <MovementPanel
           key={`movement-${event.id}-${event.revision}`}
-          boardNumberSettings={boardNumberSettings}
           event={event as BridgeEvent}
           busy={busy}
           save={save}
         />
       )}
+      {boardNumberSettings}
       <RandomDealsPanel
         key={`deals-${event.id}-${event.revision}`}
         boards={event.boards}
