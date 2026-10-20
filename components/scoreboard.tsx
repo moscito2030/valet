@@ -581,24 +581,35 @@ export default function Scoreboard() {
                     onToggle={(e) => setRoundInformationOpen(e.newState === 'open')}
                   >
                     <strong>
-                      {competitionComplete
-                        ? (event.status === 'finished' ? '賽段已結束' : '成績覆核中')
-                        : progressRound
-                          ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
-                          : '比賽尚未開始'}
+                      {event.status === 'finished'
+                        ? '賽段摘要'
+                        : competitionComplete
+                          ? '成績覆核中'
+                          : progressRound
+                            ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
+                            : '比賽尚未開始'}
                     </strong>
-                    {!progressRound ? (
-                      !competitionComplete && event.roundTimes?.[1] ? (
-                        <div>預計於 {new Date(event.roundTimes[1].startAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })} 開始</div>
-                      ) : null
+                    {event.status === 'finished' ? (
+                      <>
+                        <div>已完成 {roundLabel(event, event.rounds)} 圈 · 共 {event.boards.length} 副牌</div>
+                        <div className="muted">成績已定案，不再接受更正。</div>
+                      </>
                     ) : (
-                    <div>
-                      {currentTiming
-                        ? `${new Date(currentTiming.startAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })} — ${new Date(currentTiming.endAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })}（臺灣時間）`
-                        : '尚未設定本圈時間區間'}
-                    </div>
+                      <>
+                        {!progressRound ? (
+                          !competitionComplete && event.roundTimes?.[1] ? (
+                            <div>預計於 {new Date(event.roundTimes[1].startAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })} 開始</div>
+                          ) : null
+                        ) : (
+                          <div>
+                            {currentTiming
+                              ? `${new Date(currentTiming.startAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })} — ${new Date(currentTiming.endAt).toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' })}（臺灣時間）`
+                              : '尚未設定本圈時間區間'}
+                          </div>
+                        )}
+                        <CurrentTaipeiTime active={roundInformationOpen} />
+                      </>
                     )}
-                    <CurrentTaipeiTime active={roundInformationOpen} />
                   </div>
                   <div
                     id="current-round-progress"
