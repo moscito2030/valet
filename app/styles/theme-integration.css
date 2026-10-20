@@ -36,7 +36,8 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 :root[data-theme="nord"] .sidebar [data-suit="S"],
 :root[data-theme="nord"] .sidebar [data-suit="C"] { color: var(--text-primary); }
 :root[data-theme="nord"] .sidebar [data-suit="H"],
-:root[data-theme="nord"] .sidebar [data-suit="D"] { color: var(--suit-red); }
+:root[data-theme="nord"] .sidebar [data-suit="D"],
+:root[data-theme="nord"] .discussion-suit-red { color: var(--suit-red); }
 /* Both Par Contract and Table Result share this presentation. */
 :root[data-theme="dracula"] .your-contract .contract-bid[data-suit] {
   color: var(--text-primary);
