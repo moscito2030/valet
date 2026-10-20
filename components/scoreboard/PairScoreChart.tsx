@@ -57,7 +57,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
           <div className="pair-chart-board"><strong>牌 {active.board}</strong><span>{active.cancelled ? '取消 · 不計分' : active.close === null ? '待收分' : active.provisional ? '暫計' : `第 ${active.round} 圈`}</span></div>
           <dl>{([
             ['前值', active.open, mp ? '%' : ''], ['本副後', active.close, mp ? '%' : ''], ['全場起伏', activeVolume?.value ?? null, ''], ['最大分差', activeVolume?.spread ?? null, ''],
-          ] as const).map(([label, value, unit]) => <div key={label}><dt>{label}</dt><dd className={label === '本副後' ? 'pair-chart-close' : undefined}>{value === null ? '—' : <><CompactImp text={value.toFixed(label === '最大分差' ? 0 : 2)} />{unit}</>}</dd></div>)}</dl>
+          ] as const).map(([label, value, unit]) => <div key={label}><dt>{label}</dt><dd className={label === '本副後' ? 'pair-chart-close' : undefined}>{value === null ? '—' : <><CompactImp text={value.toFixed(label === '最大分差' ? 0 : 2)} />{unit && <span className="pair-chart-detail-unit">{unit}</span>}</>}</dd></div>)}</dl>
         </>}
       </div>
       <div className="pair-score-chart-scroll" ref={scroller} onMouseLeave={() => setHovered(null)}>

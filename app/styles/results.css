@@ -773,3 +773,5 @@ table a:focus-visible {
 .compact-imp-separator { visibility: hidden; }
 .match-bottom .match-results-link { color: var(--forest); cursor: pointer; }
 .match-bottom { align-items: baseline; }
+
+.pair-chart-detail-unit { margin-left: .2em; }
