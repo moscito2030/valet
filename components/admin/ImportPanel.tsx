@@ -120,40 +120,44 @@ export function ImportPanel({
     }
   }
 
+  const boardNumberSettings = (
+    <form
+      className="round-settings-form"
+      key={`board-number-${event.maxBoardNumber}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        void save({
+          action: 'settings',
+          status: event.status,
+          maxBoardNumber: Number(data.get('maxBoardNumber')),
+          reason: '設定循環顯示最大牌號',
+        });
+      }}
+    >
+      <label className="field">
+        最大牌號
+        <input
+          name="maxBoardNumber"
+          type="number"
+          min="0"
+          required
+          defaultValue={event.maxBoardNumber ?? (event.kind === 'pairs' ? 0 : 32)}
+        />
+      </label>
+      <p className="footnote">
+        0 表示不設上限，牌號持續遞增；設定正整數則超過後從牌號 1 重新顯示。各圈成績仍獨立保存。
+      </p>
+      <button className="button subtle" disabled={busy}>
+        儲存最大牌號
+      </button>
+    </form>
+  );
+
   return (
     <>
       {event.canDirect && <ParticipantsSetup key={event.revision} event={event as BridgeEvent} busy={busy} save={save} />}
-      <form
-        className="round-settings-form import-export-section"
-        key={`board-number-${event.maxBoardNumber}`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const data = new FormData(e.currentTarget);
-          void save({
-            action: 'settings',
-            status: event.status,
-            maxBoardNumber: Number(data.get('maxBoardNumber')),
-            reason: '設定循環顯示最大牌號',
-          });
-        }}
-      >
-        <label className="field">
-          最大牌號
-          <input
-            name="maxBoardNumber"
-            type="number"
-            min="0"
-            required
-            defaultValue={event.maxBoardNumber ?? (event.kind === 'pairs' ? 0 : 32)}
-          />
-        </label>
-        <p className="footnote">
-          0 表示不設上限，牌號持續遞增；設定正整數則超過後從牌號 1 重新顯示。各圈成績仍獨立保存。
-        </p>
-        <button className="button subtle" disabled={busy}>
-          儲存最大牌號
-        </button>
-      </form>
+      {(event.swiss || event.knockout) && boardNumberSettings}
       <KnockoutPanel
         key={`knockout-${event.id}-${event.revision}`}
         event={event as BridgeEvent}
@@ -171,6 +175,7 @@ export function ImportPanel({
       {!event.swiss && !event.knockout && (
         <MovementPanel
           key={`movement-${event.id}-${event.revision}`}
+          boardNumberSettings={boardNumberSettings}
           event={event as BridgeEvent}
           busy={busy}
           save={save}

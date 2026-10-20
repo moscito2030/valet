@@ -2,7 +2,7 @@
 import { MAX_PLAYER_BOARDS, playerBoardError, playerBoardWarning } from '@/lib/schedule-limits';
 import { boardRange } from '@/lib/board-groups';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { BridgeEvent } from '@/lib/model';
 import { defaultInterleavedGroups, roundLabel, type InterleavedGroups } from '@/lib/team-movement';
 import { buildMovement, movementOptions, movementBoardError } from '@/lib/movement-plans';
@@ -13,6 +13,7 @@ export function MovementPanel({
   event,
   busy,
   save,
+  boardNumberSettings,
 }: {
   event: Pick<
     BridgeEvent,
@@ -27,6 +28,7 @@ export function MovementPanel({
     | 'teamMethod'
     | 'bam'
   >;
+  boardNumberSettings?: ReactNode;
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 }) {
@@ -156,6 +158,7 @@ export function MovementPanel({
           />
         </label>
       </div>
+      {boardNumberSettings}
       {event.kind === 'pairs' && (
         <label className="field">
           匯入 ACBLscore 雙人賽編排（.MOV）
