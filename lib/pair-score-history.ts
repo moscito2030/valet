@@ -1,6 +1,17 @@
 import type { PublicEvent } from './model';
 import { resultKey } from './model';
 
+// A full trailing round of closing values; missing results break the line.
+export function roundMovingAverage(points: readonly { close: number | null }[], boardsPerRound: number) {
+  const window = Math.max(1, Math.floor(boardsPerRound));
+  return points.map((_, index) => {
+    if (index + 1 < window) return null;
+    const values = points.slice(index + 1 - window, index + 1).map(p => p.close);
+    if (values.some(value => value === null || !Number.isFinite(value))) return null;
+    return values.reduce<number>((sum, value) => sum + value!, 0) / window;
+  });
+}
+
 // Identify common-board movements from the actual schedule, including imported movements.
 export function usesCommonBoards(event: Pick<PublicEvent, 'kind' | 'assignments'>) {
   if (event.kind !== 'pairs' || !event.assignments.length) return false;

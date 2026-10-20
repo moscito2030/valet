@@ -716,7 +716,9 @@ table a:focus-visible {
 .pair-chart-crosshair rect { fill: var(--text-primary); }
 .pair-chart-crosshair text { fill: var(--surface-bg); font-size: 10px; font-variant-numeric: tabular-nums; }
 .pair-chart-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 10px; color: var(--muted); padding: 12px 0; }
-.pair-chart-legend { display: flex; gap: 14px; }
+.pair-chart-legend { display: flex; flex-wrap: wrap; gap: 14px; }
+.pair-chart-round-ma { fill: none; stroke: var(--action-secondary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.pair-chart-legend i.round-ma { width: 14px; height: 2px; background: var(--action-secondary); }
 .pair-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .pair-chart-legend i { display: inline-block; width: 7px; height: 10px; border-radius: 1px; }
 .pair-chart-legend .gain { background: var(--score-positive); }

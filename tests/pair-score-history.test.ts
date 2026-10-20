@@ -2,10 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEvent } from '../lib/events';
 import { audienceEvent } from '../lib/club-view';
-import { pairScoreHistory, usesCommonBoards } from '../lib/pair-score-history';
+import { pairScoreHistory, roundMovingAverage, usesCommonBoards } from '../lib/pair-score-history';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PairScoreChart } from '../components/scoreboard/PairScoreChart';
+
+test('round MA waits for a full window and breaks across missing results', () => {
+  const points = [10, 20, 30, null, 40, 60].map(close => ({ close }));
+  assert.deepEqual(roundMovingAverage(points, 2), [null, 15, 25, null, null, 50]);
+  assert.deepEqual(roundMovingAverage(points, 1), [10, 20, 30, null, 40, 60]);
+});
 
 function fixture() {
   return audienceEvent(createEvent({

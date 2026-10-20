@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { PublicEvent } from '@/lib/model';
-import { pairScoreHistory, usesCommonBoards } from '@/lib/pair-score-history';
+import { pairScoreHistory, roundMovingAverage, usesCommonBoards } from '@/lib/pair-score-history';
 
 export function PairScoreChart({ event, person, hoveredBoard = null }: { event: PublicEvent; person: string; hoveredBoard?: number | null }) {
   const [selected, setSelected] = useState<number | null>(null);
@@ -37,6 +37,9 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const y = (v: number) => 20 + (top - v) / (top - bottom) * 180;
   const left = 12, right = width - 64;
   const step = (right - left) / Math.max(1, points.length);
+  const roundMA = roundMovingAverage(points, event.boardsPerRound);
+  const maPath = roundMA.map((value, index) => value === null ? '' :
+    `${index === 0 || roundMA[index - 1] === null ? 'M' : 'L'}${left + step * (index + .5)},${y(value)}`).join(' ');
   const labelEvery = Math.max(1, Math.ceil(28 / step));
   const ticks = [top, base + radius / 2, base, base - radius / 2, bottom];
   const activeX = active ? left + step * (points.indexOf(active) + .5) : null;
@@ -85,6 +88,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
               {i % labelEvery === 0 && <text x={x} y="224" textAnchor="middle" className="pair-chart-label">{p.board}</text>}
             </g>;
           })}
+          <path d={maPath} className="pair-chart-round-ma" aria-label={`round MA：最近 ${event.boardsPerRound} 副收盤值的平均`} />
           {highlighted !== null && active && activeX !== null && <g className={`pair-chart-crosshair ${tone}`} aria-hidden="true">
             <line x1={activeX} x2={activeX} y1="14" y2="205" />
             {active.close !== null && <>
@@ -98,7 +102,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
         </svg>
       </div>
       <div className="pair-chart-footer">
-        <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
+        <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span><span title={`最近 ${event.boardsPerRound} 副收盤值的平均；滿一圈後顯示`}><i className="round-ma" />round MA</span></div>
         <span>滑過或點選查看</span>
       </div>
       <p className="pair-chart-notes">實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。</p>
