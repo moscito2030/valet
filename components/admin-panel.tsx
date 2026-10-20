@@ -7,7 +7,6 @@ import { AuditPanel } from './admin/AuditPanel';
 import { ImportPanel } from './admin/ImportPanel';
 import { PenaltyPanel } from './admin/PenaltyPanel';
 import { PublicationPanel } from './admin/PublicationPanel';
-import { RoundControlPanel } from './admin/RoundControlPanel';
 import { ScorePanel } from './admin/ScorePanel';
 import { ClubAdmin } from './club-admin';
 import { AdminEvent, api } from './scoreboard-shared';
@@ -138,7 +137,12 @@ export function AdminPanel({
       <div className="admin-tabs">
         {[
           ['publish', '比賽資訊'],
-          ...(event.canDirect ? [['import', '賽程與牌局管理'], ['club', '圈次與裝置收分']] : []),
+          ...(event.canDirect
+            ? [
+                ['import', '賽程與牌局管理'],
+                ['club', '圈次與裝置收分'],
+              ]
+            : []),
           ['score', '裁判更正成績'],
           ['penalty', '判罰調整'],
           ...(event.canDirect ? [['audit', '操作紀錄']] : []),
@@ -170,10 +174,17 @@ export function AdminPanel({
             </button>
           </div>
         )}
-        {section === 'club' && event.canDirect && <>
-          <RoundControlPanel busy={busy} event={event} save={save} />
-          <ClubAdmin event={event} reload={load} disabled={busy} onBusyChange={setBusy} />
-        </>}
+        {section === 'club' && event.canDirect && (
+          <>
+            <ClubAdmin
+              event={event}
+              save={save}
+              reload={load}
+              disabled={busy}
+              onBusyChange={setBusy}
+            />
+          </>
+        )}
         {!event.rounds && (
           <p className="footnote">
             待設定賽程：請至「賽程與牌局管理」選擇賽程編排，設定圈數與每圈牌數後再開始收分。

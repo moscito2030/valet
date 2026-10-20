@@ -4,7 +4,7 @@ import { TableScoreReview } from './table-score-review';
 import { roundLabel } from '@/lib/team-movement';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { ChevronDown } from 'lucide-react';
+import { RoundControlPanel } from './admin/RoundControlPanel';
 import type { AdminEvent } from './scoreboard-shared';
 import { clubRoles, clubAccepted } from '@/lib/club-confirmation';
 import { tableDevices, tableDeviceLabel } from '@/lib/table-device';
@@ -13,9 +13,11 @@ import { clubRoundReady, roundStartProblem, unsettledRoundsBefore } from '@/lib/
 export function ClubAdmin({
   event,
   reload,
+  save,
   disabled = false,
   onBusyChange,
 }: {
+  save?: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
   event: AdminEvent;
   reload: () => Promise<unknown>;
   disabled?: boolean;
@@ -105,9 +107,35 @@ export function ClubAdmin({
       ? '結算並進入覆核'
       : '結算並發布成績';
   if (!event.participants.length || !event.assignments.length)
-    return <p>請先在「賽程與牌局管理」完成參賽名單及編排，再設定圈次與裝置收分。</p>;
+    return (
+      <>
+        {save && <RoundControlPanel busy={busy} event={event} save={save} />}
+        <p>請先在「賽程與牌局管理」完成參賽名單及編排，再設定圈次與裝置收分。</p>
+      </>
+    );
   return (
     <div className="club-admin">
+      {save && (
+        <RoundControlPanel
+          busy={busy}
+          event={event}
+          save={save}
+          collection={
+            event.club?.enabled
+              ? {
+                  expanded: showTables,
+                  pending: pending.length,
+                  total: assignments.length,
+                  toggle: () => setShowTables(!showTables),
+                  finish: () => {
+                    setError('');
+                    setForceRound(round);
+                  },
+                }
+              : undefined
+          }
+        />
+      )}
       {reviewAssignment && (
         <Modal
           title={`第 ${roundLabel(event, reviewAssignment.round)} 圈 · ${tableDeviceLabel(event, reviewAssignment)} 成績核對`}
@@ -217,24 +245,6 @@ export function ClubAdmin({
           ))}
       {event.club?.enabled && round > 0 && (
         <>
-          <button
-            type="button"
-            className="club-collection-summary"
-            aria-expanded={showTables}
-            aria-controls="club-round-tables"
-            onClick={() => setShowTables(!showTables)}
-          >
-            <span className="club-collection-status">
-              <strong>本圈收分</strong>
-              <span>{finalized ? '成績已發布'
-                : `${assignments.length - pending.length}／${assignments.length} 桌已確認`}</span>
-            </span>
-            <span className="club-collection-disclosure">
-              <span>{showTables ? '收起桌次' : finalized || !pending.length
-                ? '查看成績' : `${pending.length} 桌待處理`}</span>
-              <ChevronDown size={16} aria-hidden="true" />
-            </span>
-          </button>
           {showTables && (
             <div id="club-round-tables">
               <div className="club-progress-list">
@@ -311,38 +321,6 @@ export function ClubAdmin({
                   );
                 })}
               </div>
-            </div>
-          )}
-          {!finalized && event.status === 'live' && (
-            <div className="club-collection-actions">
-              {clubRoundReady(event, round) ? (
-                <button
-                  className="button primary"
-                  disabled={busy}
-                  onClick={() =>
-                    void act({
-                      action: 'finalize',
-                      round,
-                      force: false,
-                      advance: false,
-                      reason: '重試結算已確認的本圈成績',
-                    })
-                  }
-                >
-                  結算並更新排名
-                </button>
-              ) : (
-                <button
-                  className="club-collection-secondary"
-                  disabled={busy || !assignments.length}
-                  onClick={() => {
-                    setError('');
-                    setForceRound(round);
-                  }}
-                >
-                  提前結束本圈…
-                </button>
-              )}
             </div>
           )}
         </>

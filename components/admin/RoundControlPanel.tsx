@@ -3,12 +3,20 @@ import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
 import { roundHasActivity, roundStartProblem, unsettledRoundsBefore } from '@/lib/round-workflow';
 import { roundLabel } from '@/lib/team-movement';
 import { StartRoundButton } from './StartRoundButton';
+import { SkipBack, SkipForward, Play, Pause, ListChecks } from 'lucide-react';
 type Props = {
+  collection?: {
+    expanded: boolean;
+    pending: number;
+    total: number;
+    toggle: () => void;
+    finish: () => void;
+  };
   busy: boolean;
   event: AdminEvent;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 };
-export function RoundControlPanel({ busy, event, save }: Props) {
+export function RoundControlPanel({ busy, event, save, collection }: Props) {
   const round = event.club?.enabled ? (event.currentRound ?? 0) : roundProgress(event).round;
   const progress = roundProgress({ ...event, currentRound: round });
   const settled = event.club?.enabled
@@ -61,6 +69,81 @@ export function RoundControlPanel({ busy, event, save }: Props) {
                     ? '全桌確認完成後，系統自動結算並更新排名。'
                     : '本圈收齊後自動進入休息，由裁判開始下一圈。'}
       </p>
+      {collection && (
+        <>
+          <div className="round-console" role="group" aria-label="收分控制台">
+            <button
+              type="button"
+              disabled={locked || finished || reviewing || !canWithdraw}
+              title={canWithdraw ? '撤回本圈開始' : '已有登分紀錄或尚未開始，無法撤回'}
+              onClick={() => {
+                if (window.confirm('撤回本圈開始？將返回上一圈休息；第一圈則回到尚未開始。'))
+                  void change(
+                    round - 1,
+                    round === 1 ? 'playing' : 'break',
+                    '撤回尚無登分紀錄的圈次開始',
+                  );
+              }}
+            >
+              <SkipBack aria-hidden="true" />
+              <span>撤回</span>
+            </button>
+            {round === 0 || settled ? (
+              <StartRoundButton
+                event={event}
+                round={next}
+                save={save}
+                compact
+                disabled={locked || finished || reviewing || !!nextProblem}
+              />
+            ) : (
+              <button
+                type="button"
+                className="round-console-play"
+                disabled={locked || finished || reviewing}
+                aria-label={paused ? '繼續本圈收分' : '暫停收分'}
+                onClick={() =>
+                  void change(
+                    round,
+                    paused ? 'playing' : 'break',
+                    paused ? '繼續本圈收分' : '暫停本圈收分',
+                  )
+                }
+              >
+                {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+                <span>{paused ? '繼續' : '暫停'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={locked || finished || reviewing || round === 0 || settled}
+              aria-label="提前結束本圈"
+              title="核對未完成桌次，再結算並進入下一階段"
+              onClick={collection.finish}
+            >
+              <SkipForward aria-hidden="true" />
+              <span>提前結束</span>
+            </button>
+            <button
+              type="button"
+              disabled={round === 0}
+              aria-expanded={collection.expanded}
+              aria-controls="club-round-tables"
+              onClick={collection.toggle}
+            >
+              <ListChecks aria-hidden="true" />
+              <span>桌次{collection.pending > 0 && <small>{collection.pending}</small>}</span>
+            </button>
+          </div>
+          {round > 0 && (
+            <p className="round-console-caption">
+              {settled
+                ? '本圈成績已發布'
+                : `${collection.total - collection.pending}／${collection.total} 桌已確認`}
+            </p>
+          )}
+        </>
+      )}
       <div className="button-row round-workflow-actions">
         {!finished && reviewing ? (
           <button
@@ -79,7 +162,7 @@ export function RoundControlPanel({ busy, event, save }: Props) {
           >
             完成覆核並結束賽段
           </button>
-        ) : !finished && (round === 0 || settled) ? (
+        ) : collection ? null : !finished && (round === 0 || settled) ? (
           <StartRoundButton
             key={round}
             event={event}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Play } from 'lucide-react';
 import type { AdminEvent } from '../scoreboard-shared';
 import { Modal } from '../event-dialogs';
 import { boardRange } from '@/lib/board-groups';
@@ -12,7 +13,9 @@ export function StartRoundButton({
   round,
   disabled,
   save,
+  compact = false,
 }: {
+  compact?: boolean;
   event: AdminEvent;
   round: number;
   disabled: boolean;
@@ -36,11 +39,19 @@ export function StartRoundButton({
     <>
       <button
         type="button"
-        className="button primary"
+        className={compact ? 'round-console-play' : 'button primary'}
+        aria-label={label}
         disabled={disabled}
         onClick={() => (groups.length ? setOpen(true) : void start(false))}
       >
-        {label}
+        {compact ? (
+          <>
+            <Play aria-hidden="true" />
+            <span>{round === 1 ? '開始' : '下一圈'}</span>
+          </>
+        ) : (
+          label
+        )}
       </button>
       {open && (
         <Modal title="這些牌群已完成，可以公開牌型" onClose={() => !disabled && setOpen(false)}>
