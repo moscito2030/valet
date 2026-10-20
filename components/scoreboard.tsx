@@ -1,5 +1,6 @@
 'use client';
 import { teamScoringLabel } from '@/lib/team-method';
+import { followedParticipant, followStorageKey } from '@/lib/followed-participant';
 import { awardRangeDescription } from '@/lib/awards';
 import { AppVersion } from './app-version';
 
@@ -139,10 +140,24 @@ export default function Scoreboard() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-    try {
-      setFollow(localStorage.getItem('bridge-follow') ?? '');
-    } catch {}
   }, [refreshList]);
+  useEffect(() => {
+    const syncFollow = () => {
+      try { setFollow(localStorage.getItem(followStorageKey) ?? ''); } catch {}
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === followStorageKey || event.key === null) syncFollow();
+    };
+    syncFollow();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('pageshow', syncFollow);
+    window.addEventListener('focus', syncFollow);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('pageshow', syncFollow);
+      window.removeEventListener('focus', syncFollow);
+    };
+  }, []);
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
@@ -188,7 +203,7 @@ export default function Scoreboard() {
     const next = follow === value ? '' : value;
     setFollow(next);
     try {
-      localStorage.setItem('bridge-follow', next);
+      localStorage.setItem(followStorageKey, next);
     } catch {}
   }
   function openAdmin() {
@@ -645,7 +660,7 @@ export default function Scoreboard() {
                       showContractButler={showContractButler}
                       setShowContractButler={setShowContractButler}
                       event={event}
-                      person={person}
+                      person={person || followedParticipant(follow, id, event.participants)}
                       playerRound={playerRound}
                       playerSort={playerSort}
                       setBoard={setBoard}

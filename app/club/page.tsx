@@ -9,6 +9,7 @@ import { collectionScoreSide, collectionScoreLabel } from '@/lib/collection-scor
 import { boardRange } from '@/lib/board-groups';
 import { contractScore } from '@/lib/scoring';
 import { MiniContractFields } from '@/components/mini-contract-fields';
+import { createClubAutoFollow } from '@/lib/followed-participant';
 
 const describeContract = (r: ResultInput) => r.level === 0 ? 'Pass' : `${r.level}${{ C: '♣', D: '♦', H: '♥', S: '♠', NT: 'NT' }[r.strain]}${r.doubled === 2 ? 'x' : r.doubled === 4 ? 'xx' : ''} ${r.declarer} · ${r.tricks} 墩${r.lead ? ` · 首引 ${r.lead.replace(/^[CDHS]/, suit => ({ C: '♣', D: '♦', H: '♥', S: '♠' })[suit as 'C'|'D'|'H'|'S']).replace(/T$/, '10')}` : ''}`;
 
@@ -24,11 +25,13 @@ export default function ClubPage() {
   const submitting = useRef(false);
   const preview = useRef(false);
   const finished = useRef(false);
+  const autoFollow = useRef(createClubAutoFollow((key, value) => localStorage.setItem(key, value)));
   async function read() {
     const { id, token } = context.current;
     const response = await fetch(`/api/club/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error);
+    autoFollow.current(body as ClubView);
     finished.current = body.status === 'finished';
     setData(body);
     return body as ClubView;
