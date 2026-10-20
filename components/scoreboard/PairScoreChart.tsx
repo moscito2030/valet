@@ -7,6 +7,7 @@ import { pairScoreHistory, usesCommonBoards } from '@/lib/pair-score-history';
 export function PairScoreChart({ event, person }: { event: PublicEvent; person: string }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [focused, setFocused] = useState<number | null>(null);
   const [availableWidth, setAvailableWidth] = useState(360);
   const scroller = useRef<HTMLDivElement>(null);
   const commonBoards = usesCommonBoards(event);
@@ -24,7 +25,8 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
   const mp = (event.pairMethod ?? 'mp') === 'mp';
   const unit = mp ? '%' : ' IMP';
   const format = (v: number) => `${v.toFixed(2)}${unit}`;
-  const active = points.find(p => p.board === (hovered ?? selected)) ?? valid.at(-1);
+  const highlighted = hovered ?? focused;
+  const active = points.find(p => p.board === (highlighted ?? selected)) ?? valid.at(-1);
   const latest = valid.at(-1);
   const base = mp ? 50 : 0;
   const min = Math.min(base, ...valid.flatMap(p => [p.open, p.low!]));
@@ -65,11 +67,12 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
           {points.map((p, i) => {
             const x = left + step * (i + .5);
             const label = `牌 ${p.board}：${p.close === null ? '未有可計分成績' : `${p.cancelled ? '取消牌，不計入累積，' : ''}${format(p.open)} → ${format(p.close)}，範圍 ${format(p.low!)} 至 ${format(p.high!)}${p.provisional ? '，暫計' : ''}`}`;
-            return <g key={p.board} className={`pair-chart-candle ${p.close === null || p.close === p.open ? 'flat' : p.close > p.open ? 'gain' : 'loss'}${active?.board === p.board ? ' selected' : ''}`}
-              role="button" tabIndex={0} aria-label={label} aria-pressed={active?.board === p.board}
+            return <g key={p.board} className={`pair-chart-candle ${p.close === null || p.close === p.open ? 'flat' : p.close > p.open ? 'gain' : 'loss'}${highlighted === p.board ? ' selected' : ''}`}
+              role="button" tabIndex={0} aria-label={label} aria-pressed={selected === p.board}
               onClick={() => setSelected(p.board)}
               onMouseEnter={() => setHovered(p.board)}
-              onFocus={() => setSelected(p.board)}
+              onFocus={e => { if (e.currentTarget.matches(':focus-visible')) setFocused(p.board); }}
+              onBlur={() => setFocused(null)}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(p.board); } }}>
               <title>{label}</title>
               <rect x={x - step / 2} y="14" width={step} height="210" className="pair-chart-hit" rx="4" />
@@ -82,7 +85,7 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
               {i % labelEvery === 0 && <text x={x} y="224" textAnchor="middle" className="pair-chart-label">{p.board}</text>}
             </g>;
           })}
-          {active && activeX !== null && <g className={`pair-chart-crosshair ${tone}`} aria-hidden="true">
+          {highlighted !== null && active && activeX !== null && <g className={`pair-chart-crosshair ${tone}`} aria-hidden="true">
             <line x1={activeX} x2={activeX} y1="14" y2="205" />
             {active.close !== null && <>
               <line x1={left} x2={right} y1={y(active.close)} y2={y(active.close)} />
