@@ -6,6 +6,8 @@
 :root[data-theme]:not([data-theme="forest"]) .sidebar-note small,
 :root[data-theme]:not([data-theme="forest"]) .tiny-suits { color: var(--sidebar-muted); }
 :root[data-theme]:not([data-theme="forest"]) .tiny-suits b { color: var(--sidebar-brand); }
+:root[data-theme="sepia"] .sidebar [data-suit="H"],
+:root[data-theme="sepia"] .sidebar [data-suit="D"] { color: var(--suit-red); }
 :root[data-theme]:not([data-theme="forest"]) input,
 :root[data-theme]:not([data-theme="forest"]) select,
 :root[data-theme]:not([data-theme="forest"]) textarea { color: var(--text-primary); }
