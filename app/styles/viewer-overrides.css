@@ -1,4 +1,5 @@
-.sidebar-wordmark { font-size: 30px; line-height: 1.2; letter-spacing: 0.09em; transform: scaleX(1.08); transform-origin: center; margin-right: 0; }
+.brand .sidebar-wordmark { font-family: 'Libertinus Serif', serif; font-weight: 600; }
+.sidebar-wordmark { font-size: 30px; line-height: 1.2; letter-spacing: 0.09em; transform: none; margin-right: 0; }
 
 .competition-home main { padding-top: 16px; }
 .competition-hub .page-heading h1 { line-height: 1.25; }
