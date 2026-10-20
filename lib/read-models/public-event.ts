@@ -27,6 +27,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     awardPlacesEW: event.awardPlacesEW,
     audienceRefreshSeconds: event.audienceRefreshSeconds,
     danmakuDefaultEnabled: event.danmakuDefaultEnabled,
+    showScoreCandles: event.showScoreCandles,
     awardDescription: event.awardDescription,
     winAward: event.winAward,
     movementDescription: event.movementDescription,

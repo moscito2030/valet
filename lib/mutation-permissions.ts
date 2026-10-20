@@ -49,6 +49,7 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
       command.maxBoardNumber !== undefined ||
       command.audienceRefreshSeconds !== undefined ||
       command.danmakuDefaultEnabled !== undefined ||
+      command.showScoreCandles !== undefined ||
       command.stageName !== undefined ||
       command.date !== undefined ||
       command.endDate !== undefined ||

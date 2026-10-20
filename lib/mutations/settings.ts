@@ -55,6 +55,7 @@ export function applySettingsCommand(
     )
       throw new DomainError('請先結算所有圈次');
     e.status = command.status;
+    if (command.showScoreCandles !== undefined) e.showScoreCandles = command.showScoreCandles;
     if (command.danmakuDefaultEnabled !== undefined) e.danmakuDefaultEnabled = command.danmakuDefaultEnabled;
     if (command.audienceRefreshSeconds !== undefined) e.audienceRefreshSeconds = command.audienceRefreshSeconds;
     if (command.maxBoardNumber !== undefined) e.maxBoardNumber = command.maxBoardNumber;

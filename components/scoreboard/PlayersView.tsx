@@ -728,7 +728,7 @@ export function PlayersView({
           </table>
         )}
       </div>
-      {event.kind === 'pairs' && <PairScoreChart key={`${event.id}:${playerId}`} event={event} person={playerId} />}
+      {event.kind === 'pairs' && event.showScoreCandles !== false && <PairScoreChart key={`${event.id}:${playerId}`} event={event} person={playerId} />}
     </section>
   );
 }

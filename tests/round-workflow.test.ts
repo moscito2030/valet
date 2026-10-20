@@ -275,6 +275,15 @@ test('collection console keeps four controls and locks mutations after settlemen
   assert.match(render(), /class="button subtle"[^>]*>完成覆核並結束賽段/);
 });
 
+test('K candle visibility persists both enabled and disabled values for the audience', () => {
+  const s = setup();
+  for (const enabled of [false, true]) {
+    s.apply({ action: 'settings', status: 'live', showScoreCandles: enabled });
+    assert.equal(s.state.event.showScoreCandles, enabled);
+    assert.equal(audienceEvent(s.state.event).showScoreCandles, enabled);
+  }
+});
+
 test('danmaku default persists both enabled and disabled values for the audience', () => {
   const s = setup();
   assert.equal(s.state.event.danmakuDefaultEnabled, undefined);

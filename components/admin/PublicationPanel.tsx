@@ -36,15 +36,21 @@ export function PublicationPanel({
       <TeamScoringSettings event={event} busy={busy} save={save} />
       {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
         e.preventDefault();
-        void save({ action: 'settings', status: event.status, danmakuDefaultEnabled: new FormData(e.currentTarget).get('danmakuDefaultEnabled') === 'on', reason: '設定彈幕預設啟動' });
+        const form = new FormData(e.currentTarget);
+        void save({ action: 'settings', status: event.status, danmakuDefaultEnabled: form.get('danmakuDefaultEnabled') === 'on', showScoreCandles: form.get('showScoreCandles') === 'on', reason: '設定 K 棒與彈幕' });
       }}>
-        <h4>牌局彈幕</h4>
+        <h4>ドパガキ限定</h4>
+        <label className="checkbox-label">
+          <input type="checkbox" name="showScoreCandles" key={String(event.showScoreCandles !== false)} defaultChecked={event.showScoreCandles !== false} disabled={busy} />
+          展示 K 棒
+        </label>
+        <p className="footnote">在搭檔成績展示逐副累積走勢，適用於全場共牌的雙人賽。</p>
         <label className="checkbox-label">
           <input type="checkbox" name="danmakuDefaultEnabled" key={String(!!event.danmakuDefaultEnabled)} defaultChecked={!!event.danmakuDefaultEnabled} disabled={busy} />
           彈幕預設啟動
         </label>
         <p className="footnote">開啟逐副成績時預設播放彈幕，觀眾仍可自行關閉。僅在牌型已公開且有留言時播放。</p>
-        <button className="button subtle" disabled={busy}>儲存彈幕設定</button>
+        <button className="button subtle" disabled={busy}>儲存 K 棒與彈幕設定</button>
       </form>}
       {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
         e.preventDefault();
