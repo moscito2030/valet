@@ -345,7 +345,7 @@ export default function Scoreboard() {
                 }}
               />
             ) : (
-              <button className="session-role session-login" onClick={openAdmin}>
+              <button className="hub-session" onClick={openAdmin}>
                 賽事管理
               </button>
             )}

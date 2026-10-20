@@ -306,11 +306,6 @@ small {
 .session-control.expanded .session-role {
   flex-basis: 68px;
 }
-.top-actions .session-login {
-  width: 56px;
-  height: 32px;
-  background: var(--theme-surface-muted, #edf1eb);
-}
 .session-role {
   flex: 0 0 56px;
   border: 0;

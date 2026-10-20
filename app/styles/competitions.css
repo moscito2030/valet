@@ -135,8 +135,8 @@
 .identity-control.expanded .identity-role { width: 56px; }
 .identity-control .identity-logout { width: 76px; color: var(--theme-text, #35533f); background: var(--theme-surface-muted, #edf1eb); }
 .identity-control .identity-logout:hover { background: var(--theme-surface-muted, #e0e9df); }
-.identity-control .identity-menu { width: 72px; color: var(--text-on-action); background: var(--accent); }
-.identity-control .identity-menu:hover { background: var(--action-primary-hover); }
+.identity-control .identity-menu { width: 72px; color: var(--sidebar-text); background: var(--sidebar-bg, var(--forest)); }
+.identity-control .identity-menu:hover { background: var(--sidebar-active-bg); }
 .identity-control .identity-menu-danger { color: var(--text-on-action); background: var(--danger); }
 .identity-control .identity-menu-danger:hover { background: var(--action-primary-hover); }
 @media (prefers-reduced-motion: reduce) { .identity-control { transition: none; } }
