@@ -1,3 +1,4 @@
+import { PairNames } from '../pair-names';
 import { TeamScoringSettings } from '../team-scoring-settings';
 import { awardPlacesFor, hasDirectionalAwards } from '@/lib/awards';
 import { boardGroups, boardRange } from '@/lib/board-groups';
@@ -95,6 +96,9 @@ export function PublicationPanel({
         </a>{' '}
         編輯。
       </p>
+      {event.canDirect && event.kind === 'pairs' && event.participants.length > 0 && (
+        <PairNames participants={event.participants} busy={busy} save={save} />
+      )}
       </>}
       {section !== 'information' && event.canDirect && (
         <>
