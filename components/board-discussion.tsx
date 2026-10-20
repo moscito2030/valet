@@ -5,7 +5,6 @@ import {
   Send,
   X,
   MessageSquare,
-  Settings2,
 } from 'lucide-react';
 import { discussionThreads } from '@/lib/discussion-threads';
 import type { CSSProperties } from 'react';
@@ -71,49 +70,19 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
       <div className="panel-heading discussion-heading">
         <div>
           <h3>牌局討論</h3>
-          <p>交流叫牌與打牌思路，請聚焦本副牌。</p>
-        </div>
-        <div className="discussion-tools">
-          {data?.director && (
-            <>
-              <button className="button subtle discussion-action" popoverTarget={`${menuId}-settings`}>
-                <Settings2 size={15} aria-hidden="true" />
-                管理
+          <p className="discussion-description">
+            交流叫牌與打牌思路，請聚焦本副牌。
+            {data?.director && (
+              <button
+                type="button"
+                className="discussion-action discussion-close-control"
+                disabled={busy}
+                onClick={() => send('PATCH', { action: 'close', closed: !data.closed })}
+              >
+                （{data.closed ? '開啟本副討論' : '關閉本副討論'}）
               </button>
-              <div id={`${menuId}-settings`} popover="auto" className="discussion-menu">
-                <div className="discussion-menu-heading">
-                  <strong>討論區管理</strong>
-                  <button
-                    className="button subtle discussion-action"
-                    popoverTarget={`${menuId}-settings`}
-                    popoverTargetAction="hide"
-                    aria-label="關閉管理選單"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <button
-                  disabled={busy}
-                  onClick={() => send('PATCH', { action: 'close', closed: !data.closed })}
-                >
-                  {data.closed ? '開啟本副討論' : '關閉本副討論'}
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() => {
-                    if (
-                      confirm(
-                        data.globalClosed ? '開啟全站討論？' : '關閉全站留言？已有留言仍可閱讀。',
-                      )
-                    )
-                      send('PATCH', { action: 'global', closed: !data.globalClosed });
-                  }}
-                >
-                  {data.globalClosed ? '開啟全站討論' : '關閉全站討論'}
-                </button>
-              </div>
-            </>
-          )}
+            )}
+          </p>
         </div>
       </div>
       <div className="discussion-body">
