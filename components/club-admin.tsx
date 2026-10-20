@@ -120,6 +120,7 @@ export function ClubAdmin({
           busy={busy}
           event={event}
           save={save}
+          onOpenSettings={() => setSettingsOpen(true)}
           collection={
             event.club?.enabled
               ? {
@@ -353,17 +354,17 @@ export function ClubAdmin({
           )}
         </>
       )}
-      <section className="club-admin-tools">
-        <button
+      <>
+        {!save && <button
           type="button"
           className="button subtle"
           aria-haspopup="dialog"
           onClick={() => setSettingsOpen(true)}
         >
-          裝置、QRCode 與輸入方設定
-        </button>
+          收分詳細設定
+        </button>}
         {settingsOpen && (
-          <Modal title="裝置、QRCode 與輸入方設定" onClose={() => setSettingsOpen(false)}>
+          <Modal title="收分詳細設定" onClose={() => setSettingsOpen(false)}>
             {error && (
               <p className="alert error" role="alert">
                 {error}
@@ -590,7 +591,7 @@ export function ClubAdmin({
             {!event.assignments.some((a) => a.round === settingsRound) && <p>此圈尚未安排桌次。</p>}
           </Modal>
         )}
-      </section>
+      </>
     </div>
   );
 }

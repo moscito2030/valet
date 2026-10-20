@@ -3,8 +3,9 @@ import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
 import { roundHasActivity, roundStartProblem, unsettledRoundsBefore } from '@/lib/round-workflow';
 import { roundLabel } from '@/lib/team-movement';
 import { StartRoundButton } from './StartRoundButton';
-import { SkipBack, SkipForward, Play, Pause, ListChecks } from 'lucide-react';
+import { SkipBack, SkipForward, Play, Pause, ListChecks, SlidersHorizontal } from 'lucide-react';
 type Props = {
+  onOpenSettings?: () => void;
   collection?: {
     pending: number;
     total: number;
@@ -15,7 +16,7 @@ type Props = {
   event: AdminEvent;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 };
-export function RoundControlPanel({ busy, event, save, collection }: Props) {
+export function RoundControlPanel({ busy, event, save, collection, onOpenSettings }: Props) {
   const round = event.club?.enabled ? (event.currentRound ?? 0) : roundProgress(event).round;
   const progress = roundProgress({ ...event, currentRound: round });
   const settled = event.club?.enabled
@@ -47,15 +48,14 @@ export function RoundControlPanel({ busy, event, save, collection }: Props) {
                   : `第 ${roundLabel(event, round)} 圈 · ${settled ? '圈間休息' : paused ? '收分暫停' : '進行中'}`}
           </h4>
         </div>
-        {round > 0 && !reviewing && !finished && (
-          <span className="badge">
-            {settled
-              ? '成績已發布'
-              : collection
-                ? `${collection.total - collection.pending}／${collection.total} 桌已確認`
-                : `已收 ${progress.received}／${progress.expected} 副`}
-          </span>
-        )}
+        {onOpenSettings ? (
+          <button type="button" className="button subtle round-settings-trigger" aria-haspopup="dialog" onClick={onOpenSettings}>
+            <SlidersHorizontal aria-hidden="true" />
+            <span>收分詳細設定</span>
+          </button>
+        ) : round > 0 && !reviewing && !finished && !collection ? (
+          <span className="badge">{settled ? '成績已發布' : `已收 ${progress.received}／${progress.expected} 副`}</span>
+        ) : null}
       </div>
       <p className="round-workflow-description">
         {finished

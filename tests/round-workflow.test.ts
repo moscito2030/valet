@@ -239,7 +239,7 @@ test('director interface shows one next step, hides device setup, and has no pha
       reload: async () => undefined,
     }),
   );
-  assert.match(tools, /裝置、QRCode 與輸入方設定/);
+  assert.match(tools, /收分詳細設定/);
   assert.doesNotMatch(tools, /<select|<details|手機可連線的網站網址/);
 });
 

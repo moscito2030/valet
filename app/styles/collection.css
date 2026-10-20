@@ -177,3 +177,6 @@
 @media (prefers-reduced-motion: reduce) { .round-console > button { transition: none; } }
 .club-admin .round-console-caption { margin: 10px 0 0; color: var(--muted); font-size: 13px; text-align: right; }
 .round-workflow-actions:empty { display: none; }
+
+.round-workflow-heading .round-settings-trigger { gap: 7px; padding: 8px 12px; min-height: 40px; font-size: 12px; font-weight: 400; white-space: nowrap; background: transparent; }
+.round-settings-trigger svg { width: 16px; height: 16px; }
