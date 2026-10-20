@@ -704,3 +704,23 @@
   outline: 2px solid var(--theme-focus, #356b4f);
   outline-offset: 1px;
 }
+
+/* Match the standings' two-column threshold using the available content width. */
+.board-view { container-type: inline-size; }
+.board-detail-layout > * { min-width: 0; }
+.board-detail-layout > .board-discussion { margin-top: 0; }
+@container (min-width: 1100px) {
+  .board-view > .board-detail-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "deal results" "discussion results";
+  }
+  .board-view > .board-detail-layout.has-split-result {
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "split results" "deal results" "discussion results";
+  }
+  .board-detail-layout > .board-split-result { grid-area: split; }
+  .board-detail-layout > .deal-panel { grid-area: deal; }
+  .board-detail-layout > .board-results { grid-area: results; }
+  .board-detail-layout > .board-discussion { grid-area: discussion; }
+}

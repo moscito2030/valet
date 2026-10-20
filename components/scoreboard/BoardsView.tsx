@@ -254,9 +254,10 @@ export function BoardsView({
   if (!selectedBoard) return null;
   return (
     <DiscussionProvider key={`${event.id}:${selectedBoard?.number}:${selectedBoard?.published}`} eventId={event.id} board={selectedBoard?.number ?? board}>
-      <div className="board-layout">
+      <div className="board-view">
+      <div className={`board-layout board-detail-layout${activeResult?.split ? ' has-split-result' : ''}`}>
         {activeResult?.split && (
-          <section className="panel">
+          <section className="panel board-split-result">
             <div className="panel-heading">
               <h3>不平衡合約</h3>
               <p className="footnote">下方牌局保留原始紀錄；判罰後各方分別依下列合約計分。</p>
@@ -586,8 +587,9 @@ export function BoardsView({
             </p>
           )}
         </section>
-      </div>
       {selectedBoard && <BoardDiscussion key={`${event.id}:${selectedBoard.number}:${selectedBoard.published}`} eventId={event.id} board={selectedBoard.number} />}
+      </div>
+      </div>
     </DiscussionProvider>
   );
 }
