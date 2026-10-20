@@ -42,6 +42,8 @@ for (const file of await readdir(output)) {
   const html = await readFile(location, 'utf8');
   if (!html.includes('<h1 class="menu-title">')) continue;
   await writeFile(location, html
+    .replace('</head>', '<link rel="stylesheet" href="/theme-colors.css"><link rel="stylesheet" href="/manual-theme.css"><script src="/theme.js"></script></head>')
+    .replace('</body>', '<valet-theme-picker></valet-theme-picker></body>')
     .replace('<body', '<body id="manual-top"')
     .replace(/<h1 class="menu-title">([^<]+)<\/h1>/, '<h1 class="menu-title"><a href="index.html#manual-top" aria-label="回到手冊首頁最上方">$1</a></h1>'));
 }

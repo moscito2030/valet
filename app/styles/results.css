@@ -4,7 +4,7 @@
   align-items: center;
   gap: 10px;
   margin: 0;
-  color: #183c30;
+  color: var(--theme-text, #183c30);
   font-size: 12px;
   font-weight: 600;
 }
@@ -16,9 +16,9 @@
   font-size: 14px;
   font-weight: 600;
   background: var(--surface-bg);
-  border: 1px solid #84918a;
+  border: 1px solid var(--theme-border, #84918a);
   border-radius: 6px;
-  box-shadow: 0 2px 5px #27332f12;
+  box-shadow: 0 2px 5px var(--theme-shadow, #27332f12);
   cursor: pointer;
 }
 .player-result-filters {
@@ -64,7 +64,7 @@
   flex: none;
 }
 .participant-picker select:hover {
-  border-color: #294b3e;
+  border-color: var(--theme-border, #294b3e);
 }
 .participant-picker-trigger {
   display: grid;
@@ -77,7 +77,7 @@
   padding: 9px 12px;
   text-align: left;
   background: var(--surface-bg);
-  border: 1px solid #84918a;
+  border: 1px solid var(--theme-border, #84918a);
   border-radius: 6px;
   color: inherit;
   font: inherit;
@@ -120,7 +120,7 @@
 }
 .participant-options button:hover,
 .participant-options button[aria-pressed='true'] {
-  background: #e8f0ea;
+  background: var(--theme-surface-muted, #e8f0ea);
 }
 .import-export-section + .import-export-section {
   border-top: 1px solid var(--border-control);
@@ -261,7 +261,7 @@
   gap: 16px;
 }
 .player-results .even-round {
-  background: #f1f2f1;
+  background: var(--theme-surface-muted, #f1f2f1);
 }
 .player-results th,
 .player-results td {
@@ -316,10 +316,10 @@ table a:focus-visible {
 }
 .player-results td:first-child {
   font-size: 11px;
-  color: #6d7872;
+  color: var(--theme-muted, #6d7872);
 }
 .player-results .player-round {
-  color: #27332f;
+  color: var(--theme-text, #27332f);
   font-size: 1.1em;
   font-weight: 600;
 }
@@ -330,7 +330,7 @@ table a:focus-visible {
   color: var(--score-positive);
 }
 .player-results .score-neutral {
-  color: #27332f;
+  color: var(--theme-text, #27332f);
 }
 @media (min-width: 561px) and (max-width: 1000px) {
   .player-results table,
@@ -388,15 +388,15 @@ table a:focus-visible {
   position: fixed;
   max-width: calc(100vw - 32px);
   padding: 16px 20px;
-  border: 1px solid #cbd8cf;
+  border: 1px solid var(--theme-border, #cbd8cf);
   border-radius: 8px;
   background: var(--surface-bg);
-  color: #27332f;
+  color: var(--theme-text, #27332f);
   font:
     14px/1.6 'DM Sans',
     sans-serif;
   white-space: normal;
-  box-shadow: 0 6px 24px #27332f26;
+  box-shadow: 0 6px 24px var(--theme-shadow, #27332f26);
 }
 .player-results table {
   table-layout: auto;
@@ -469,7 +469,7 @@ table a:focus-visible {
   top: 0;
 }
 .vp-scale-popover .vp-scale-current td {
-  background: #e5eee8;
+  background: var(--theme-surface-selected, #e5eee8);
   font-weight: 700;
 }
 .player-results tbody {
@@ -537,7 +537,7 @@ table a:focus-visible {
 
 .win-awards {
   padding: 24px;
-  border-top: 1px solid #e3e7df;
+  border-top: 1px solid var(--theme-border, #e3e7df);
 }
 .win-awards h3 {
   margin: 0 0 12px;
@@ -558,8 +558,8 @@ table a:focus-visible {
   margin-top: 0;
 }
 .knockout-card {
-  background: #f7f8f4;
-  border: 1px solid #e3e7df;
+  background: var(--theme-surface-muted, #f7f8f4);
+  border: 1px solid var(--theme-border, #e3e7df);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 16px;
@@ -581,8 +581,8 @@ table a:focus-visible {
 .movement-session-note {
   margin-block: 1rem;
   padding: 1rem;
-  border-left: 3px solid var(--primary, #24483c);
-  background: #f0f4ef;
+  border-left: 3px solid var(--primary, var(--theme-border, #24483c));
+  background: var(--theme-surface-muted, #f0f4ef);
   border-radius: 6px;
   overflow-wrap: anywhere;
 }
@@ -666,7 +666,7 @@ table a:focus-visible {
 }
 .team-player-results .team-imp-average-trigger:hover,
 .team-player-results .team-match-summary .contract-link:nth-child(even):hover {
-  background: rgb(32 60 50 / 5%);
+  background: var(--theme-surface-muted, rgb(32 60 50 / 5%));
   border-radius: 4px;
 }
 /* Board links use the same readable, neutral treatment in team and pair results. */

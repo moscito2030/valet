@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
+import { createElement } from 'react';
 import './globals.css';
 import '@valet/deal-viewer/style.css';
 export const metadata: Metadata = {
@@ -7,8 +9,12 @@ export const metadata: Metadata = {
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-Hant">
-      <body>{children}</body>
+    <html lang="zh-Hant" suppressHydrationWarning>
+      <body>
+        <Script src="/theme.js" strategy="beforeInteractive" />
+        {children}
+        {createElement('valet-theme-picker')}
+      </body>
     </html>
   );
 }

@@ -262,7 +262,7 @@
   .mobile-tabs {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid #dfe5d5;
+    border-bottom: 1px solid var(--theme-border, #dfe5d5);
     margin-bottom: 19px;
     overflow: auto;
   }
@@ -274,7 +274,7 @@
     background: none;
     border: 0;
     border-bottom: 2px solid transparent;
-    color: #8a987c;
+    color: var(--theme-muted, #8a987c);
   }
   .mobile-tabs button.selected {
     border-color: var(--accent);

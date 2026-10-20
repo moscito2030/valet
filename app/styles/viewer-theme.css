@@ -1,0 +1,170 @@
+/* Color adapter for @valet/deal-viewer. Keep vendor layout untouched. */
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand,
+:root[data-theme]:not([data-theme="forest"]) .analysis-corner {
+  border: 1px solid var(--theme-border, #dbe4dc);
+  background: var(--theme-surface, #fafbf8);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-information {
+  color: var(--theme-text, #34473d);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-information .board-average:focus-visible {
+  outline: 2px solid var(--theme-focus, #728b7b);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-information > small {
+  color: var(--theme-negative, #7b5847);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-information .board-number-picker:focus-within {
+  outline: 2px solid var(--theme-focus, #728b7b);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-information .board-nav button {
+  color: var(--theme-muted, #728b7b);
+}
+:root[data-theme]:not([data-theme="forest"]) .compass-center button.trick-card.red-suit {
+  color: var(--theme-negative, #b54843);
+}
+:root[data-theme]:not([data-theme="forest"]) .compass-center button.trick-card:hover {
+  border-color: var(--theme-border, #658670);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-summary > span {
+  color: var(--theme-muted, #788478);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-results .score-neutral {
+  color: var(--theme-text, #27332f);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-results .score-low {
+  color: var(--theme-negative, #b33a3d);
+}
+:root[data-theme]:not([data-theme="forest"]) .board-results .score-high {
+  color: var(--theme-text, #28784f);
+}
+:root[data-theme]:not([data-theme="forest"]) .trick-card {
+  border: 1px solid var(--theme-border, #c9d6cd);
+  background: var(--theme-surface, #fffefa);
+  box-shadow: 0 2px 3px var(--theme-shadow, #244b3814);
+  color: var(--theme-text, #244b38);
+}
+:root[data-theme]:not([data-theme="forest"]) .trick-card.red-suit {
+  color: var(--theme-negative, #b54843);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand header.vulnerable {
+  background: var(--theme-negative-bg, #f5dfdd);
+  color: var(--theme-negative, #863630);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand header.vulnerable b {
+  background: var(--theme-negative, #a84540);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand header {
+  background: var(--theme-surface-muted, #e7efe9);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand header b {
+  background: var(--theme-solid, #2b5a48);
+  color: var(--text-on-action);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-suit .red {
+  color: var(--theme-negative, #b54843);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-ranks .hand-card:not(:disabled):hover,
+:root[data-theme]:not([data-theme="forest"]) .bridge-ranks .hand-card:focus-visible {
+  background: var(--theme-surface-muted, #dcebe0);
+  outline: 1px solid var(--theme-focus, #7a9c85);
+}
+:root[data-theme]:not([data-theme="forest"]) .card-dd-value {
+  background: var(--theme-positive-bg, #b4d77980);
+  color: var(--theme-positive, #27401c);
+}
+:root[data-theme]:not([data-theme="forest"]) .card-dd-value.dd-inferior {
+  background: var(--theme-negative-bg, #e8a19a80);
+  color: var(--theme-negative, #9c302a);
+}
+:root[data-theme]:not([data-theme="forest"]) .side-active {
+  color: var(--theme-text, #294b3e);
+}
+:root[data-theme]:not([data-theme="forest"]) .side-muted {
+  color: var(--theme-muted, #939b94);
+}
+:root[data-theme]:not([data-theme="forest"]) .bridge-ranks .opening-lead {
+  background: var(--theme-warning-bg, #ffda6d);
+  color: var(--theme-text, #2b2619);
+}
+:root[data-theme]:not([data-theme="forest"]) .analysis-corner.par-corner .corner-kicker,
+:root[data-theme]:not([data-theme="forest"]) .analysis-corner.board-information .corner-kicker {
+  color: var(--theme-muted, #728b7b);
+}
+:root[data-theme]:not([data-theme="forest"]) .corner-kicker {
+  color: var(--theme-muted, #728b7b);
+}
+:root[data-theme]:not([data-theme="forest"]) .par-corner .contract-score:focus-visible {
+  outline: 2px solid var(--theme-focus, #728b7b);
+}
+:root[data-theme]:not([data-theme="forest"]) .par-corner small {
+  color: var(--theme-negative, #7b5847);
+}
+/* Match Valet's shared table styling within this standalone component. */
+:root[data-theme]:not([data-theme="forest"]) .compact-dd th {
+  background: var(--theme-surface, #fafbf7);
+  color: var(--theme-muted, #8b9485);
+}
+:root[data-theme]:not([data-theme="forest"]) .compact-dd td {
+  border-bottom: 1px solid var(--theme-border, #edf0e8);
+}
+:root[data-theme]:not([data-theme="forest"]) .compact-dd tbody tr:hover {
+  background: var(--theme-surface, #fcfcf8);
+}
+:root[data-theme]:not([data-theme="forest"]) .compact-dd button {
+  color: var(--theme-text, #1d4d39);
+}
+:root[data-theme]:not([data-theme="forest"]) .compact-dd button:hover,
+:root[data-theme]:not([data-theme="forest"]) .compact-dd button[aria-pressed='true'] {
+  background: var(--theme-surface-muted, #c4dbca);
+  border-color: var(--theme-border, #579673);
+}
+:root[data-theme]:not([data-theme="forest"]) .play-keyboard {
+  border: 1px solid var(--theme-border, #bad2c0);
+  background: var(--theme-surface-muted, #f1f7f2);
+}
+:root[data-theme]:not([data-theme="forest"]) .play-keyboard-heading button {
+  border: 1px solid var(--theme-border, #bad2c0);
+  background: var(--theme-surface, white);
+}
+:root[data-theme]:not([data-theme="forest"]) .play-context {
+  color: var(--theme-text, #567161);
+}
+:root[data-theme]:not([data-theme="forest"]) .rack-card {
+  border: 1px solid var(--theme-border, #9dbcaa);
+  border-bottom: 3px solid var(--theme-border, #7a9c85);
+  background: var(--theme-surface, #fffefa);
+  color: var(--theme-text, #244b38);
+  box-shadow: 0 2px 2px var(--theme-shadow, #244b3814);
+}
+:root[data-theme]:not([data-theme="forest"]) .rack-card.red-suit {
+  color: var(--theme-negative, #b54843);
+}
+:root[data-theme]:not([data-theme="forest"]) .rack-card:not(:disabled):hover {
+  background: var(--theme-surface-muted, #e2f0df);
+  border-color: var(--theme-border, #356b4f);
+}
+:root[data-theme]:not([data-theme="forest"]) .rack-card:focus-visible {
+  outline: 2px solid var(--theme-focus, #356b4f);
+}
+
+:root[data-theme]:not([data-theme="forest"]) .board-export-actions {
+  border-top: 1px solid var(--theme-border, #e3e7df);
+}
+
+:root[data-theme]:not([data-theme="forest"]) .your-contract .contract-bid.red-suit {
+  color: var(--theme-negative, #bd4944);
+}
+:root[data-theme]:not([data-theme="forest"]) .your-contract .contract-seat,
+:root[data-theme]:not([data-theme="forest"]) .your-contract .contract-outcome {
+  color: var(--theme-muted, #8c948b);
+}
+:root[data-theme]:not([data-theme="forest"]) .hand-perspective-button[aria-pressed='true'] {
+  outline: 2px solid var(--theme-focus, #628672);
+}
+:root[data-theme]:not([data-theme="forest"]) .hcp-compass .hcp-partial {
+  color: var(--theme-negative, #b54843);
+}
+
+:root[data-theme]:not([data-theme="forest"]) .bridge-ranks .hand-card.played-card:disabled {
+  color: var(--theme-muted, #9aa49f);
+}

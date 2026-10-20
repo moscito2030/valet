@@ -1,0 +1,25 @@
+/* Bridge the same palette into mdBook's native theme variables. */
+:root[data-theme] {
+  --bg: var(--page-bg); --fg: var(--text-primary);
+  --sidebar-bg: var(--manual-sidebar-bg, #203c32); --sidebar-fg: var(--sidebar-text);
+  --sidebar-non-existant: var(--sidebar-muted); --sidebar-active: var(--sidebar-brand);
+  --links: var(--action-primary); --icons: var(--text-muted); --icons-hover: var(--action-secondary);
+  --quote-bg: var(--surface-soft); --quote-border: var(--selection-indicator);
+  --table-border-color: var(--border-default); --table-header-bg: var(--surface-soft);
+  --table-alternate-bg: var(--surface-table-stripe); --searchbar-bg: var(--surface-bg);
+  --searchbar-fg: var(--text-primary); --searchbar-border-color: var(--border-control);
+  --searchresults-header-fg: var(--text-primary); --searchresults-border-color: var(--border-default);
+  --searchresults-li-bg: var(--surface-bg); --search-mark-bg: var(--mini-score-selected-bg);
+  --inline-code-color: var(--text-primary); --code-bg: var(--surface-soft);
+}
+:root[data-theme] .content main { background: var(--surface-bg); border-color: var(--border-default); }
+:root[data-theme] .menu-title { color: var(--text-primary); }
+:root[data-theme] .menu-title a:focus-visible,
+:root[data-theme] .nav-wrapper .mobile-nav-chapters:focus-visible { outline-color: var(--focus-ring); }
+:root[data-theme] .chapter .active + ol { border-color: var(--sidebar-brand); }
+:root[data-theme] .nav-wrapper .mobile-nav-chapters { background: var(--surface-bg); border-color: var(--border-control); color: var(--text-primary); }
+:root[data-theme] .content .nav-wrapper .mobile-nav-chapters:any-link,
+:root[data-theme] .content .nav-wrapper .mobile-nav-chapters .fa-svg { color: var(--text-primary); }
+:root[data-theme] .nav-wrapper .mobile-nav-chapters:hover { background: var(--surface-control-hover); }
+body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+@media print { valet-theme-picker { display: none; } body { padding-bottom: 0; } }

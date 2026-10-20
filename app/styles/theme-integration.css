@@ -1,0 +1,14 @@
+/* Sidebar surfaces are intentionally independent of action/link colors. */
+.sidebar { background: var(--sidebar-bg, var(--forest)); }
+.nav-item:hover, .nav-item.active { color: var(--sidebar-on-active, #fff); }
+:root[data-theme]:not([data-theme="forest"]) .sidebar-bottom { color: var(--sidebar-muted); }
+:root[data-theme]:not([data-theme="forest"]) .sidebar-note p,
+:root[data-theme]:not([data-theme="forest"]) .sidebar-note small,
+:root[data-theme]:not([data-theme="forest"]) .tiny-suits { color: var(--sidebar-muted); }
+:root[data-theme]:not([data-theme="forest"]) .tiny-suits b { color: var(--sidebar-brand); }
+:root[data-theme]:not([data-theme="forest"]) input,
+:root[data-theme]:not([data-theme="forest"]) select,
+:root[data-theme]:not([data-theme="forest"]) textarea { color: var(--text-primary); }
+/* Leave space at the document end so the floating control cannot hide the last action. */
+body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+@media print { body { padding-bottom: 0; } valet-theme-picker { display: none; } }
