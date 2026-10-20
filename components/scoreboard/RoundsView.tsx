@@ -155,7 +155,7 @@ export function RoundsView({
                 .filter((a) => a.round === round)
                 .map((a) => (
                   <tr key={a.id}>
-                    <td className="round-table-number">第 {a.table} 桌</td>
+                    <td className="round-table-number"><span className="round-table-affix">第 </span>{a.table}<span className="round-table-affix"> 桌</span></td>
                     {[a.ns, a.ew].map((id) => {
                       const standing = roundPairStandings.find((s) => s.id === id);
                       const score = standing?.score;
