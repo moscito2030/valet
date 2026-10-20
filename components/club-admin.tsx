@@ -123,8 +123,7 @@ export function ClubAdmin({
           collection={
             event.club?.enabled
               ? {
-                  expanded: showTables,
-                  pending: pending.length,
+                    pending: pending.length,
                   total: assignments.length,
                   toggle: () => setShowTables(!showTables),
                   finish: () => {
@@ -254,9 +253,22 @@ export function ClubAdmin({
       {event.club?.enabled && round > 0 && (
         <>
           {showTables && (
-            <div id="club-round-tables">
+            <Modal
+              title={`第 ${roundLabel(event, round)} 圈 · ${pending.length ? '待處理 ' + pending.length + ' 桌' : '桌次成績'}`}
+              onClose={() => setShowTables(false)}
+            >
+              {error && (
+                <p className="alert error" role="alert">
+                  {error}
+                </p>
+              )}
+              {notice && (
+                <p className="footnote" role="status">
+                  {notice}
+                </p>
+              )}
               <div className="club-progress-list">
-                {assignments.map((a) => {
+                {(pending.length ? pending : assignments).map((a) => {
                   const accepted = clubAccepted(event, a);
                   const received = a.boards.filter((b) => event.results[`${a.id}:${b}`]).length;
                   const roles = clubRoles(event, a);
@@ -329,7 +341,7 @@ export function ClubAdmin({
                   );
                 })}
               </div>
-            </div>
+            </Modal>
           )}
         </>
       )}

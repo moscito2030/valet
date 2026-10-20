@@ -6,7 +6,6 @@ import { StartRoundButton } from './StartRoundButton';
 import { SkipBack, SkipForward, Play, Pause, ListChecks } from 'lucide-react';
 type Props = {
   collection?: {
-    expanded: boolean;
     pending: number;
     total: number;
     toggle: () => void;
@@ -116,6 +115,16 @@ export function RoundControlPanel({ busy, event, save, collection }: Props) {
             )}
             <button
               type="button"
+              disabled={round === 0}
+              aria-haspopup="dialog"
+              onClick={collection.toggle}
+            >
+              <ListChecks aria-hidden="true" />
+              <span>{collection.pending > 0 ? '待處理 ' + collection.pending : '桌次成績'}</span>
+            </button>
+            <button
+              type="button"
+              className="round-console-end"
               disabled={locked || finished || reviewing || round === 0 || settled}
               aria-label="提前結束本圈"
               title="核對未完成桌次，再結算並進入下一階段"
@@ -123,16 +132,6 @@ export function RoundControlPanel({ busy, event, save, collection }: Props) {
             >
               <SkipForward aria-hidden="true" />
               <span>提前結束</span>
-            </button>
-            <button
-              type="button"
-              disabled={round === 0}
-              aria-expanded={collection.expanded}
-              aria-controls="club-round-tables"
-              onClick={collection.toggle}
-            >
-              <ListChecks aria-hidden="true" />
-              <span>桌次{collection.pending > 0 && <small>{collection.pending}</small>}</span>
             </button>
           </div>
           {round > 0 && (

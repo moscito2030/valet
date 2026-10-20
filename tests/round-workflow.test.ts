@@ -251,14 +251,15 @@ test('collection console keeps four controls and locks mutations after settlemen
         event: { ...audienceEvent(s.state.event), club: s.state.event.club, canDirect: true },
         busy: false,
         save: async () => true,
-        collection: { expanded: false, pending: 2, total: 2, toggle() {}, finish() {} },
+        collection: { pending: 2, total: 2, toggle() {}, finish() {} },
       }),
     );
   assert.match(render(), /aria-label="開始第 1 圈"/);
   s.start(1);
   assert.match(render(), /aria-label="收分控制台"/);
   assert.match(render(), /aria-label="暫停收分"/);
-  assert.match(render(), /aria-controls="club-round-tables"/);
+  assert.match(render(), /aria-haspopup="dialog"/);
+  assert.match(render(), /待處理 2/);
   assert.match(render(), /aria-label="提前結束本圈"/);
   s.apply({ action: 'round-control', round: 1, phase: 'break' });
   assert.match(render(), /aria-label="繼續本圈收分"/);
