@@ -14,7 +14,7 @@ export function MiniScoreReference({ value, inline = false }: { value?: ResultIn
     <p>以莊家方得分為準，下表為剛好完成合約的分數。</p>
     <table><thead><tr><th scope="col">花色</th><th scope="col">一線 · 7 墩</th><th scope="col">成局</th><th scope="col">每超一墩</th></tr></thead>
       <tbody>{suits.map(([strain, symbol]) => <tr key={strain}>
-        <th scope="row" className={strain === 'D' || strain === 'H' ? 'mini-red-suit' : ''}>{symbol}</th>
+        <th scope="row" data-suit={strain} className={strain === 'D' || strain === 'H' ? 'mini-red-suit' : ''}>{symbol}</th>
         {([1, miniGameLevel(strain)]).map(level => {
           const score = contractScore({assignmentId:'reference',board:1,strain,level,declarer:'N',doubled:1,tricks:level+6,lead:'',miniBridge:true}, 'None', true);
           const selected = value?.strain === strain && value.level === level;

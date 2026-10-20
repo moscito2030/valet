@@ -12,3 +12,15 @@
 /* Leave space at the document end so the floating control cannot hide the last action. */
 body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 @media print { body { padding-bottom: 0; } valet-theme-picker { display: none; } }
+
+/* Semantic suit marks keep the Dracula palette consistent across viewer and host. */
+:root[data-theme="dracula"] [data-suit="S"] { --suit-color: var(--suit-S); }
+:root[data-theme="dracula"] [data-suit="H"] { --suit-color: var(--suit-H); }
+:root[data-theme="dracula"] [data-suit="D"] { --suit-color: var(--suit-D); }
+:root[data-theme="dracula"] [data-suit="C"] { --suit-color: var(--suit-C); }
+/* Match legacy viewer red-card specificity without changing its layout. */
+:root[data-theme="dracula"] :is(
+  [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
+  .compass-center button.trick-card[data-suit],
+  .your-contract .contract-bid[data-suit]
+) { color: var(--suit-color); }

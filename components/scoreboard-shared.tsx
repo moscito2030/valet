@@ -87,7 +87,7 @@ export function Contract({ result }: { result?: Result }) {
   if (result?.status === 'average') return <span className="cancelled-contract">取消</span>;
   if (result?.status === 'cancelled') return <span className="cancelled-contract">取消</span>;
   return result ? (
-    <span className={`contract ${result.strain === 'H' || result.strain === 'D' ? 'red' : ''}`}>
+    <span data-suit={result.level ? result.strain : undefined} className={`contract ${result.strain === 'H' || result.strain === 'D' ? 'red' : ''}`}>
       {displayContract(result)}{' '}
       <small>
         {result.level ? seatNames[result.declarer] : ''} {resultText(result)}

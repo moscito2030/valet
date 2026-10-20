@@ -95,7 +95,7 @@ export function DealDiagram({ board, onPreview, previewing }: { board: PublicEve
           </div>
           {['S', 'H', 'D', 'C'].map((s) => (
             <div className="suit-line" key={s}>
-              <b className={s === 'H' || s === 'D' ? 'red' : ''}>{suitSymbols[s]}</b>
+              <b data-suit={s} className={s === 'H' || s === 'D' ? 'red' : ''}>{suitSymbols[s]}</b>
               <span>
                 {board.deal[seat]
                   .filter((c) => c[0] === s)

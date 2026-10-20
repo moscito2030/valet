@@ -345,7 +345,7 @@ export default function Scoreboard() {
           </button>
           <div className="sidebar-note">
             <span className="tiny-suits">
-              ♠ <b>♥ ♦</b> ♣
+              <span data-suit="S">♠</span> <b><span data-suit="H">♥</span> <span data-suit="D">♦</span></b> <span data-suit="C">♣</span>
             </span>
             <p>比賽不浪費白紙，環保從臺大開始</p>
             <small>
