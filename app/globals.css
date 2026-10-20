@@ -1,5 +1,6 @@
 /* Ordered cascade: keep these imports in order. Feature files retain existing selectors. */
 @import './styles/foundation.css';
+@import './styles/colors.css';
 @import './styles/scoreboard.css';
 @import './styles/boards-and-forms.css';
 @import './styles/responsive.css';

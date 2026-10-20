@@ -53,7 +53,7 @@
   cursor: default;
 }
 .playing-card:not(:disabled) {
-  background: white;
+  background: var(--surface-bg);
   border-color: #80a992;
   cursor: pointer;
 }

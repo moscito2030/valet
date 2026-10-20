@@ -229,7 +229,7 @@
   border: 1px solid #dce4d4;
   border-radius: 5px;
   padding: 10px 12px;
-  background: white;
+  background: var(--surface-bg);
   color: #31432b;
   min-width: 0;
 }
@@ -268,7 +268,7 @@
   font-size: 12px;
 }
 .segmented button.selected {
-  background: #fff;
+  background: var(--surface-bg);
   color: #344b2c;
   box-shadow: 0 1px 4px #13291b12;
 }

@@ -1,13 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@500&family=IBM+Plex+Mono:wght@600&display=swap');
 :root {
-  --paper: #f6f5f1;
-  --ink: #25332f;
-  --muted: #7c8580;
-  --line: #e8eae4;
-  --accent: #963f43;
-  --forest: #203c32;
-  --white: #fff;
-  --soft: #fafaf7;
   font-family: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
   color: var(--ink);
   background: var(--paper);
@@ -54,7 +46,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #ae8477;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 button {
@@ -95,7 +87,7 @@ small {
   position: fixed;
   inset: 0 auto 0 0;
   background: var(--forest);
-  color: #e9eee8;
+  color: var(--sidebar-text);
   display: flex;
   flex-direction: column;
   padding: 34px 19px 22px;
@@ -112,7 +104,7 @@ small {
 }
 .brand-symbol {
   font-family: 'Source Serif 4', serif;
-  color: #d6aaa0;
+  color: var(--sidebar-brand);
   font-size: 39px;
 }
 .brand > span:last-child {
@@ -126,7 +118,7 @@ small {
   font-weight: 400;
   letter-spacing: 3px;
   font-size: 10px;
-  color: #a9bbb0;
+  color: var(--sidebar-muted);
   margin-top: 5px;
   width: max-content;
   margin-left: auto;
@@ -135,7 +127,7 @@ small {
 }
 .sidebar-label {
   font-size: 10px;
-  color: #92a79b;
+  color: var(--sidebar-section);
   letter-spacing: 2px;
   margin: 46px 13px 14px;
 }
@@ -148,14 +140,14 @@ small {
 }
 .workspace-button {
   width: 100%;
-  background: #355045;
-  border: 1px solid #466052;
+  background: var(--sidebar-group-bg);
+  border: 1px solid var(--sidebar-group-border);
   border-radius: 7px;
   padding: 13px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #eef3ec;
+  color: var(--sidebar-group-text);
 }
 .workspace-button span {
   flex: 1;
@@ -164,7 +156,7 @@ small {
 .nav-item {
   background: transparent;
   border: none;
-  color: #b8c9be;
+  color: var(--sidebar-icon);
   width: 100%;
   padding: 15px 13px;
   display: flex;
@@ -175,18 +167,18 @@ small {
   margin-bottom: 5px;
 }
 .nav-item:hover {
-  background: #2b483b;
-  color: #fff;
+  background: var(--sidebar-hover-bg);
+  color: var(--text-on-action);
 }
 .nav-item.active {
-  background: #456152;
-  color: #fff;
+  background: var(--sidebar-active-bg);
+  color: var(--text-on-action);
 }
 .active-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #c2d7b9;
+  background: var(--sidebar-active-marker);
   margin-left: auto;
 }
 .sidebar-bottom {
@@ -360,7 +352,7 @@ small {
   border: 0;
   border-radius: 12px;
   background: #27332f;
-  color: #fff;
+  color: var(--text-on-action);
   font: inherit;
   font-size: 12px;
   font-weight: 400;
@@ -423,22 +415,22 @@ main {
 }
 .button.primary {
   background: var(--accent);
-  color: white;
+  color: var(--text-on-action);
   border-color: var(--accent);
 }
 .button.primary:hover {
-  background: #813237;
+  background: var(--action-primary-hover);
 }
-.button.danger { background: #963f45; border-color: #963f45; color: white; }
-.button.danger:hover { background: #813237; }
+.button.danger { background: var(--danger); border-color: var(--danger); color: var(--text-on-action); }
+.button.danger:hover { background: var(--action-primary-hover); }
 .admin-version { justify-self: end; margin-left: 24px; }
 .button.subtle {
-  background: white;
-  border-color: #dfe4dc;
+  background: var(--surface-bg);
+  border-color: var(--border-control);
   color: #596b60;
 }
 .button.subtle:hover {
-  background: #f1f4ed;
+  background: var(--surface-control-hover);
 }
 .full {
   width: 100%;
@@ -458,13 +450,13 @@ main {
   align-items: center;
   gap: 13px;
   text-align: left;
-  background: #fafaf7;
+  background: var(--surface-soft);
   border: 1px solid #e2e5dc;
   border-radius: 7px;
   padding: 18px 17px;
 }
 .event-option.selected {
-  background: #fff;
+  background: var(--surface-bg);
   border-color: #819585;
   box-shadow: 0 2px 6px #25392e06;
 }

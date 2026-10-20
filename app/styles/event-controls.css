@@ -191,7 +191,7 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
 .event-identity-form {
   padding-bottom: 24px;
   margin-bottom: 24px;
-  border-bottom: 1px solid #dfe4dc;
+  border-bottom: 1px solid var(--border-control);
 }
 .event-heading .event-meta span + span:before {
   content: '·';
@@ -235,7 +235,7 @@ main > .section-collapse[aria-controls='event-dashboard'][aria-expanded='false']
   padding: 9px 7px;
   border: 1px solid #cbd8cf;
   border-radius: 6px;
-  background: white;
+  background: var(--surface-bg);
   font: inherit;
 }
 .board-team-name {

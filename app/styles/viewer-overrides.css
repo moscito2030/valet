@@ -9,11 +9,11 @@
 
 .scoring-label { display: flex; align-items: center; gap: 4px; min-height: 24px; }
 .scoring-info-button { display: inline-grid; place-items: center; width: 28px; height: 24px; border: 0; padding: 0; background: transparent; color: #718375; cursor: pointer; }
-.scoring-help { width: min(360px, calc(100vw - 40px)); padding: 20px; border: 1px solid #dce4d8; border-radius: 12px; background: #fff; color: var(--ink); box-shadow: 0 12px 40px #203f3326; font-size: 14px; line-height: 1.7; }
+.scoring-help { width: min(360px, calc(100vw - 40px)); padding: 20px; border: 1px solid #dce4d8; border-radius: 12px; background: var(--surface-bg); color: var(--ink); box-shadow: 0 12px 40px #203f3326; font-size: 14px; line-height: 1.7; }
 .scoring-help-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .scoring-help p { margin-top: 12px; }
 
-.calendar-date-field { display: grid; grid-template-columns: minmax(0, 1fr) 18px; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 44px; padding: 10px 8px; border: 1px solid #dce4d4; border-radius: 5px; background: white; color: #31432b; font: inherit; font-size: 14px; letter-spacing: -0.3px; white-space: nowrap; }
+.calendar-date-field { display: grid; grid-template-columns: minmax(0, 1fr) 18px; align-items: center; gap: 4px; width: 100%; min-width: 0; height: 44px; padding: 10px 8px; border: 1px solid #dce4d4; border-radius: 5px; background: var(--surface-bg); color: #31432b; font: inherit; font-size: 14px; letter-spacing: -0.3px; white-space: nowrap; }
 .calendar-date-field > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
 .calendar-date-field svg { flex-shrink: 0; width: 18px; }
 .create-details-grid > .field > input:not([type='hidden']) { height: 44px; }

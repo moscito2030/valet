@@ -25,7 +25,7 @@
   container-type: inline-size;
   border-radius: 6px;
   border: 1px solid #dbe4dc;
-  background: #fafbf8;
+  background: var(--surface-table-stripe);
   padding: clamp(2px, 0.6vw, 8px);
 }
 .bridge-hand-N {
@@ -236,10 +236,10 @@
   color: #27332f;
 }
 .board-results .score-low {
-  color: #b33a3d;
+  color: var(--score-negative);
 }
 .board-results .score-high {
-  color: #28784f;
+  color: var(--score-positive);
 }
 .compass-center {
   grid-area: center;
@@ -307,7 +307,7 @@
   flex: 0 0 min(29px, 23cqw);
   height: 100%;
   background: #2b5a48;
-  color: white;
+  color: var(--text-on-action);
   border-radius: 3px 0 0 3px;
   font-size: min(18px, 18cqw);
 }
@@ -378,7 +378,7 @@
 .bridge-ranks .hand-card:not(:disabled):hover,
 .bridge-ranks .hand-card:focus-visible {
   background: #dcebe0;
-  outline: 1px solid #7a9c85;
+  outline: 1px solid var(--selection-indicator);
   border-radius: 2px;
 }
 .card-dd-value {
@@ -632,7 +632,7 @@
   height: 28px;
   padding: 0;
   border: 1px solid #bad2c0;
-  background: white;
+  background: var(--surface-bg);
   border-radius: 5px;
   cursor: pointer;
 }
@@ -666,7 +666,7 @@
   padding: 11px 0;
   gap: 3px;
   border: 1px solid #9dbcaa;
-  border-bottom: 3px solid #7a9c85;
+  border-bottom: 3px solid var(--selection-indicator);
   border-radius: 4px;
   background: #fffefa;
   color: #244b38;
