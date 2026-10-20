@@ -229,6 +229,11 @@
   padding-right: 6px;
   white-space: nowrap;
 }
+.board-results tbody tr > td:nth-child(n),
+.board-results tbody .contract,
+.board-results tbody .cancelled-contract {
+  font-size: 13px;
+}
 .board-results .table-round small {
   font-size: 9px;
 }
