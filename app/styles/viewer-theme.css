@@ -56,6 +56,9 @@
 :root[data-theme]:not([data-theme="forest"]) .bridge-hand header {
   background: var(--theme-surface-muted, #e7efe9);
 }
+:root[data-theme="dracula"] .bridge-hand header:not(.vulnerable) {
+  background: var(--theme-info-bg);
+}
 :root[data-theme]:not([data-theme="forest"]) .bridge-hand header b {
   background: var(--theme-solid, #2b5a48);
   color: var(--text-on-action);
