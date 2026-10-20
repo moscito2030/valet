@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PublicationPanel } from '../components/admin/PublicationPanel';
+import { RoundControlPanel } from '../components/admin/RoundControlPanel';
 import { BoardsView } from '../components/scoreboard/BoardsView';
 import { MatchVpScale } from '../components/match-vp-scale';
 import { PlayersView } from '../components/scoreboard/PlayersView';
@@ -153,6 +154,7 @@ test('publication panel keeps director-only identity and deletion controls out o
   assert.doesNotMatch(render(true, 'boards'), /儲存賽段資訊|儲存給獎與賽程說明|結束賽事/);
   assert.doesNotMatch(render(false, 'boards'), /依牌組公開牌型|永久刪除賽段/);
   assert.doesNotMatch(render(false), /儲存賽段資訊|刪除賽段/);
+  assert.doesNotMatch(render(true), /賽段狀態|完成覆核並結束賽段/);
 });
 
  test('double winner standings render separate directional tables and search each group', () => {
@@ -207,10 +209,9 @@ test('finish-review button submits a valid audited command without a score corre
   raw.status = 'review';
   const state: StoredEvent = { event: raw, projection: project(raw), requests: [] };
   let updated = state;
-  const panel = PublicationPanel({
-    section: 'information', event: { ...audienceEvent(raw, state.projection), canDirect: true },
-    busy: false, deleteName: '', eventId: raw.id, onDeleted: async () => {},
-    setBusy: noop, setDeleteName: noop, setError: noop,
+  const panel = RoundControlPanel({
+    event: { ...audienceEvent(raw, state.projection), canDirect: true },
+    busy: false,
     save: async (payload) => {
       const command = mutationSchema.parse({
         ...payload, revision: raw.revision,
