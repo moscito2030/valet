@@ -34,6 +34,7 @@ export function ClubAdmin({
   const [pair, setPair] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showTables, setShowTables] = useState(false);
+  const [reviewAcknowledged, setReviewAcknowledged] = useState(false);
   const [forceRound, setForceRound] = useState<number | null>(null);
   const [base, setBase] = useState('');
   const [settingsRound, setSettingsRound] = useState(event.currentRound || 1);
@@ -104,7 +105,7 @@ export function ClubAdmin({
   const forceLabel = advance
     ? `結算並開始第 ${roundLabel(event, round + 1)} 圈`
     : forceRound === event.rounds
-      ? '結算並進入覆核'
+      ? '確認結算並進入覆核'
       : '結算並發布成績';
   if (!event.participants.length || !event.assignments.length)
     return (
@@ -129,6 +130,7 @@ export function ClubAdmin({
                   toggle: () => setShowTables(!showTables),
                   finish: () => {
                     setError('');
+                    setReviewAcknowledged(false);
                     setForceRound(round);
                   },
                 }
@@ -177,10 +179,17 @@ export function ClubAdmin({
           <p>
             {advance
               ? `成功後開啟第 ${roundLabel(event, round + 1)} 圈收分。`
-              : forceRound === round
+              : forceRound === event.rounds
+                ? '這是最後一圈。結算後將進入成績覆核，無法退回前一圈或重新開放收分；仍可由裁判更正成績。'
+                : forceRound === round
                 ? '結算後不開啟下一圈；全部圈次完成時進入成績覆核。'
                 : '僅補結算這一圈，保持目前圈數與收分狀態。'}
           </p>
+          {forceRound === event.rounds && (
+            <label className="club-review-acknowledgment">
+              <span><input type="checkbox" checked={reviewAcknowledged} disabled={busy} onChange={(e) => setReviewAcknowledged(e.target.checked)} /> 我已核對待處理桌次與取消牌號，確認進入成績覆核。</span>
+            </label>
+          )}
           <div className="button-row">
             <button
               type="button"
@@ -194,7 +203,7 @@ export function ClubAdmin({
               type="button"
               className="button primary"
               disabled={
-                busy || event.status !== 'live' || !!event.club?.finalized.includes(forceRound)
+                busy || event.status !== 'live' || !!event.club?.finalized.includes(forceRound) || (forceRound === event.rounds && !reviewAcknowledged)
               }
               onClick={() =>
                 void act({
@@ -243,7 +252,7 @@ export function ClubAdmin({
                         advance: false,
                         reason: '補結算已完成圈次，保留目前收分狀態',
                       })
-                    : setForceRound(r)
+                    : (setReviewAcknowledged(false), setForceRound(r))
                 }
               >
                 {clubRoundReady(event, r) ? '補結算' : '處理未完成桌次'} · 第 {roundLabel(event, r)}{' '}

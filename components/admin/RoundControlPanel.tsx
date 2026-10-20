@@ -72,7 +72,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
                     ? '全桌確認完成後，系統自動結算並更新排名。'
                     : '本圈收齊後自動進入休息，由裁判開始下一圈。'}
       </p>
-      {collection && (
+      {collection && !reviewing && !finished && (
         <>
           <div className="round-console" role="group" aria-label="收分控制台">
             <button
@@ -144,7 +144,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
         {!finished && reviewing ? (
           <button
             type="button"
-            className="button primary"
+            className="button subtle"
             disabled={locked || !allRoundsComplete(event)}
             onClick={() => {
               if (

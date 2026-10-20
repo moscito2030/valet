@@ -180,3 +180,6 @@
 
 .round-workflow-heading .round-settings-trigger { gap: 7px; padding: 8px 12px; min-height: 40px; font-size: 12px; font-weight: 400; white-space: nowrap; background: transparent; }
 .round-settings-trigger svg { width: 16px; height: 16px; }
+
+.club-review-acknowledgment { display: block; margin: 16px 0; line-height: 1.7; }
+.club-review-acknowledgment input { width: 16px; height: 16px; margin-right: 8px; vertical-align: middle; accent-color: var(--text); }

@@ -266,6 +266,13 @@ test('collection console keeps four controls and locks mutations after settlemen
   s.complete(1);
   assert.match(render(), /aria-label="開始第 2 圈"/);
   assert.match(render(), /disabled="" aria-label="提前結束本圈"/);
+  s.start(2);
+  s.complete(2);
+  s.start(3);
+  s.complete(3);
+  assert.match(render(), /完成覆核並結束賽段/);
+  assert.doesNotMatch(render(), /aria-label="收分控制台"/);
+  assert.match(render(), /class="button subtle"[^>]*>完成覆核並結束賽段/);
 });
 
 test('audience refresh setting validates bounds and reaches public event data', () => {
