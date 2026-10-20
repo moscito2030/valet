@@ -72,12 +72,12 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
       <div className="panel-heading discussion-heading">
         <div>
           <h3>牌局討論</h3>
-          <p>打橋牌的人最喜歡大談了！請聚焦本牌，勿張貼敏感個資。</p>
+          <p>交流叫牌與打牌思路，請聚焦本副牌。</p>
         </div>
         <div className="discussion-tools">
           {data?.director && (
             <>
-              <button className="discussion-action" popoverTarget={`${menuId}-settings`}>
+              <button className="button subtle discussion-action" popoverTarget={`${menuId}-settings`}>
                 <Settings2 size={15} aria-hidden="true" />
                 管理
               </button>
@@ -85,7 +85,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                 <div className="discussion-menu-heading">
                   <strong>討論區管理</strong>
                   <button
-                    className="discussion-action"
+                    className="button subtle discussion-action"
                     popoverTarget={`${menuId}-settings`}
                     popoverTargetAction="hide"
                     aria-label="關閉管理選單"
@@ -150,30 +150,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                         })}
                       </time>
                       {c.hidden && <span className="discussion-badge">已隱藏</span>}
-                      {!data.closed && !data.globalClosed && !c.hidden && (
-                        <button
-                          type="button"
-                          className="discussion-action"
-                          disabled={busy}
-                          onClick={() => beginReply(c.id)}
-                        >
-                          <Reply size={15} aria-hidden="true" />
-                          回覆
-                        </button>
-                      )}
-                      {(c.own || data.director) && (
-                        <button
-                          className="discussion-action discussion-delete"
-                          disabled={busy}
-                          onClick={() => {
-                            if (confirm('刪除此留言？'))
-                              send('PATCH', { action: 'delete', id: c.id });
-                          }}
-                        >
-                          <Trash2 size={14} aria-hidden="true" />
-                          刪除
-                        </button>
-                      )}
+
                     </div>
                     {c.replyTo && (
                       <div className="discussion-reference">
@@ -186,13 +163,37 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                       <CommentText text={c.text} />
                     </p>
                     <div className="discussion-actions">
-                      <a className="discussion-action" href={`/?event=${encodeURIComponent(eventId)}&view=boards&board=${board}#comment-${c.id}`} aria-label={`連結至 ${c.nickname} 的留言`} title="留言專屬連結，可複製或分享">
+                      {!data.closed && !data.globalClosed && !c.hidden && (
+                        <button
+                          type="button"
+                          className="button subtle discussion-action"
+                          disabled={busy}
+                          onClick={() => beginReply(c.id)}
+                        >
+                          <Reply size={15} aria-hidden="true" />
+                          回覆
+                        </button>
+                      )}
+                      {(c.own || data.director) && (
+                        <button
+                          className="button subtle discussion-action discussion-delete"
+                          disabled={busy}
+                          onClick={() => {
+                            if (confirm('刪除此留言？'))
+                              send('PATCH', { action: 'delete', id: c.id });
+                          }}
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                          刪除
+                        </button>
+                      )}
+                      <a className="button subtle discussion-action" href={`/?event=${encodeURIComponent(eventId)}&view=boards&board=${board}#comment-${c.id}`} aria-label={`連結至 ${c.nickname} 的留言`} title="留言專屬連結，可複製或分享">
                         <Link2 size={15} aria-hidden="true" />連結
                       </a>
                       {data.director && (
                         <>
                           <button
-                            className="discussion-action"
+                            className="button subtle discussion-action"
                             popoverTarget={`${menuId}-${c.id}`}
                             aria-label={`管理 ${c.nickname} 的留言`}
                           >
@@ -203,7 +204,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                             <div className="discussion-menu-heading">
                               <strong>管理 {c.nickname} 的留言</strong>
                               <button
-                                className="discussion-action"
+                                className="button subtle discussion-action"
                                 popoverTarget={`${menuId}-${c.id}`}
                                 popoverTargetAction="hide"
                                 aria-label="關閉留言管理"
@@ -267,7 +268,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                       </div>
                       <button
                         type="button"
-                        className="discussion-action"
+                        className="button subtle discussion-action"
                         onClick={() => setReplyTo(undefined)}
                         aria-label="取消回覆"
                       >
@@ -299,13 +300,13 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                   </label>
                   <div className="discussion-compose-footer">
                     <span className="discussion-count">{text.length} / 1000</span>
-                    <button className="button primary discussion-submit" disabled={busy}>
+                    <button className="button subtle discussion-submit" disabled={busy}>
                       <Send size={15} aria-hidden="true" />
                       {busy ? '送出中…' : replyTo ? '送出回覆' : '發表留言'}
                     </button>
                   </div>
                   <p className="footnote discussion-help">
-                    花色可輸入 !s !h !d !c（♠ ♥ ♦ ♣），大小寫皆可。
+                    請勿張貼敏感個資。花色可輸入 !s !h !d !c（♠ ♥ ♦ ♣），大小寫皆可。
                     <br />每 10 分鐘最多 5 次、每日 30
                     次發文嘗試；同一網路來源另有限制。同一瀏覽器可刪除自己的留言，清除 Cookie
                     後將失去此權限。
