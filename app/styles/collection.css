@@ -29,7 +29,7 @@
 .club-force-table tr > :first-child { width: 1%; text-align: center; white-space: nowrap; }
 .club-force-table td { overflow-wrap: anywhere; }
 @media (max-width: 600px) {
-  .round-workflow { padding: 16px; }
+  .round-workflow { padding: 16px 0; }
   .round-workflow-actions { align-items: stretch; flex-direction: column; }
 }
 .club-pair-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: 8px; margin: 16px 0; }
