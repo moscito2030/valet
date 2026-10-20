@@ -660,17 +660,14 @@ table a:focus-visible {
 .team-imp-average-trigger { display: block; width: 100%; text-align: center; }
 .round-pairs-table .round-table-number { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
 .player-results-view { container-type: inline-size; min-width: 0; }
+.player-results-layout { display: grid; gap: 24px; align-items: start; }
+.player-results-layout > * { min-width: 0; }
 @container (min-width: 1100px) {
-  .player-results:has(> .pair-score-chart) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+  .player-results-layout:has(> .pair-score-chart) {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
   }
-  .player-results:has(> .pair-score-chart) > .panel-heading { grid-column: 1; grid-row: 1; }
-  .player-results:has(> .pair-score-chart) > .table-scroll { grid-column: 1; grid-row: 2; min-width: 0; }
-  .player-results > .pair-score-chart { grid-column: 2; grid-row: 1 / 3; min-width: 0; border-top: 0; border-left: 1px solid var(--line); }
 }
-.pair-score-chart { padding: 24px; border-top: 1px solid var(--line); }
+.pair-score-chart { padding: 24px; }
 .pair-score-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .pair-score-chart-heading h3 { font-size: 15px; font-weight: 600; }
 .pair-score-chart-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }

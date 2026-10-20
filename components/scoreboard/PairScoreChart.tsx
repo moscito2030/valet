@@ -39,7 +39,7 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
   const ticks = [top, base + radius / 2, base, base - radius / 2, bottom];
   const activeX = active ? left + step * (points.indexOf(active) + .5) : null;
   const tone = active?.close == null || active.close === active.open ? 'flat' : active.close > active.open ? 'gain' : 'loss';
-  return <section className="pair-score-chart" aria-label="逐副累積成績 K 棒">
+  return <section className="panel pair-score-chart" aria-label="逐副累積成績 K 棒">
     <div className="pair-score-chart-heading">
       <div><h3>累積{mp ? ' MP%' : ' IMP'}</h3><p>全場共牌 <span aria-hidden="true">·</span> 逐副走勢</p></div>
       {latest && <div className="pair-chart-latest"><strong>{latest.close!.toFixed(2)}<small>{mp ? '%' : ' IMP'}</small></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
