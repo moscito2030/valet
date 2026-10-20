@@ -49,7 +49,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   return <section className="panel pair-score-chart" aria-label="逐副累積成績 K 棒">
     <div className="pair-score-chart-heading">
       <div><h3>累積{mp ? ' MP%' : ' IMP'}</h3><p>全場共牌 <span aria-hidden="true">·</span> 逐副走勢</p></div>
-      {latest && <div className="pair-chart-latest"><strong>{latest.close!.toFixed(2)}<small>{mp ? '%' : ' IMP'}</small></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
+      {latest && <div className="pair-chart-latest"><strong><CompactImp text={latest.close!.toFixed(2)} /><small>{mp ? '%' : ' IMP'}</small></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
     </div>
     {!valid.length ? <p className="empty compact">尚無可計分成績</p> : <>
       <div className={`pair-chart-detail ${tone}`} aria-live="polite">
