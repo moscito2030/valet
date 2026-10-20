@@ -263,8 +263,8 @@ export function PlayersView({
     <div className="player-results-view">
     <div className="player-results-layout">
     {event.kind === 'pairs' && <section className="panel pair-picker-panel" aria-label="查看搭檔">{participantPicker}</section>}
-    <section className="panel player-results">
-      <div className={`panel-heading${event.kind === 'teams' ? ' team-results-heading' : ''}`}>
+    <section className="panel player-results" aria-label={event.kind === 'teams' ? '隊伍個別成績' : '搭檔個別成績'}>
+      {event.kind === 'teams' && <div className="panel-heading team-results-heading">
         <div className="team-result-intro">
           <div>
             <div className="team-result-title-row">
@@ -353,6 +353,7 @@ export function PlayersView({
           </div>
         )}
       </div>
+      }
       <div className="table-scroll">
         {event.teamMovement === 'interleaved' && (
           <InterleavedRound
