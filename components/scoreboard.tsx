@@ -1,6 +1,7 @@
 'use client';
 import { teamScoringLabel } from '@/lib/team-method';
 import { followedParticipant, followStorageKey } from '@/lib/followed-participant';
+import { resultsSelection } from '@/lib/scoreboard-link';
 import { awardRangeDescription } from '@/lib/awards';
 import { AppVersion } from './app-version';
 
@@ -133,6 +134,7 @@ export default function Scoreboard() {
     [loggingIn, setLoggingIn] = useState(false);
   const { event, setEvent, requestGeneration, refreshEvent } = useEventResource(id, tab, setError, events.find((entry) => entry.id === id));
   const firstLoad = useRef(true);
+  const requestedResults = useRef<URLSearchParams | null>(null);
   const refreshList = useCallback(async () => {
     const data = await api<{ events: EventSummary[]; storage: string }>('/api/events');
     setEvents(data.events);
@@ -153,6 +155,7 @@ export default function Scoreboard() {
         setMode(session.storage);
         const params = new URLSearchParams(location.search),
           requested = params.get('event');
+        requestedResults.current = params;
         setId(list.find((e) => e.id === requested)?.id ?? '');
         if (!list.some((e) => e.id === requested)) setError('找不到賽事或賽段，請返回賽事入口。');
         const view = params.get('view');
@@ -199,11 +202,24 @@ export default function Scoreboard() {
     };
   }, [refreshEvent]);
   useEffect(() => {
+    if (!event || event.id !== id || !requestedResults.current) return;
+    const selection = resultsSelection(requestedResults.current, event);
+    requestedResults.current = null;
+    if (selection) {
+      setPerson(selection.person);
+      setPlayerRound(selection.round);
+    }
+  }, [event, id]);
+  useEffect(() => {
     if (!id) return;
     const params = new URLSearchParams({ event: id, view: tab === 'admin' ? 'standings' : tab });
     if (tab === 'boards') params.set('board', String(board));
+    if (tab === 'players') {
+      if (person) params.set('person', person);
+      params.set('round', String(playerRound));
+    }
     history.replaceState(null, '', `?${params}`);
-  }, [id, tab, board]);
+  }, [id, tab, board, person, playerRound]);
   async function refresh() {
     setRefreshing(true);
     try {

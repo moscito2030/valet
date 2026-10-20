@@ -10,6 +10,7 @@ import { boardRange } from '@/lib/board-groups';
 import { contractScore } from '@/lib/scoring';
 import { MiniContractFields } from '@/components/mini-contract-fields';
 import { createClubAutoFollow } from '@/lib/followed-participant';
+import { participantResultsLink } from '@/lib/scoreboard-link';
 
 const describeContract = (r: ResultInput) => r.level === 0 ? 'Pass' : `${r.level}${{ C: '♣', D: '♦', H: '♥', S: '♠', NT: 'NT' }[r.strain]}${r.doubled === 2 ? 'x' : r.doubled === 4 ? 'xx' : ''} ${r.declarer} · ${r.tricks} 墩${r.lead ? ` · 首引 ${r.lead.replace(/^[CDHS]/, suit => ({ C: '♣', D: '♦', H: '♥', S: '♠' })[suit as 'C'|'D'|'H'|'S']).replace(/T$/, '10')}` : ''}`;
 
@@ -97,7 +98,7 @@ export default function ClubPage() {
   return <main className="club-page">
     <header className="club-page-heading">
       <span className="eyebrow">{data?.mode === 'table' ? 'TABLE SCORECARD' : 'CLUB SCORECARD · GUIDE CARD'}</span>
-      <h1>{data?.deviceLabel ?? (data?.pairName ? <PairDisplayName name={data.pairName} /> : '裝置收分')}</h1>
+      <h1>{data?.deviceLabel ?? (data?.pairName ? <a className="club-results-link" href={participantResultsLink(data.id, data.pair, data.round)} target="_blank" rel="noopener noreferrer" title="查看個別成績（另開分頁）"><PairDisplayName name={data.pairName} /></a> : '裝置收分')}</h1>
       <div className="club-heading-meta">
       <p className="club-event-name">{data?.name}</p>
       <span className="club-heading-separator" aria-hidden="true">·</span>
@@ -133,7 +134,7 @@ export default function ClubPage() {
         {data.assignment ? <>
           <div className="club-matchup" aria-label="本桌搭檔">
             {(['ns', 'ew'] as const).map(side => <div key={side}>
-              <div className="club-matchup-name"><span className="club-seat-label">{side.toUpperCase()}</span><strong><PairDisplayName name={data.names?.[side]} /></strong></div>
+              <div className="club-matchup-name"><span className="club-seat-label">{side.toUpperCase()}</span><strong><a className="club-results-link" href={participantResultsLink(data.id, data.assignment![side], data.round)} target="_blank" rel="noopener noreferrer" title="查看個別成績（另開分頁）"><PairDisplayName name={data.names?.[side]} /></a></strong></div>
               <small>{data.assignment![side].toUpperCase()} · {data.roles?.inputPair === data.assignment![side] ? '輸入方' : '確認方'}</small>
             </div>)}
           </div>
