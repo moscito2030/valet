@@ -86,12 +86,12 @@ test('chart axes stay centered on neutral with integer symmetric ticks for fract
     e.projection.pairScores[`${a.id}:${a.boards[0]}`] = { ns: 1.25, ew: 2.75, top: 4, provisional: false };
     const html = renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1' }));
     assert.match(html, /y1="110" y2="110" class="pair-chart-baseline"/);
-    const ticks = [...html.matchAll(/<text x="44"[^>]*>([^<]+)<\/text>/g)].map(m => Number(m[1]));
+    const ticks = [...html.matchAll(/<text [^>]*class="pair-chart-label pair-chart-tick"[^>]*>([^<]+)<\/text>/g)].map(m => Number(m[1]));
     const base = method === 'mp' ? 50 : 0;
-    assert.equal(ticks.length, 3);
+    assert.equal(ticks.length, 5);
     assert.ok(ticks.every(Number.isInteger));
-    assert.equal(ticks[1], base);
-    assert.equal(ticks[0] - base, base - ticks[2]);
+    assert.equal(ticks[2], base);
+    assert.equal(ticks[0] - base, base - ticks[4]);
   }
 });
 
