@@ -518,6 +518,7 @@ export function BoardsView({
                       const key = resultKey(a.id, selectedBoard.number),
                         r = boardResults[key],
                         mp = boardPairScores[key];
+                      const scoreTone = pairTone(mp?.[travellerSide], mp?.top ?? 0, pairMethod);
                       return (
                         <tr
                           key={a.id}
@@ -557,13 +558,13 @@ export function BoardsView({
                           <td>
                             <Contract result={r} />
                           </td>
-                          <td className="mono">
+                          <td className={`mono${pairMethod !== 'mp' ? ` ${scoreTone}` : ''}`}>
                             {r && r.status !== 'cancelled'
                               ? signed(awardedResult(r, scoreSide)!.nsScore * sideSign)
                               : '—'}
                           </td>
                           <td
-                            className={`mono ${pairTone(mp?.[travellerSide], mp?.top ?? 0, pairMethod)}`}
+                            className={`mono ${scoreTone}`}
                           >
                             {pairMethod === 'mp'
                               ? pairValue(mp?.[travellerSide], mp?.top ?? 0, pairMethod)
