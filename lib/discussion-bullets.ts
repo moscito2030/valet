@@ -36,3 +36,10 @@ export function freeBulletLane(occupied: number[], random = Math.random) {
   const free = [0, 1, 2, 3, 4, 5].filter((lane) => !occupied.includes(lane));
   return free.length ? free[Math.floor(random() * free.length)] : undefined;
 }
+
+/** Leave on-screen comments queued until their current instance has exited. */
+export function takeAvailableBullet(queue: BulletComment[], activeIds: string[]) {
+  const active = new Set(activeIds);
+  const index = queue.findIndex((comment) => !active.has(comment.id));
+  return index < 0 ? undefined : queue.splice(index, 1)[0];
+}

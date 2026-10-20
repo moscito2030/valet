@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   shuffledBullets,
+  takeAvailableBullet,
   freeBulletLane,
   bulletDuration,
   bulletFonts,
@@ -74,4 +75,18 @@ test('Latin faces match five styles and every Chinese stack has a Traditional fa
   for (const font of bulletFonts) assert.match(font, /Noto (Sans|Serif) TC/);
   assert.match(bulletFonts[3], /Iansui/);
   assert.match(bulletFonts[4], /Huninn/);
+});
+
+test('on-screen comments wait in the queue while other comments can launch', () => {
+  const queue = [comments[0], comments[1]];
+  assert.equal(takeAvailableBullet(queue, ['0'])?.id, '1');
+  assert.equal(takeAvailableBullet(queue, ['0', '1']), undefined);
+  assert.deepEqual(queue, [comments[0]]);
+  assert.equal(takeAvailableBullet(queue, [])?.id, '0');
+  assert.equal(queue.length, 0);
+});
+test('a single comment cannot repeat until its previous instance exits', () => {
+  const queue = [comments[0]];
+  assert.equal(takeAvailableBullet(queue, ['0']), undefined);
+  assert.equal(takeAvailableBullet(queue, [])?.id, '0');
 });

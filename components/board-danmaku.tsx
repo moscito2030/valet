@@ -5,6 +5,7 @@ import { CommentText } from './comment-text';
 import { useDiscussion } from './board-discussion-context';
 import {
   shuffledBullets,
+  takeAvailableBullet,
   freeBulletLane,
   bulletDuration,
   randomBulletFont,
@@ -40,7 +41,7 @@ export function BoardDanmaku() {
   const overlay = useRef<HTMLDivElement>(null);
   const queue = useRef<BulletComment[]>([]),
     comments = useRef<BulletComment[]>([]),
-    occupied = useRef<{ lane: number; started: number; duration: number }[]>([]),
+    occupied = useRef<{ id: string; lane: number; started: number; duration: number }[]>([]),
     previous = useRef<string | undefined>(undefined),
     sequence = useRef(0);
   const playable = live && visible && !!data?.published;
@@ -73,7 +74,7 @@ export function BoardDanmaku() {
       if (lane === undefined) return;
       if (!queue.current.length)
         queue.current = shuffledBullets(comments.current, previous.current);
-      const next = queue.current.shift();
+      const next = takeAvailableBullet(queue.current, occupied.current.map((c) => c.id));
       const bullet = next
         ? {
             ...next,
@@ -86,7 +87,7 @@ export function BoardDanmaku() {
           }
         : null;
       if (bullet) {
-        occupied.current.push({ lane, started: now, duration });
+        occupied.current.push({ id: bullet.id, lane, started: now, duration });
         previous.current = bullet.id;
       }
       setActive((old) => [
