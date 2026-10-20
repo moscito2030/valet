@@ -705,9 +705,7 @@ table a:focus-visible {
 .pair-chart-legend .gain { background: var(--score-positive); }
 .pair-chart-legend .loss { background: var(--score-negative); }
 .pair-chart-legend .flat { background: var(--muted); height: 2px; }
-.pair-chart-notes { border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font-size: 11px; }
-.pair-chart-notes summary { cursor: pointer; width: fit-content; }
-.pair-chart-notes p { margin: 8px 0 0; line-height: 1.8; }
+.pair-chart-notes { margin: 0; border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font-size: 11px; line-height: 1.8; }
 @media (max-width: 640px) {
   .pair-score-chart { padding: 18px 12px; }
   .pair-chart-detail { flex-wrap: wrap; gap: 10px; padding: 10px; }

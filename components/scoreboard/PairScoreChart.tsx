@@ -98,7 +98,7 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
         <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
         <span>滑過或點選查看</span>
       </div>
-      <details className="pair-chart-notes"><summary>計分與影線說明</summary><p>實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。</p></details>
+      <p className="pair-chart-notes">實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。</p>
     </>}
   </section>;
 }
