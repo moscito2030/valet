@@ -36,6 +36,7 @@
   --border-control: #dfe4dc;
   --mini-score-selected-bg: #e8efe8;
   --selection-indicator: #7a9c85;
+  --follow-star: #8a641c;
 
   /* Compatibility aliases for existing components. */
   --paper: var(--page-bg);
@@ -90,6 +91,7 @@
   --border-control: #dce2e9;
   --mini-score-selected-bg: color-mix(in srgb, #334155 14%, #ffffff);
   --selection-indicator: #334155;
+  --follow-star: #8a5a00;
   --theme-surface: #ffffff;
   --theme-surface-muted: #f1f5f9;
   --theme-surface-selected: color-mix(in srgb, #334155 15%, #ffffff);
@@ -150,6 +152,7 @@
   --border-control: #d9ccb3;
   --mini-score-selected-bg: color-mix(in srgb, #594936 14%, #fff8e9);
   --selection-indicator: #594936;
+  --follow-star: #805916;
   --theme-surface: #fff8e9;
   --theme-surface-muted: #efe5ce;
   --theme-surface-selected: color-mix(in srgb, #594936 15%, #fff8e9);
@@ -210,6 +213,7 @@
   --border-control: #566176;
   --mini-score-selected-bg: color-mix(in srgb, #8fbcbb 14%, #3b4252);
   --selection-indicator: #8fbcbb;
+  --follow-star: #ebcb8b;
   --theme-surface: #3b4252;
   --theme-surface-muted: #343b49;
   --theme-surface-selected: color-mix(in srgb, #8fbcbb 15%, #3b4252);
@@ -270,6 +274,7 @@
   --border-control: #53566c;
   --mini-score-selected-bg: color-mix(in srgb, #8be9fd 14%, #303341);
   --selection-indicator: #8be9fd;
+  --follow-star: #f1fa8c;
   --theme-surface: #303341;
   --theme-surface-muted: #282a36;
   --theme-surface-selected: color-mix(in srgb, #8be9fd 15%, #303341);

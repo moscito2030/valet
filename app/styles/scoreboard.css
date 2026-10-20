@@ -355,10 +355,10 @@ tbody tr.followed {
   color: var(--theme-muted, #c5ccbf);
 }
 .follow-button.on {
-  color: var(--theme-muted, #a48a48);
+  color: var(--follow-star);
 }
 .follow-button.on svg {
-  fill: var(--theme-surface-muted, #efe4ba);
+  fill: currentColor;
 }
 .table-footer {
   padding: 16px 24px;
