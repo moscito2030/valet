@@ -159,16 +159,17 @@
 .club-results-link:hover { color: var(--forest); text-decoration: underline; text-underline-offset: 4px; }
 .club-results-link:focus-visible { outline: 2px solid var(--selection-indicator); outline-offset: 4px; }
 
-/* Keep the transport controls together on narrow screens. */
-.round-console { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-bg); }
-.round-console > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 76px; padding: 10px 4px; border: 0; border-radius: 9px; background: transparent; color: var(--ink); font-size: 13px; }
-.round-console > button:hover:not(:disabled) { background: var(--line); }
-.round-console > button:disabled { opacity: .35; cursor: not-allowed; }
-.round-console > button.round-console-play { background: var(--forest); color: var(--surface-bg); }
-.round-console > button.round-console-play:hover:not(:disabled) { background: var(--forest); filter: brightness(1.12); }
-.round-console > button[aria-expanded="true"] { background: var(--line); }
+/* Separate tactile keys, grouped like a radio's transport controls. */
+.round-console { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 6px 0; }
+.round-console > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; min-width: 0; min-height: 76px; padding: 12px 3px; border: 1px solid var(--border-control); border-bottom-width: 3px; border-radius: 7px; background: linear-gradient(var(--surface-bg), var(--surface-soft)); color: var(--ink); font-size: 13px; font-weight: 500; box-shadow: 0 2px 2px color-mix(in srgb, var(--ink) 7%, transparent); transition: background .12s, transform .12s, box-shadow .12s; }
+.round-console > button:hover:not(:disabled) { background: var(--surface-control-hover); }
+.round-console > button:first-child { background: var(--danger); border-color: color-mix(in srgb, var(--danger) 76%, var(--ink)); color: var(--surface-bg); }
+.round-console > button:first-child:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 90%, var(--ink)); }
+.round-console > button:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+.round-console > button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.round-console > button:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
 .round-console svg { width: 21px; height: 21px; stroke-width: 1.6; }
-.round-console span { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-.round-console small { display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; background: var(--line); font-size: 11px; font-variant-numeric: tabular-nums; }
+.round-console span { white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .round-console > button { transition: none; } }
 .club-admin .round-console-caption { margin: 10px 0 0; color: var(--muted); font-size: 13px; text-align: right; }
 .round-workflow-actions:empty { display: none; }
