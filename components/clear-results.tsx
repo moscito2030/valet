@@ -14,7 +14,7 @@ export function ClearResults({
 }) {
   const [confirmation, setConfirmation] = useState('');
   return (
-    <section className="import-export-section clear-results-control">
+    <section className="clear-results-control">
       <EditorPopover title="清除所有成績">
         <p>
           清除「{name}」全部 {count}{' '}

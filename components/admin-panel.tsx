@@ -2,7 +2,6 @@
 import type { ResultInput } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { useCallback, useEffect, useState } from 'react';
-import { ArrangementPanel } from './admin/ArrangementPanel';
 import { AuditPanel } from './admin/AuditPanel';
 import { ImportPanel } from './admin/ImportPanel';
 import { PenaltyPanel } from './admin/PenaltyPanel';
@@ -222,9 +221,6 @@ export function AdminPanel({
             setText={setText}
             text={text}
           />
-        )}
-        {section === 'import' && event.canDirect && (
-          <ArrangementPanel busy={busy} event={event} save={save} />
         )}
         {(section === 'publish' || (section === 'import' && event.canDirect)) && (
           <PublicationPanel
