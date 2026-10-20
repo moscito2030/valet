@@ -1,3 +1,4 @@
+import { SuitSymbol } from './suit-symbol';
 const suits = {
   s: { symbol: '♠', label: '黑桃', red: false },
   h: { symbol: '♥', label: '紅心', red: true },
@@ -21,7 +22,7 @@ export function CommentText({ text }: { text: string }) {
             role="img"
             aria-label={suit.label}
           >
-            {suit.symbol}
+            <SuitSymbol suit={part[1].toUpperCase()} />
           </span>
         ) : (
           part

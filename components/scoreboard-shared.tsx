@@ -1,4 +1,5 @@
 'use client';
+import { SuitSymbol } from './suit-symbol';
 import type { Audit, Board, Kind, PublicEvent, Result, ResultInput, Seat } from '@/lib/model';
 export type EventSummary = {
   id: string;
@@ -88,7 +89,10 @@ export function Contract({ result }: { result?: Result }) {
   if (result?.status === 'cancelled') return <span className="cancelled-contract">取消</span>;
   return result ? (
     <span data-suit={result.level ? result.strain : undefined} className={`contract ${result.strain === 'H' || result.strain === 'D' ? 'red' : ''}`}>
-      {displayContract(result)}{' '}
+      {displayContract(result).split(/([♠♥♦♣])/).map((part, index) => {
+        const suit = ({ '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' } as Record<string, string>)[part];
+        return suit ? <SuitSymbol key={index} suit={suit} /> : part;
+      })}{' '}
       <small>
         {result.level ? seatNames[result.declarer] : ''} {resultText(result)}
         {result.split && ' · 判'}

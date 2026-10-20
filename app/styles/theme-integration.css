@@ -23,6 +23,20 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
   .compass-center button.trick-card[data-suit]
 ):not(.compact-dd *, .your-contract *) { color: var(--suit-color); }
+
+/* Nord keeps its palette, with bolder open suit shapes outside analysis labels. */
+.suit-symbol-outline { display: none; }
+:root[data-theme="nord"] .suit-symbol-solid { display: none; }
+:root[data-theme="nord"] .suit-symbol-outline {
+  display: inline;
+  font-size: 0.78em;
+  font-weight: 700;
+  -webkit-text-stroke: 0.025em currentColor;
+}
+:root[data-theme="nord"] .sidebar [data-suit="S"],
+:root[data-theme="nord"] .sidebar [data-suit="C"] { color: var(--text-primary); }
+:root[data-theme="nord"] .sidebar [data-suit="H"],
+:root[data-theme="nord"] .sidebar [data-suit="D"] { color: var(--suit-red); }
 /* Both Par Contract and Table Result share this presentation. */
 :root[data-theme="dracula"] .your-contract .contract-bid[data-suit] {
   color: var(--text-primary);

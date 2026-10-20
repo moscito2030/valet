@@ -1,4 +1,5 @@
 'use client';
+import { SuitSymbol } from './suit-symbol';
 import { teamScoringLabel } from '@/lib/team-method';
 import { followedParticipant, followStorageKey } from '@/lib/followed-participant';
 import { resultsSelection } from '@/lib/scoreboard-link';
@@ -345,7 +346,7 @@ export default function Scoreboard() {
           </button>
           <div className="sidebar-note">
             <span className="tiny-suits">
-              <span data-suit="S">♠</span> <b><span data-suit="H">♥</span> <span data-suit="D">♦</span></b> <span data-suit="C">♣</span>
+              <span data-suit="S"><SuitSymbol suit="S" /></span> <b><span data-suit="H"><SuitSymbol suit="H" /></span> <span data-suit="D"><SuitSymbol suit="D" /></span></b> <span data-suit="C"><SuitSymbol suit="C" /></span>
             </span>
             <p>比賽不浪費白紙，環保從臺大開始</p>
             <small>

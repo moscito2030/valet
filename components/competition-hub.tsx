@@ -1,4 +1,5 @@
 'use client';
+import { SuitSymbol } from './suit-symbol';
 import { AppVersion } from './app-version';
 import { ManualLink } from './manual-link';
 import { Breadcrumbs } from './breadcrumbs';
@@ -61,7 +62,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       <div className="sidebar-label">賽事工作區</div>
       <a href="/" className="nav-item active"><Trophy size={18} />瀏覽賽事</a>
       <ManualLink />
-      <div className="sidebar-bottom"><div className="sidebar-note"><span className="tiny-suits"><span data-suit="S">♠</span> <b><span data-suit="H">♥</span> <span data-suit="D">♦</span></b> <span data-suit="C">♣</span></span><p>比賽不浪費白紙，環保從臺大開始</p><small><AppVersion /></small></div></div>
+      <div className="sidebar-bottom"><div className="sidebar-note"><span className="tiny-suits"><span data-suit="S"><SuitSymbol suit="S" /></span> <b><span data-suit="H"><SuitSymbol suit="H" /></span> <span data-suit="D"><SuitSymbol suit="D" /></span></b> <span data-suit="C"><SuitSymbol suit="C" /></span></span><p>比賽不浪費白紙，環保從臺大開始</p><small><AppVersion /></small></div></div>
     </aside>
     <div className="main-shell">
       <header className="topbar">{competitionId ? <Breadcrumbs items={[{ label: competition?.name ?? '賽事主頁' }]} /> : <nav className="breadcrumb home-navigation" aria-label="主要導覽">
