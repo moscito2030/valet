@@ -74,6 +74,8 @@
 .club-progress-trigger:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
 .club-progress-trigger strong { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
 .table-score-review { min-width: 0; }
+.table-score-review-names { display: grid; grid-template-columns: 3em minmax(0, 1fr); row-gap: 4px; margin: 1em 0; }
+.table-score-review-names > span:nth-child(even) { overflow-wrap: anywhere; }
 .table-score-review-board { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
 .table-score-review-scores { margin: 8px 0; font-variant-numeric: tabular-nums; }
 .table-score-review-board small { color: var(--muted); }

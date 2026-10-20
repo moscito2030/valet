@@ -6,7 +6,10 @@ import { Contract, type AdminEvent } from './scoreboard-shared';
 export function TableScoreReview({ event, assignment: a }: { event: AdminEvent; assignment: Assignment }) {
   const name = (id: string) => event.participants.find(p => p.id === id)?.name ?? id;
   return <div className="table-score-review">
-    <p>NS：{name(a.ns)}<br />EW：{name(a.ew)}</p>
+    <div className="table-score-review-names">
+      <span>NS：</span><span>{name(a.ns)}</span>
+      <span>EW：</span><span>{name(a.ew)}</span>
+    </div>
     <p className="footnote">{clubAccepted(event, a) ? '本桌已認可' : '本桌尚未確認'} · 僅供後台核對，不會發布成績。</p>
     <div className="table-score-review-list">{a.boards.map(board => {
       const r = event.results[`${a.id}:${board}`];
