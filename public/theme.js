@@ -3,10 +3,10 @@
   const key = 'valet-theme';
   const themes = [
     ['forest', '原色', '紙與森林', '#f6f5f1', '#203c32', '#963f43'],
-    ['light', '純白', '清晰明亮', '#ffffff', '#334155', '#2563eb'],
+    ['light', '傷眼睛', '清晰明亮', '#ffffff', '#334155', '#2563eb'],
     ['sepia', '暖紙', '奶油紙・靛藍・磚紅', '#f5f0e4', '#485675', '#a14f42'],
     ['nord', 'Nord', '北境暮色', '#2e3440', '#d8dee9', '#88c0d0'],
-    ['dracula', 'Dracula', '紫夜微光', '#282a36', '#f8f8f2', '#bd93f9'],
+    ['dracula', 'ドパガキ', '紫夜微光', '#282a36', '#f8f8f2', '#bd93f9'],
   ];
   const valid = value => value === 'system' || themes.some(t => t[0] === value);
   const media = matchMedia('(prefers-color-scheme: dark)');
