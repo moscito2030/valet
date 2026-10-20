@@ -37,6 +37,27 @@ import { StandingsView } from './scoreboard/StandingsView';
 import { useEventResource } from './scoreboard/use-event-resource';
 import { usePrivatePreview } from './scoreboard/use-private-preview';
 import { SessionControl } from './session-control';
+
+function CurrentTaipeiTime({ active }: { active: boolean }) {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    setNow(new Date());
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  return (
+    <div>
+      當前時間：<time className="mono" dateTime={now?.toISOString()}>
+        {now ? now.toLocaleTimeString('zh-TW', {
+          timeZone: 'Asia/Taipei', hour12: false,
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+        }) : '—'}
+      </time>（臺灣時間）
+    </div>
+  );
+}
+
 export default function Scoreboard() {
   function positionDetail(trigger: HTMLButtonElement) {
     const target = trigger.getAttribute('popovertarget');
@@ -61,6 +82,7 @@ export default function Scoreboard() {
   const [playerSort, setPlayerSort] = useState<'round' | 'board' | 'opponent'>('round');
   const [playerRound, setPlayerRound] = useState(1);
   const [showContractButler, setShowContractButler] = useState(false);
+  const [roundInformationOpen, setRoundInformationOpen] = useState(false);
   const [travellerSide, setTravellerSide] = useState<'ns' | 'ew'>('ns');
   const [awayPerspective, setAwayPerspective] = useState(false);
   const [selectedResult, setSelectedResult] = useState('');
@@ -540,6 +562,7 @@ export default function Scoreboard() {
                     key={`time-${event.id}-${event.currentRound}`}
                     popover="auto"
                     className="player-detail-popover"
+                    onToggle={(e) => setRoundInformationOpen(e.newState === 'open')}
                   >
                     <strong>
                       {competitionComplete
@@ -559,6 +582,7 @@ export default function Scoreboard() {
                         : '尚未設定本圈時間區間'}
                     </div>
                     )}
+                    <CurrentTaipeiTime active={roundInformationOpen} />
                   </div>
                   <div
                     id="current-round-progress"
