@@ -115,7 +115,7 @@ export function RoundControlPanel({ busy, event, save, collection }: Props) {
             )}
             <button
               type="button"
-              disabled={round === 0}
+              disabled={locked || round === 0}
               aria-haspopup="dialog"
               onClick={collection.toggle}
             >
