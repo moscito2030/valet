@@ -1,10 +1,7 @@
 'use client';
 import { useState, useRef, useId, useEffect } from 'react';
 import {
-  Link2,
   Reply,
-  Trash2,
-  MoreHorizontal,
   Send,
   X,
   MessageSquare,
@@ -140,29 +137,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                   <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className={c.hidden ? 'discussion-hidden' : undefined}>
                     <div className="discussion-meta">
                       <strong>{c.nickname}</strong>
-                      <time dateTime={c.createdAt}>
-                        {new Date(c.createdAt).toLocaleString('zh-TW', {
-                          month: 'numeric',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: false,
-                        })}
-                      </time>
-                      {c.hidden && <span className="discussion-badge">已隱藏</span>}
-
-                    </div>
-                    {c.replyTo && (
-                      <div className="discussion-reference">
-                        <Reply size={13} aria-hidden="true" />
-                        回覆{' '}
-                        {data.comments.find((r) => r.id === c.replyTo)?.nickname ?? '已移除留言'}
-                      </div>
-                    )}
-                    <p className="discussion-text">
-                      <CommentText text={c.text} />
-                    </p>
-                    <div className="discussion-actions">
                       {!data.closed && !data.globalClosed && !c.hidden && (
                         <button
                           type="button"
@@ -170,7 +144,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                           disabled={busy}
                           onClick={() => beginReply(c.id)}
                         >
-                          <Reply size={15} aria-hidden="true" />
                           回覆
                         </button>
                       )}
@@ -183,13 +156,9 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                               send('PATCH', { action: 'delete', id: c.id });
                           }}
                         >
-                          <Trash2 size={14} aria-hidden="true" />
                           刪除
                         </button>
                       )}
-                      <a className="button subtle discussion-action" href={`/?event=${encodeURIComponent(eventId)}&view=boards&board=${board}#comment-${c.id}`} aria-label={`連結至 ${c.nickname} 的留言`} title="留言專屬連結，可複製或分享">
-                        <Link2 size={15} aria-hidden="true" />連結
-                      </a>
                       {data.director && (
                         <>
                           <button
@@ -197,7 +166,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                             popoverTarget={`${menuId}-${c.id}`}
                             aria-label={`管理 ${c.nickname} 的留言`}
                           >
-                            <MoreHorizontal size={18} aria-hidden="true" />
                             <span>管理</span>
                           </button>
                           <div id={`${menuId}-${c.id}`} popover="auto" className="discussion-menu">
@@ -243,7 +211,31 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                           </div>
                         </>
                       )}
+                      <a className="discussion-permalink" href={`/?event=${encodeURIComponent(eventId)}&view=boards&board=${board}#comment-${c.id}`} aria-label={`連結至 ${c.nickname} 的留言`} title="留言專屬連結，可複製或分享">
+                      <time dateTime={c.createdAt}>
+                        {new Date(c.createdAt).toLocaleString('zh-TW', {
+                          month: 'numeric',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                      </time>
+                      </a>
+                      {c.hidden && <span className="discussion-badge">已隱藏</span>}
+
                     </div>
+                    {c.replyTo && (
+                      <div className="discussion-reference">
+                        <Reply size={13} aria-hidden="true" />
+                        回覆{' '}
+                        {data.comments.find((r) => r.id === c.replyTo)?.nickname ?? '已移除留言'}
+                      </div>
+                    )}
+                    <p className="discussion-text">
+                      <CommentText text={c.text} />
+                    </p>
+
                   </li>
                 ))}
               </ol>
