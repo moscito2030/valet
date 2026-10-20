@@ -68,7 +68,11 @@
   --score-negative: #b33645;
   --team-home: #275d9c;
   --team-away: #b33645;
-  --suit-red: #b33645;
+  --suit-red: #ff0000;
+  --suit-S: #000000;
+  --suit-H: #ff0000;
+  --suit-D: #ff0000;
+  --suit-C: #000000;
   --switch-off: #dce2e9;
   --switch-thumb: #ffffff;
   --sidebar-bg: #1e293b;

@@ -27,3 +27,13 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 :root[data-theme="dracula"] .your-contract .contract-bid[data-suit] {
   color: var(--text-primary);
 }
+
+/* Light theme uses traditional pure red/black; analysis labels keep their tone. */
+:root[data-theme="light"] [data-suit="S"] { --suit-color: var(--suit-S); }
+:root[data-theme="light"] [data-suit="H"] { --suit-color: var(--suit-H); }
+:root[data-theme="light"] [data-suit="D"] { --suit-color: var(--suit-D); }
+:root[data-theme="light"] [data-suit="C"] { --suit-color: var(--suit-C); }
+:root[data-theme="light"] :is(
+  [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
+  .compass-center button.trick-card[data-suit]
+):not(.compact-dd *, .your-contract *) { color: var(--suit-color); }
