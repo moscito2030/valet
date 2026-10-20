@@ -18,9 +18,9 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 :root[data-theme="dracula"] [data-suit="H"] { --suit-color: var(--suit-H); }
 :root[data-theme="dracula"] [data-suit="D"] { --suit-color: var(--suit-D); }
 :root[data-theme="dracula"] [data-suit="C"] { --suit-color: var(--suit-C); }
-/* Match legacy viewer red-card specificity without changing its layout. */
+/* Match legacy viewer red-card specificity; double-dummy headers stay monochrome. */
 :root[data-theme="dracula"] :is(
   [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
   .compass-center button.trick-card[data-suit],
   .your-contract .contract-bid[data-suit]
-) { color: var(--suit-color); }
+):not(.compact-dd *) { color: var(--suit-color); }
