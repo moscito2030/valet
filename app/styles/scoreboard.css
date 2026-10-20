@@ -524,3 +524,5 @@ select {
 }
 
 .ranking-group-title { text-align: left; padding: 18px 24px; font-size: 18px; font-weight: 600; color: var(--forest); background: var(--theme-surface-muted, #f4f7f1); border-bottom: 1px solid var(--line); }
+.double-winner-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 540px), 1fr)); align-items: start; }
+.double-winner-tables > .table-scroll { min-width: 0; }

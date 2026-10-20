@@ -107,6 +107,7 @@ export function StandingsView({
           />
         </label>
       </div>
+      <div className={doubleWinner ? 'ranking-tables double-winner-tables' : 'ranking-tables'}>
       {tables.map(({ group, rows }) => (
         <div className="table-scroll" key={group ?? 'all'}>
           <table className={`ranking-table${event.kind === 'teams' ? ' team-ranking-table' : ''}`}>
@@ -231,6 +232,7 @@ export function StandingsView({
           {rows.length === 0 && <div className="empty compact">沒有符合的參賽者</div>}
         </div>
       ))}
+      </div>
       <WinAwards event={event} participantIds={visibleStandings.map((s) => s.id)} />
       <div className="table-footer">
         <span>
