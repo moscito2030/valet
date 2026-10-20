@@ -211,13 +211,13 @@ export function PlayersView({
     (b) => b.round === playerRound && b.participantId === playerId,
   );
 
-  const participantPicker = (
+  const participantPicker = (id: string) => (
 <div className="participant-picker">
             查看{event.kind === 'teams' ? '隊伍' : '搭檔'}
             <button
               className="participant-picker-trigger"
               aria-label="選擇參賽者"
-              popoverTarget="participant-options"
+              popoverTarget={id}
               onClick={(e) => positionDetail(e.currentTarget)}
             >
               <span>
@@ -233,7 +233,7 @@ export function PlayersView({
               <ChevronDown size={16} />
             </button>
             <div
-              id="participant-options"
+              id={id}
               popover="auto"
               className="player-detail-popover participant-options"
             >
@@ -262,8 +262,9 @@ export function PlayersView({
   return (
     <div className="player-results-view">
     <div className="player-results-layout">
-    {event.kind === 'pairs' && <section className="panel pair-picker-panel" aria-label="查看搭檔">{participantPicker}</section>}
+    {event.kind === 'pairs' && <section className="panel pair-picker-panel" aria-label="查看搭檔">{participantPicker('participant-options-wide')}</section>}
     <section className="panel player-results" aria-label={event.kind === 'teams' ? '隊伍個別成績' : '搭檔個別成績'}>
+      {event.kind === 'pairs' && <div className="panel-heading pair-results-mobile-heading"><h3>搭檔個別成績</h3><div className="player-result-filters pairs-result-filters">{participantPicker('participant-options-mobile')}</div></div>}
       {event.kind === 'teams' && <div className="panel-heading team-results-heading">
         <div className="team-result-intro">
           <div>
@@ -282,7 +283,7 @@ export function PlayersView({
         <div
           className={`player-result-filters${event.kind === 'teams' ? '' : ' pairs-result-filters'}`}
         >
-          {event.kind === 'teams' && participantPicker}
+          {event.kind === 'teams' && participantPicker('participant-options-teams')}
           {event.kind === 'teams' && (
             <label className="participant-picker">
               查看圈次
