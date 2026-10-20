@@ -210,6 +210,7 @@ export function PlayersView({
   );
 
   return (
+    <div className="player-results-view">
     <section className="panel player-results">
       <div className={`panel-heading${event.kind === 'teams' ? ' team-results-heading' : ''}`}>
         <div className="team-result-intro">
@@ -730,5 +731,6 @@ export function PlayersView({
       </div>
       {event.kind === 'pairs' && event.showScoreCandles !== false && <PairScoreChart key={`${event.id}:${playerId}`} event={event} person={playerId} />}
     </section>
+    </div>
   );
 }
