@@ -23,6 +23,11 @@
 .round-workflow-actions .button { max-width: 100%; white-space: normal; min-height: 44px; }
 .club-admin-tools { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 .club-force-list { padding-left: 20px; line-height: 1.8; }
+.club-force-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+.club-force-table th, .club-force-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; line-height: 1.6; }
+.club-force-table thead th { color: var(--muted); font-size: 13px; }
+.club-force-table tr > :first-child { width: 1%; text-align: center; white-space: nowrap; }
+.club-force-table td { overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   .round-workflow { padding: 16px; }
   .round-workflow-actions { align-items: stretch; flex-direction: column; }

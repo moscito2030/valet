@@ -155,17 +155,25 @@ export function ClubAdmin({
             </p>
           )}
           <p>保留已有成績，由裁判確認以下桌次；尚未輸入的牌將取消，不計入有效成績。</p>
-          <ul className="club-force-list">
-            {forceTables.map((a) => {
-              const missing = a.boards.filter((b) => !event.results[`${a.id}:${b}`]);
-              return (
-                <li key={a.id}>
-                  {tableDeviceLabel(event, a)}：
-                  {missing.length ? `取消牌 ${missing.join('、')}` : '成績已齊，由裁判代為確認'}
-                </li>
-              );
-            })}
-          </ul>
+          <table className="club-force-table" aria-label="強制結算待處理桌次">
+            <thead>
+              <tr>
+                <th scope="col">桌號</th>
+                <th scope="col">取消牌號</th>
+              </tr>
+            </thead>
+            <tbody>
+              {forceTables.map((a) => {
+                const missing = a.boards.filter((b) => !event.results[`${a.id}:${b}`]);
+                return (
+                  <tr key={a.id}>
+                    <th scope="row">{tableDeviceLabel(event, a)}</th>
+                    <td>{missing.length ? missing.join('、') : '無；由裁判代為確認'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
           <p>
             {advance
               ? `成功後開啟第 ${roundLabel(event, round + 1)} 圈收分。`
