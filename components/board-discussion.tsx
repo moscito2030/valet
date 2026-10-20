@@ -135,8 +135,8 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                 </div>
               )}
               <ol className="discussion-list">
-                {discussionThreads(data.comments).map(({ comment: c, depth }) => (
-                  <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className={`discussion-comment${depth > 0 ? ' discussion-thread-reply' : ''}${c.hidden ? ' discussion-hidden' : ''}`} style={{ '--reply-depth': Math.min(depth, 3), '--reply-depth-mobile': Math.min(depth, 2) } as CSSProperties}>
+                {discussionThreads(data.comments).map(({ comment: c, depth, lastReply }) => (
+                  <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className={`discussion-comment${depth > 0 ? ' discussion-thread-reply' : ''}${lastReply ? ' discussion-thread-last' : ''}${c.hidden ? ' discussion-hidden' : ''}`} style={{ '--reply-depth': Math.min(depth, 3), '--reply-depth-mobile': Math.min(depth, 2) } as CSSProperties}>
                     <div className="discussion-meta">
                       <strong>{c.nickname}</strong>
                       {!data.closed && !data.globalClosed && !c.hidden && (

@@ -12,3 +12,15 @@ test('missing parents and cycles retain each comment once', () => {
   assert.equal(new Set(result.map(x=>x.comment.id)).size,4);
   assert.equal(result.find(x=>x.comment.id==='a')?.depth,0);
 });
+
+test('only the final sibling ends the connector at each reply depth', () => {
+  const comments = [
+    {id:'root'}, {id:'first',replyTo:'root'}, {id:'last',replyTo:'root'},
+    {id:'nested-first',replyTo:'last'}, {id:'nested-last',replyTo:'last'},
+    {id:'other-root'},
+  ];
+  assert.deepEqual(
+    discussionThreads(comments).map(({comment,depth,lastReply}) => [comment.id,depth,lastReply]),
+    [['root',0,false],['first',1,false],['last',1,true],['nested-first',2,false],['nested-last',2,true],['other-root',0,false]],
+  );
+});

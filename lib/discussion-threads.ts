@@ -10,13 +10,14 @@ export function discussionThreads<T extends { id: string; replyTo?: string }>(co
       children.set(comment.replyTo, siblings);
     } else roots.push(comment);
   }
-  const result: { comment: T; depth: number }[] = [];
+  const result: { comment: T; depth: number; lastReply: boolean }[] = [];
   const visited = new Set<string>();
-  const visit = (comment: T, depth: number) => {
+  const visit = (comment: T, depth: number, lastReply = false) => {
     if (visited.has(comment.id)) return;
     visited.add(comment.id);
-    result.push({ comment, depth });
-    for (const child of children.get(comment.id) ?? []) visit(child, depth + 1);
+    result.push({ comment, depth, lastReply });
+    const replies = (children.get(comment.id) ?? []).filter(child => !visited.has(child.id));
+    replies.forEach((child, index) => visit(child, depth + 1, index === replies.length - 1));
   };
   for (const root of roots) visit(root, 0);
   // Retain malformed cyclic threads without looping or dropping comments.

@@ -386,6 +386,8 @@
   content: ''; position: absolute; left: -13px; top: 22px;
   width: 12px; border-top: 1px solid var(--line); pointer-events: none;
 }
+/* End each sibling branch at its final card's header, including nested replies. */
+.discussion-thread-last::before { bottom: auto; height: 35px; }
 .discussion-list > .discussion-comment:target {
   border-color: var(--selection-indicator, var(--forest));
   box-shadow: 0 0 0 1px var(--selection-indicator, var(--forest));
