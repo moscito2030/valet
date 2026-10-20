@@ -1,4 +1,5 @@
 import { DiscussionProvider } from '../board-discussion-context';
+import { CompactImp } from '../compact-imp';
 import { BoardDanmaku } from '../board-danmaku';
 import { BoardDiscussion } from '../board-discussion';
 import { displayedBoardNumber, boardRounds as getBoardRounds } from '@/lib/board-navigation';
@@ -564,7 +565,9 @@ export function BoardsView({
                           <td
                             className={`mono ${pairTone(mp?.[travellerSide], mp?.top ?? 0, pairMethod)}`}
                           >
-                            {pairValue(mp?.[travellerSide], mp?.top ?? 0, pairMethod)}
+                            {pairMethod === 'mp'
+                              ? pairValue(mp?.[travellerSide], mp?.top ?? 0, pairMethod)
+                              : <CompactImp text={pairValue(mp?.[travellerSide], mp?.top ?? 0, pairMethod)} />}
                             {mp?.provisional && <small className="block muted">暫定</small>}
                           </td>
                         </tr>
