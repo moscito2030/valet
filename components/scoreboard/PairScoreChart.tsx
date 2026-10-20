@@ -40,7 +40,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const labelEvery = Math.max(1, Math.ceil(28 / step));
   const volumes = points.map(p => boardButlerVolume(event, p.board));
   const volumeMax = Math.max(10, Math.ceil(Math.max(0, ...volumes.map(v => v.value ?? 0)) / 10) * 10);
-  const volumeY = (value: number) => 205 - value / volumeMax * 64;
+  const volumeY = (value: number) => 205 - value / volumeMax * 42;
   const activeVolume = active ? volumes[points.indexOf(active)] : undefined;
   const ticks = [top, base + radius / 2, base, base - radius / 2, bottom];
   const activeX = active ? left + step * (points.indexOf(active) + .5) : null;
@@ -60,6 +60,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
         </>}
       </div>
       <div className="pair-score-chart-scroll" ref={scroller} onMouseLeave={() => setHovered(null)}>
+        <div className="pair-chart-axis-titles"><span>Butler IMP 量</span><span>{mp ? '累積 MP%' : '累積 IMP'}</span></div>
         <svg viewBox={`0 0 ${width} 235`} width={width} height="235" role="group" aria-label="點選各副 K 棒查看分數">
           {ticks.map(tick => <g key={tick}>
             <line x1={left} x2={right} y1={y(tick)} y2={y(tick)} className="pair-chart-grid" />
@@ -68,8 +69,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
           <line x1={right} x2={right} y1="14" y2="205" className="pair-chart-axis" />
           <line x1={left} x2={right} y1="205" y2="205" className="pair-chart-axis" />
           <line x1={left} x2={right} y1={y(base)} y2={y(base)} className="pair-chart-baseline" />
-          <text x={left - 8} y="12" textAnchor="end" className="pair-chart-label">量</text>
-          {[0, volumeMax, volumeMax * 2, volumeMax * 3].map(tick => <g key={tick}>
+          {[0, volumeMax * 2, volumeMax * 4].map(tick => <g key={tick}>
             <text x={left - 8} y={volumeY(tick) + 4} textAnchor="end" className="pair-chart-label">{tick}</text>
           </g>)}
           <line x1={left} x2={left} y1="14" y2="205" className="pair-chart-axis" />

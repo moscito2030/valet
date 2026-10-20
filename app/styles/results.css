@@ -699,8 +699,9 @@ table a:focus-visible {
 .pair-chart-candle:focus-visible { outline: none; }
 .pair-chart-candle:focus-visible .pair-chart-hit { stroke: var(--focus-ring); stroke-width: 2; }
 .pair-chart-wick { stroke: currentColor; stroke-width: 1.5; }
-.pair-chart-volume { fill: var(--action-secondary); opacity: .22; pointer-events: none; }
-.pair-chart-volume.highlighted { opacity: .42; }
+.pair-chart-axis-titles { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0 8px; color: var(--muted); font-size: 10px; }
+.pair-chart-volume { fill: var(--action-secondary); opacity: .16; pointer-events: none; }
+.pair-chart-volume.highlighted { opacity: .3; }
 .pair-chart-volume-summary { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
 .pair-chart-body { fill: currentColor; stroke: var(--surface-bg); stroke-width: .5; }
 .pair-chart-body.provisional { fill-opacity: .55; stroke: currentColor; stroke-dasharray: 2 2; }
