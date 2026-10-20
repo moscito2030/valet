@@ -187,3 +187,7 @@
 :root[data-theme]:not([data-theme="forest"]) .bridge-ranks .hand-card.played-card:disabled {
   color: var(--theme-muted, #9aa49f);
 }
+
+/* Keep corner suits monochrome, including mobile emoji-capable browsers. */
+.analysis-corner { font-variant-emoji: text; }
+:root[data-theme] .analysis-corner .your-contract .contract-bid.red-suit { color: inherit; }

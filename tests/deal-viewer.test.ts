@@ -22,3 +22,15 @@ test('MiniBridge table contract uses standard NT notation instead of prose', () 
   assert.match(html, /1NT/);
   assert.doesNotMatch(html, /一線|成局/);
 });
+
+test('corner contract suits request text presentation on mobile browsers', () => {
+  for (const [strain, symbol] of [['S', '♠'], ['H', '♥'], ['D', '♦'], ['C', '♣']] as const) {
+    const html = renderToStaticMarkup(createElement(DealExplorer, { board: {
+      number: 1, dealer: 'N', vulnerability: 'None', deal: { N: [], E: [], S: [], W: [] },
+    }, tableSelected: true, result: {
+      level: 1, strain, doubled: 1, declarer: 'N', tricks: 7, lead: '', nsScore: 80,
+    } }));
+    assert.ok(html.includes('1' + symbol + '\uFE0E'), strain + ' must use a text variation selector');
+    assert.ok(!html.includes(symbol + '\uFE0F'));
+  }
+});
