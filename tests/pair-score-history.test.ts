@@ -23,13 +23,13 @@ test('Butler volume counts each table once and averages absolute split awards', 
   const result = (assignmentId: string, nsScore: number): Result => ({ assignmentId, board, level: 4, strain: 'S', doubled: 1, declarer: 'N', tricks: 10, lead: '', nsScore, updatedAt: '' });
   event.results[`${assignments[0].id}:${board}`] = result(assignments[0].id, 420);
   event.results[`${assignments[1].id}:${board}`] = result(assignments[1].id, 0);
-  assert.deepEqual(boardButlerVolume(event, board), { value: 10, spread: 420, tables: 2, provisional: true });
+  assert.deepEqual(boardButlerVolume(event, board), { value: 10, spread: 10, tables: 2, provisional: true });
   event.results[`${assignments[0].id}:${board}`].split = {
     ns: result(assignments[0].id, 1000), ew: result(assignments[0].id, 0),
   };
   assert.equal(boardButlerVolume(event, board).value, 22 / 2);
   event.results[`${assignments[2].id}:${board}`] = { ...result(assignments[2].id, 9999), status: 'cancelled' };
-  assert.deepEqual(boardButlerVolume(event, board), { value: 11, spread: 1000, tables: 2, provisional: false });
+  assert.deepEqual(boardButlerVolume(event, board), { value: 11, spread: 22, tables: 2, provisional: false });
   assert.equal(boardButlerVolume(event, 999).value, null);
 });
 

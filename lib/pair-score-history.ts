@@ -13,7 +13,9 @@ export function boardButlerVolume(event: PublicEvent, board: number) {
     Math.abs(imps(-awardedResult(result, 'ew')!.nsScore - datum.ew.datum!))
   ) / 2, 0) : null;
   const spread = valid.length ? Math.max(...(['ns', 'ew'] as const).map(side => {
-    const scores = valid.map(result => awardedResult(result, side)!.nsScore * (side === 'ns' ? 1 : -1));
+    const scores = valid.map(result => imps(
+      awardedResult(result, side)!.nsScore * (side === 'ns' ? 1 : -1) - datum[side].datum!,
+    ));
     return Math.max(...scores) - Math.min(...scores);
   })) : null;
   return { value, spread, tables: valid.length, provisional: results.some(r => !r) };
