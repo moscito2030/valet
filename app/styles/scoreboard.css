@@ -236,9 +236,8 @@ td {
   border-bottom: 1px solid var(--theme-border, #edf0e8);
   font-size: 12px;
 }
-tbody tr:last-child td {
-  border-bottom: 0;
-}
+/* Keep the final row border by default, including mixed th/td rows.
+   Tables that intentionally omit it must opt in with a component-scoped rule. */
 tbody tr:hover {
   background: var(--theme-surface, #fcfcf8);
 }

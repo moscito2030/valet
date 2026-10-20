@@ -107,8 +107,6 @@
 .mini-score-reference > p { font-size: 13px; color: var(--muted); line-height: 1.6; }
 .mini-score-reference table { width: 100%; border-collapse: collapse; table-layout: fixed; background: var(--surface-bg); }
 .mini-score-reference th, .mini-score-reference td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--line); }
-.mini-score-reference tbody tr:last-child > td,
-.mini-score-reference tbody tr:last-child > th { border-bottom: 1px solid var(--line); }
 .mini-score-reference thead th { font-size: 12px; font-weight: 500; color: var(--muted); background: var(--soft); }
 .mini-score-reference th:first-child { width: 13%; }
 .mini-score-reference tbody th { font-size: 22px; font-weight: 500; }
