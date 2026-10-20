@@ -2,16 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEvent } from '../lib/events';
 import { audienceEvent } from '../lib/club-view';
-import { pairScoreHistory, roundMovingAverage, usesCommonBoards } from '../lib/pair-score-history';
+import { boardButlerVolume, pairScoreHistory, usesCommonBoards } from '../lib/pair-score-history';
+import type { Result } from '../lib/model';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PairScoreChart } from '../components/scoreboard/PairScoreChart';
 
-test('round MA waits for a full window and breaks across missing results', () => {
-  const points = [10, 20, 30, null, 40, 60].map(close => ({ close }));
-  assert.deepEqual(roundMovingAverage(points, 2), [null, 15, 25, null, null, 50]);
-  assert.deepEqual(roundMovingAverage(points, 1), [10, 20, 30, null, 40, 60]);
-});
 
 function fixture() {
   return audienceEvent(createEvent({
@@ -20,6 +16,23 @@ function fixture() {
     date: '2026-10-20', venue: '',
   }));
 }
+test('Butler volume counts each table once and averages absolute split awards', () => {
+  const event = fixture();
+  const assignments = event.assignments.filter(a => a.round === 1);
+  const board = assignments[0].boards[0];
+  const result = (assignmentId: string, nsScore: number): Result => ({ assignmentId, board, level: 4, strain: 'S', doubled: 1, declarer: 'N', tricks: 10, lead: '', nsScore, updatedAt: '' });
+  event.results[`${assignments[0].id}:${board}`] = result(assignments[0].id, 420);
+  event.results[`${assignments[1].id}:${board}`] = result(assignments[1].id, 0);
+  assert.deepEqual(boardButlerVolume(event, board), { value: 10, tables: 2, provisional: true });
+  event.results[`${assignments[0].id}:${board}`].split = {
+    ns: result(assignments[0].id, 1000), ew: result(assignments[0].id, 0),
+  };
+  assert.equal(boardButlerVolume(event, board).value, 22 / 2);
+  event.results[`${assignments[2].id}:${board}`] = { ...result(assignments[2].id, 9999), status: 'cancelled' };
+  assert.deepEqual(boardButlerVolume(event, board), { value: 11, tables: 2, provisional: false });
+  assert.equal(boardButlerVolume(event, 999).value, null);
+});
+
 test('table hover highlights the matching candle and clears without an external hover', () => {
   const event = fixture();
   const a = event.assignments.find(a => a.ns === 'p1')!;

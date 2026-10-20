@@ -1,15 +1,18 @@
 import type { PublicEvent } from './model';
 import { resultKey } from './model';
+import { directionalDatum } from './datum';
+import { awardedResult, imps } from './scoring';
 
-// A full trailing round of closing values; missing results break the line.
-export function roundMovingAverage(points: readonly { close: number | null }[], boardsPerRound: number) {
-  const window = Math.max(1, Math.floor(boardsPerRound));
-  return points.map((_, index) => {
-    if (index + 1 < window) return null;
-    const values = points.slice(index + 1 - window, index + 1).map(p => p.close);
-    if (values.some(value => value === null || !Number.isFinite(value))) return null;
-    return values.reduce<number>((sum, value) => sum + value!, 0) / window;
-  });
+export function boardButlerVolume(event: PublicEvent, board: number) {
+  const assignments = event.assignments.filter(a => a.boards.includes(board));
+  const results = assignments.map(a => event.results[resultKey(a.id, board)]);
+  const valid = results.filter(r => r && r.status !== 'cancelled' && r.status !== 'average');
+  const datum = directionalDatum(valid, event.pairMethod === 'butler' ? event.trim : 'none');
+  const value = valid.length ? valid.reduce((total, result) => total + (
+    Math.abs(imps(awardedResult(result, 'ns')!.nsScore - datum.ns.datum!)) +
+    Math.abs(imps(-awardedResult(result, 'ew')!.nsScore - datum.ew.datum!))
+  ) / 2, 0) : null;
+  return { value, tables: valid.length, provisional: results.some(r => !r) };
 }
 
 // Identify common-board movements from the actual schedule, including imported movements.

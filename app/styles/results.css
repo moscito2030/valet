@@ -699,6 +699,9 @@ table a:focus-visible {
 .pair-chart-candle:focus-visible { outline: none; }
 .pair-chart-candle:focus-visible .pair-chart-hit { stroke: var(--focus-ring); stroke-width: 2; }
 .pair-chart-wick { stroke: currentColor; stroke-width: 1.5; }
+.pair-chart-volume { fill: var(--action-secondary); opacity: .22; pointer-events: none; }
+.pair-chart-volume.highlighted { opacity: .42; }
+.pair-chart-volume-summary { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
 .pair-chart-body { fill: currentColor; stroke: var(--surface-bg); stroke-width: .5; }
 .pair-chart-body.provisional { fill-opacity: .55; stroke: currentColor; stroke-dasharray: 2 2; }
 .pair-chart-detail { display: flex; align-items: center; gap: 20px; margin-top: 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -717,8 +720,6 @@ table a:focus-visible {
 .pair-chart-crosshair text { fill: var(--surface-bg); font-size: 10px; font-variant-numeric: tabular-nums; }
 .pair-chart-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 10px; color: var(--muted); padding: 12px 0; }
 .pair-chart-legend { display: flex; flex-wrap: wrap; gap: 14px; }
-.pair-chart-round-ma { fill: none; stroke: var(--action-secondary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
-.pair-chart-legend i.round-ma { width: 14px; height: 2px; background: var(--action-secondary); }
 .pair-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .pair-chart-legend i { display: inline-block; width: 7px; height: 10px; border-radius: 1px; }
 .pair-chart-legend .gain { background: var(--score-positive); }

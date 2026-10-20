@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { PublicEvent } from '@/lib/model';
-import { pairScoreHistory, roundMovingAverage, usesCommonBoards } from '@/lib/pair-score-history';
+import { boardButlerVolume, pairScoreHistory, usesCommonBoards } from '@/lib/pair-score-history';
 
 export function PairScoreChart({ event, person, hoveredBoard = null }: { event: PublicEvent; person: string; hoveredBoard?: number | null }) {
   const [selected, setSelected] = useState<number | null>(null);
@@ -35,12 +35,13 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const bottom = base - radius, top = base + radius;
   const width = Math.max(120, availableWidth);
   const y = (v: number) => 20 + (top - v) / (top - bottom) * 180;
-  const left = 12, right = width - 64;
+  const left = 42, right = width - 64;
   const step = (right - left) / Math.max(1, points.length);
-  const roundMA = roundMovingAverage(points, event.boardsPerRound);
-  const maPath = roundMA.map((value, index) => value === null ? '' :
-    `${index === 0 || roundMA[index - 1] === null ? 'M' : 'L'}${left + step * (index + .5)},${y(value)}`).join(' ');
   const labelEvery = Math.max(1, Math.ceil(28 / step));
+  const volumes = points.map(p => boardButlerVolume(event, p.board));
+  const volumeMax = Math.max(10, Math.ceil(Math.max(0, ...volumes.map(v => v.value ?? 0)) / 10) * 10);
+  const volumeY = (value: number) => 205 - value / volumeMax * 64;
+  const activeVolume = active ? volumes[points.indexOf(active)] : undefined;
   const ticks = [top, base + radius / 2, base, base - radius / 2, bottom];
   const activeX = active ? left + step * (points.indexOf(active) + .5) : null;
   const tone = active?.close == null || active.close === active.open ? 'flat' : active.close > active.open ? 'gain' : 'loss';
@@ -67,6 +68,12 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
           <line x1={right} x2={right} y1="14" y2="205" className="pair-chart-axis" />
           <line x1={left} x2={right} y1="205" y2="205" className="pair-chart-axis" />
           <line x1={left} x2={right} y1={y(base)} y2={y(base)} className="pair-chart-baseline" />
+          <text x={left - 8} y="12" textAnchor="end" className="pair-chart-label">量</text>
+          {[0, volumeMax, volumeMax * 2, volumeMax * 3].map(tick => <g key={tick}>
+            <text x={left - 8} y={volumeY(tick) + 4} textAnchor="end" className="pair-chart-label">{tick}</text>
+          </g>)}
+          <line x1={left} x2={left} y1="14" y2="205" className="pair-chart-axis" />
+          {volumes.map((volume, i) => volume.value !== null && <rect key={points[i].board} x={left + step * (i + .15)} y={volumeY(volume.value)} width={step * .7} height={205 - volumeY(volume.value)} className={`pair-chart-volume${highlighted === points[i].board ? ' highlighted' : ''}`} />)}
           {points.map((p, i) => {
             const x = left + step * (i + .5);
             const label = `牌 ${p.board}：${p.close === null ? '未有可計分成績' : `${p.cancelled ? '取消牌，不計入累積，' : ''}${format(p.open)} → ${format(p.close)}，範圍 ${format(p.low!)} 至 ${format(p.high!)}${p.provisional ? '，暫計' : ''}`}`;
@@ -88,7 +95,6 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
               {i % labelEvery === 0 && <text x={x} y="224" textAnchor="middle" className="pair-chart-label">{p.board}</text>}
             </g>;
           })}
-          <path d={maPath} className="pair-chart-round-ma" aria-label={`round MA：最近 ${event.boardsPerRound} 副收盤值的平均`} />
           {highlighted !== null && active && activeX !== null && <g className={`pair-chart-crosshair ${tone}`} aria-hidden="true">
             <line x1={activeX} x2={activeX} y1="14" y2="205" />
             {active.close !== null && <>
@@ -101,11 +107,12 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
           <text x={right + 12} y="224" className="pair-chart-label">牌號</text>
         </svg>
       </div>
+      <p className="pair-chart-volume-summary">牌 {active?.board} · Butler IMP 量 {activeVolume?.value == null ? '—' : activeVolume.value.toFixed(1)}{activeVolume?.provisional ? '（暫計）' : ''} · {activeVolume?.tables ?? 0} 桌</p>
       <div className="pair-chart-footer">
-        <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span><span title={`最近 ${event.boardsPerRound} 副收盤值的平均；滿一圈後顯示`}><i className="round-ma" />round MA</span></div>
+        <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
         <span>滑過或點選查看</span>
       </div>
-      <p className="pair-chart-notes">實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。</p>
+      <p className="pair-chart-notes">實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。量柱使用左軸，K 棒使用右軸。量柱為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。</p>
     </>}
   </section>;
 }
