@@ -85,7 +85,7 @@ export function StandingsView({
     : [{ group: undefined, rows: visibleStandings }];
 
   return (
-    <section className="panel">
+    <section className={doubleWinner ? 'double-winner-ranking' : 'panel'}>
       <div className="panel-heading">
         <div>
           <h3>
@@ -109,7 +109,7 @@ export function StandingsView({
       </div>
       <div className={doubleWinner ? 'ranking-tables double-winner-tables' : 'ranking-tables'}>
       {tables.map(({ group, rows }) => (
-        <div className="table-scroll" key={group ?? 'all'}>
+        <div className={group ? 'panel table-scroll' : 'table-scroll'} key={group ?? 'all'}>
           <table className={`ranking-table${event.kind === 'teams' ? ' team-ranking-table' : ''}`}>
             {group && (
               <caption className="ranking-group-title">
