@@ -29,9 +29,10 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
   const max = Math.max(base, ...valid.flatMap(p => [p.open, p.high!]));
   const padding = Math.max((max - min) * .12, mp ? 5 : 1);
   const bottom = min - padding, top = max + padding;
-  const width = Math.max(availableWidth, points.length * 28 + 64);
+  const width = Math.max(120, availableWidth);
   const y = (v: number) => 20 + (top - v) / (top - bottom) * 180;
   const step = (width - 64) / Math.max(1, points.length);
+  const labelEvery = Math.max(1, Math.ceil(28 / step));
   const ticks = [top, (top + bottom) / 2, bottom];
   return <section className="pair-score-chart" aria-label="逐副累積成績 K 棒">
     <div className="pair-score-chart-heading">
@@ -58,11 +59,11 @@ export function PairScoreChart({ event, person }: { event: PublicEvent; person: 
               <rect x={x - step / 2} y="14" width={step} height="210" className="pair-chart-hit" rx="4" />
               {p.close !== null ? <>
                 <line x1={x} x2={x} y1={y(p.high!)} y2={y(p.low!)} className="pair-chart-wick" />
-                <rect x={x - 6} y={Math.min(y(p.open), y(p.close)) - (p.close === p.open ? 1 : 0)}
-                  width="12" height={Math.max(2, Math.abs(y(p.open) - y(p.close)))} rx="1"
+                <rect x={x - step / 2} y={Math.min(y(p.open), y(p.close)) - (p.close === p.open ? 1 : 0)}
+                  width={step} height={Math.max(2, Math.abs(y(p.open) - y(p.close)))}
                   className={`pair-chart-body${p.provisional ? ' provisional' : ''}`} />
               </> : <text x={x} y={y(p.open)} textAnchor="middle" className="pair-chart-label">·</text>}
-              <text x={x} y="224" textAnchor="middle" className="pair-chart-label">{p.board}</text>
+              {i % labelEvery === 0 && <text x={x} y="224" textAnchor="middle" className="pair-chart-label">{p.board}</text>}
             </g>;
           })}
         </svg>
