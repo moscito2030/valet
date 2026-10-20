@@ -218,7 +218,11 @@ export default function Scoreboard() {
       if (person) params.set('person', person);
       params.set('round', String(playerRound));
     }
-    history.replaceState(null, '', `?${params}`);
+    const currentParams = new URLSearchParams(location.search);
+    const commentHash = tab === 'boards' && currentParams.get('event') === id &&
+      currentParams.get('board') === String(board) && location.hash.startsWith('#comment-')
+      ? location.hash : '';
+    history.replaceState(null, '', `?${params}${commentHash}`);
   }, [id, tab, board, person, playerRound]);
   async function refresh() {
     setRefreshing(true);

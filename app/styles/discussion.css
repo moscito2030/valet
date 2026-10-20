@@ -330,3 +330,6 @@
     text-overflow: ellipsis;
   }
 }
+
+.discussion-list > li { scroll-margin-top: 24px; }
+.discussion-list > li:target { background: var(--theme-surface-muted, #f2f5ed); box-shadow: inset 3px 0 var(--forest); padding-left: 12px; padding-right: 12px; }

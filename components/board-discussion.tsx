@@ -1,6 +1,7 @@
 'use client';
-import { useState, useRef, useId } from 'react';
+import { useState, useRef, useId, useEffect } from 'react';
 import {
+  Link2,
   Reply,
   Trash2,
   MoreHorizontal,
@@ -17,6 +18,24 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
   const url = `/api/events/${eventId}/boards/${board}/discussion`;
   const { data, error, setError, refresh: load } = useDiscussion();
   const [busy, setBusy] = useState(false);
+  const locatedHash = useRef('');
+  useEffect(() => {
+    const locate = () => {
+      const hash = window.location.hash;
+      if (!hash.startsWith('#comment-') || hash === locatedHash.current) return;
+      const comment = data?.comments.find(c => '#comment-' + c.id === hash);
+      if (!comment || !data?.published) return;
+      const target = document.getElementById('comment-' + comment.id);
+      if (target) {
+        target.scrollIntoView({ block: 'center' });
+        target.focus({ preventScroll: true });
+        locatedHash.current = hash;
+      }
+    };
+    locate();
+    window.addEventListener('hashchange', locate);
+    return () => window.removeEventListener('hashchange', locate);
+  }, [data]);
   const [nickname, setNickname] = useState(''),
     [text, setText] = useState(''),
     [replyTo, setReplyTo] = useState<string>();
@@ -52,7 +71,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
     <section className="panel board-discussion">
       <div className="panel-heading discussion-heading">
         <div>
-          <h2>牌局討論</h2>
+          <h3>牌局討論</h3>
           <p>打橋牌的人最喜歡大談了！請聚焦本牌，勿張貼敏感個資。</p>
         </div>
         <div className="discussion-tools">
@@ -118,7 +137,7 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
               )}
               <ol className="discussion-list">
                 {data.comments.map((c) => (
-                  <li key={c.id} className={c.hidden ? 'discussion-hidden' : undefined}>
+                  <li key={c.id} id={`comment-${c.id}`} tabIndex={-1} className={c.hidden ? 'discussion-hidden' : undefined}>
                     <div className="discussion-meta">
                       <strong>{c.nickname}</strong>
                       <time dateTime={c.createdAt}>
@@ -167,6 +186,9 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                       <CommentText text={c.text} />
                     </p>
                     <div className="discussion-actions">
+                      <a className="discussion-action" href={`/?event=${encodeURIComponent(eventId)}&view=boards&board=${board}#comment-${c.id}`} aria-label={`連結至 ${c.nickname} 的留言`} title="留言專屬連結，可複製或分享">
+                        <Link2 size={15} aria-hidden="true" />連結
+                      </a>
                       {data.director && (
                         <>
                           <button
