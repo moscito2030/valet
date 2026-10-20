@@ -36,6 +36,18 @@ export function PublicationPanel({
       <TeamScoringSettings event={event} busy={busy} save={save} />
       {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
         e.preventDefault();
+        void save({ action: 'settings', status: event.status, danmakuDefaultEnabled: new FormData(e.currentTarget).get('danmakuDefaultEnabled') === 'on', reason: '設定彈幕預設啟動' });
+      }}>
+        <h4>牌局彈幕</h4>
+        <label className="checkbox-label">
+          <input type="checkbox" name="danmakuDefaultEnabled" key={String(!!event.danmakuDefaultEnabled)} defaultChecked={!!event.danmakuDefaultEnabled} disabled={busy} />
+          彈幕預設啟動
+        </label>
+        <p className="footnote">開啟逐副成績時預設播放彈幕，觀眾仍可自行關閉。僅在牌型已公開且有留言時播放。</p>
+        <button className="button subtle" disabled={busy}>儲存彈幕設定</button>
+      </form>}
+      {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
+        e.preventDefault();
         void save({ action: 'settings', status: event.status, audienceRefreshSeconds: Number(new FormData(e.currentTarget).get('audienceRefreshSeconds')), reason: '設定觀眾端刷新頻率' });
       }}>
         <h4>觀眾端自動更新</h4>

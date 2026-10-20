@@ -253,7 +253,7 @@ export function BoardsView({
     ) : null;
   if (!selectedBoard) return null;
   return (
-    <DiscussionProvider key={`${event.id}:${selectedBoard?.number}:${selectedBoard?.published}`} eventId={event.id} board={selectedBoard?.number ?? board}>
+    <DiscussionProvider key={`${event.id}:${selectedBoard?.number}:${selectedBoard?.published}`} eventId={event.id} board={selectedBoard?.number ?? board} defaultEnabled={event.danmakuDefaultEnabled}>
       <div className="board-view">
       <div className={`board-layout board-detail-layout${activeResult?.split ? ' has-split-result' : ''}`}>
         {activeResult?.split && (

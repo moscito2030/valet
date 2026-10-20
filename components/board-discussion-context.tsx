@@ -29,15 +29,17 @@ const Context = createContext<State | null>(null);
 export function DiscussionProvider({
   eventId,
   board,
+  defaultEnabled = false,
   children,
 }: {
   eventId: string;
   board: number;
+  defaultEnabled?: boolean;
   children: ReactNode;
 }) {
   const [data, setData] = useState<DiscussionData | null>(null),
     [error, setError] = useState(''),
-    [live, setLive] = useState(false),
+    [live, setLive] = useState(defaultEnabled),
     [visible, setVisible] = useState(true);
   const request = useRef<AbortController | null>(null);
   const refresh = useCallback(async () => {
