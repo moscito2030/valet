@@ -659,15 +659,15 @@ table a:focus-visible {
 .score-placeholder { color: var(--muted); font-weight: 300; }
 .team-imp-average-trigger { display: block; width: 100%; text-align: center; }
 .round-pairs-table .round-table-number { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
-.player-results-view { container-type: inline-size; min-width: 0; }
+.player-results-view { container-type: inline-size; container-name: player-results-layout; min-width: 0; }
 .player-results-layout { display: grid; gap: 24px; align-items: start; }
 .player-results-layout > * { min-width: 0; }
 .pair-picker-panel { display: none; padding: 24px; }
 .pair-picker-panel .participant-picker { width: 100%; flex-direction: column; align-items: stretch; font-size: 15px; }
 .pair-picker-panel .participant-picker-trigger { width: 100%; min-width: 0; }
-@container (min-width: 1100px) {
+@container player-results-layout (min-width: 1100px) {
   .pair-picker-panel { display: block; }
-  .pair-results-mobile-heading { display: none; }
+  .player-results > .panel-heading.pair-results-mobile-heading { display: none; }
   .player-results-layout:has(> .pair-picker-panel) {
     grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
     grid-template-rows: auto 1fr;
