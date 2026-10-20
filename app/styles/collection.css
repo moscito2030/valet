@@ -159,9 +159,12 @@
 .club-results-link:hover { color: var(--forest); text-decoration: underline; text-underline-offset: 4px; }
 .club-results-link:focus-visible { outline: 2px solid var(--selection-indicator); outline-offset: 4px; }
 
-/* Separate tactile keys, grouped like a radio's transport controls. */
-.round-console { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 6px 0; }
-.round-console > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; min-width: 0; min-height: 76px; padding: 12px 3px; border: 1px solid var(--border-control); border-bottom-width: 3px; border-radius: 7px; background: linear-gradient(var(--surface-bg), var(--surface-soft)); color: var(--ink); font-size: 13px; font-weight: 500; box-shadow: 0 2px 2px color-mix(in srgb, var(--ink) 7%, transparent); transition: background .12s, transform .12s, box-shadow .12s; }
+/* Joined tactile keys: square contact edges, rounded outer corners. */
+.round-console { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 6px 0; }
+.round-console > button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; min-width: 0; min-height: 76px; padding: 12px 3px; border: 1px solid var(--border-control); border-bottom-width: 3px; border-radius: 0; background: linear-gradient(var(--surface-bg), var(--surface-soft)); color: var(--ink); font-size: 13px; font-weight: 500; box-shadow: 0 2px 2px color-mix(in srgb, var(--ink) 7%, transparent); transition: background .12s, transform .12s, box-shadow .12s; }
+.round-console > button:first-of-type { border-radius: 7px 0 0 7px; }
+.round-console > button:last-of-type { border-radius: 0 7px 7px 0; }
+.round-console > button:not(:first-of-type) { border-left: 0; }
 .round-console > button:hover:not(:disabled) { background: var(--surface-control-hover); }
 .round-console > button:first-child { background: var(--danger); border-color: color-mix(in srgb, var(--danger) 76%, var(--ink)); color: var(--surface-bg); }
 .round-console > button:first-child:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 90%, var(--ink)); }
