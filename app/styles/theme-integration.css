@@ -18,9 +18,12 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 :root[data-theme="dracula"] [data-suit="H"] { --suit-color: var(--suit-H); }
 :root[data-theme="dracula"] [data-suit="D"] { --suit-color: var(--suit-D); }
 :root[data-theme="dracula"] [data-suit="C"] { --suit-color: var(--suit-C); }
-/* Match legacy viewer red-card specificity; double-dummy headers stay monochrome. */
+/* Match legacy viewer red-card specificity; analysis labels stay monochrome. */
 :root[data-theme="dracula"] :is(
   [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
-  .compass-center button.trick-card[data-suit],
-  .your-contract .contract-bid[data-suit]
-):not(.compact-dd *) { color: var(--suit-color); }
+  .compass-center button.trick-card[data-suit]
+):not(.compact-dd *, .your-contract *) { color: var(--suit-color); }
+/* Both Par Contract and Table Result share this presentation. */
+:root[data-theme="dracula"] .your-contract .contract-bid[data-suit] {
+  color: var(--text-primary);
+}
