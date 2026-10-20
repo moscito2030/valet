@@ -13,6 +13,17 @@
 .club-page .field select, .club-page .field input { min-height: 48px; font-size: 16px; }
 .club-admin h4 { margin: 24px 0 12px; }
 .club-admin p { line-height: 1.6; }
+.club-collection-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-bg); text-align: left; }
+.club-collection-summary:hover { background: var(--theme-surface-muted, #f5f6ef); }
+.club-collection-status { display: grid; gap: 6px; min-width: 0; }
+.club-collection-status strong { font-size: 16px; font-weight: 600; }
+.club-collection-status > span { color: var(--muted); font-size: 13px; }
+.club-collection-disclosure { display: flex; align-items: center; gap: 6px; font-size: 13px; flex-shrink: 0; }
+.club-collection-disclosure svg { transition: transform .16s; }
+.club-collection-summary[aria-expanded="true"] svg { transform: rotate(180deg); }
+.club-collection-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.club-collection-secondary { min-height: 44px; max-width: 100%; padding: 8px 4px; border: 0; background: transparent; color: var(--muted); font-size: 13px; border-radius: 4px; }
+.club-collection-secondary:hover { color: var(--ink); background: var(--theme-surface-muted, #f5f6ef); }
 .round-workflow { padding: 20px; margin-bottom: 24px; border-radius: 10px; background: var(--theme-surface-muted, #f5f6ef); }
 .round-workflow-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .round-workflow-heading .eyebrow { margin: 0 0 8px; color: var(--muted); }

@@ -4,6 +4,7 @@ import { TableScoreReview } from './table-score-review';
 import { roundLabel } from '@/lib/team-movement';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { ChevronDown } from 'lucide-react';
 import type { AdminEvent } from './scoreboard-shared';
 import { clubRoles, clubAccepted } from '@/lib/club-confirmation';
 import { tableDevices, tableDeviceLabel } from '@/lib/table-device';
@@ -216,24 +217,23 @@ export function ClubAdmin({
           ))}
       {event.club?.enabled && round > 0 && (
         <>
-          <h4>
-            本圈收分 ·{' '}
-            {finalized
-              ? '成績已發布'
-              : `${assignments.length - pending.length}／${assignments.length} 桌已確認`}
-          </h4>
           <button
             type="button"
-            className="button subtle"
+            className="club-collection-summary"
             aria-expanded={showTables}
             aria-controls="club-round-tables"
             onClick={() => setShowTables(!showTables)}
           >
-            {showTables
-              ? '收起桌次'
-              : finalized || !pending.length
-                ? '查看各桌成績'
-                : `查看 ${pending.length} 桌待處理`}
+            <span className="club-collection-status">
+              <strong>本圈收分</strong>
+              <span>{finalized ? '成績已發布'
+                : `${assignments.length - pending.length}／${assignments.length} 桌已確認`}</span>
+            </span>
+            <span className="club-collection-disclosure">
+              <span>{showTables ? '收起桌次' : finalized || !pending.length
+                ? '查看成績' : `${pending.length} 桌待處理`}</span>
+              <ChevronDown size={16} aria-hidden="true" />
+            </span>
           </button>
           {showTables && (
             <div id="club-round-tables">
@@ -314,7 +314,7 @@ export function ClubAdmin({
             </div>
           )}
           {!finalized && event.status === 'live' && (
-            <div className="button-row">
+            <div className="club-collection-actions">
               {clubRoundReady(event, round) ? (
                 <button
                   className="button primary"
@@ -333,7 +333,7 @@ export function ClubAdmin({
                 </button>
               ) : (
                 <button
-                  className="button subtle"
+                  className="club-collection-secondary"
                   disabled={busy || !assignments.length}
                   onClick={() => {
                     setError('');
