@@ -14,7 +14,7 @@
 .club-admin h4 { margin: 24px 0 12px; }
 .club-admin p { line-height: 1.6; }
 
-.round-workflow { padding: 20px; margin-bottom: 24px; border-radius: 10px; background: var(--theme-surface-muted, #f5f6ef); }
+.round-workflow { padding: 20px; margin-bottom: 24px; }
 .round-workflow-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .round-workflow-heading .eyebrow { margin: 0 0 8px; color: var(--muted); }
 .round-workflow-heading h4 { margin: 0; font-size: 20px; }
