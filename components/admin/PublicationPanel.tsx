@@ -1,6 +1,7 @@
 import { TeamScoringSettings } from '../team-scoring-settings';
 import { awardPlacesFor, hasDirectionalAwards } from '@/lib/awards';
 import { boardGroups, boardRange } from '@/lib/board-groups';
+import { allRoundsComplete } from '@/lib/round-progress';
 
 import { AdminEvent, api } from '../scoreboard-shared';
 
@@ -189,20 +190,20 @@ export function PublicationPanel({
       </form>
       <div className="setting-row">
         <div>
-          <strong>賽事狀態</strong>
-          <p>收齊全部成績後才可結束；結束後停止自動更新。</p>
+          <strong>賽段狀態 · {event.status === 'finished' ? '已結束' : event.status === 'review' || allRoundsComplete(event) ? '成績覆核中' : '進行中'}</strong>
+          <p>{event.status === 'finished' ? '成績已定案，使用快取呈現，不再接受更正。' : '全部圈次完成後進入成績覆核，選手可向裁判提出更正。確認結束後不可重新開放。'}</p>
         </div>
         <button
-          disabled={busy}
+          disabled={busy || !event.canDirect || event.status === 'finished' || !allRoundsComplete(event)}
           className="button subtle"
           onClick={() =>
             save({
               action: 'settings',
-              status: event.status === 'live' ? 'finished' : 'live',
+              status: 'finished',
             })
           }
         >
-          {event.status === 'live' ? '結束賽事' : '重新開放更正'}
+          {event.status === 'finished' ? '已定案' : '完成覆核並結束賽段'}
         </button>
       </div>
       </>}

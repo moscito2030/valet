@@ -1,7 +1,7 @@
 import type { BridgeEvent, Projection } from '../model';
 import { publicBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
-import { roundProgress } from '../round-progress';
+import { allRoundsComplete, roundProgress } from '../round-progress';
 import { project } from '../scoring';
 export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   const { club } = event;
@@ -63,7 +63,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     currentRound: event.currentRound,
     roundPhase: event.roundPhase,
     roundTimes: event.roundTimes,
-    status: event.status,
+    status: event.status === 'live' && allRoundsComplete(event) ? 'review' as const : event.status,
     publishBoards: event.publishBoards,
     pairMethod: event.pairMethod,
     neuberg: event.neuberg,

@@ -23,6 +23,7 @@ export async function GET() {
             name: e.name,
             prefix: roots.get(e.parentEventId ?? e.id)?.prefix ?? e.prefix ?? '',
             updatedAt: e.updatedAt,
+            competitionRevision: roots.get(e.parentEventId ?? e.id)?.revision,
             kind: e.kind,
             pairMethod: e.pairMethod ?? 'mp',
             date: e.date,

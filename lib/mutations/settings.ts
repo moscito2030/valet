@@ -2,6 +2,7 @@ import { hasDirectionalAwards } from '../awards';
 import { DomainError } from '../domain-error';
 import { Mutation } from '../model';
 import { swissRoundComplete } from '../swiss';
+import { allRoundsComplete } from '../round-progress';
 import type { MutationContext } from './context';
 
 export function applySettingsCommand(
@@ -20,6 +21,10 @@ export function applySettingsCommand(
     e.venue = command.venue;
     detail = '修改賽事共用名稱、前綴與地點';
   } else if (command.action === 'settings') {
+    if (command.status === 'review' && e.status !== 'review' && !allRoundsComplete(e))
+      throw new DomainError('全部圈次完成後才可進入成績覆核。');
+    if (e.status === 'review' && command.status === 'live')
+      throw new DomainError('目前為成績覆核中，請直接更正成績，完成覆核後再結束賽段。');
     if (
       command.status === 'finished' &&
       e.knockout &&

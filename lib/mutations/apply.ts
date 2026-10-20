@@ -2,7 +2,7 @@ import { assertKnockoutDecisions, knockoutRoundReady } from '../knockout';
 import { DomainError } from '../domain-error';
 import { Mutation, Result, StoredEvent } from '../model';
 import { normalizeResults } from '../result-status';
-import { roundProgress } from '../round-progress';
+import { allRoundsComplete, roundProgress } from '../round-progress';
 import { project } from '../scoring';
 import { swissRoundComplete } from '../swiss';
 import { validDeviceSchedule } from '../table-device';
@@ -13,6 +13,16 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   if (stored.requests.includes(command.requestId)) return stored;
   if (command.revision !== stored.event.revision)
     throw new DomainError('成績已被其他操作更新，請重新載入後再提交。', 409);
+  // Final scores are immutable, including alternate import/reset/schedule paths.
+  if (stored.event.status === 'finished' && (
+    ['results', 'results-import', 'clear-result', 'clear-results', 'ruling',
+      'split-contract', 'penalty', 'movement', 'movement-plan', 'participants-setup',
+      'round-control', 'swiss-config', 'swiss-publish', 'knockout-config',
+      'knockout-publish', 'knockout-decide', 'knockout-reopen',
+      'club-play', 'club-finalize', 'club-complete-table'].includes(command.action) ||
+    (command.action === 'settings' && (command.status !== 'finished' ||
+      command.teamMethod !== undefined || command.bam !== undefined))
+  )) throw new DomainError('賽段已結束，成績已定案，不可更正或重新開放賽事。');
   const e = structuredClone(stored.event),
     at = new Date().toISOString();
   e.results = normalizeResults(e.results);
@@ -33,7 +43,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'ruling',
       'split-contract',
     ].includes(command.action) ||
-      (command.action === 'settings' && command.status === 'finished'))
+      (command.action === 'settings' && command.status !== 'live'))
   )
     throw new DomainError('待設定賽程，請先選擇賽程編排並設定圈數與每圈牌數');
   const changes: { key: string; before: Result | null; after: Result | null }[] = [];
@@ -74,6 +84,11 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
         .filter(Boolean)
         .join('；');
     }
+  }
+  if (e.status === 'live' && allRoundsComplete(e)) {
+    e.status = 'review';
+    e.roundPhase = 'break';
+    detail = [detail, '全部圈次完成，進入成績覆核中'].filter(Boolean).join('；');
   }
   e.revision++;
   e.updatedAt = at;

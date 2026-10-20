@@ -3,7 +3,6 @@ import { WinAwards } from './WinAwards';
 import { awardPlacesFor } from '@/lib/awards';
 import type { PublicEvent } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
-import { allRoundsComplete } from '@/lib/round-progress';
 import { Search, Star, Trophy } from 'lucide-react';
 import { number, Tab } from '../scoreboard-shared';
 
@@ -53,7 +52,7 @@ export function StandingsView({
       popup.style.top = `${top}px`;
     });
   }
-  const competitionComplete = event?.status === 'finished' || (!!event && allRoundsComplete(event));
+  const competitionComplete = event?.status === 'finished';
   const pairMethod = event?.pairMethod ?? 'mp';
   const visibleStandings = event
     ? event.projection.standings.filter((s) => {
@@ -90,12 +89,12 @@ export function StandingsView({
       <div className="panel-heading">
         <div>
           <h3>
-            總排名 <span className="badge">{competitionComplete ? '最終成績' : '暫定成績'}</span>
+            總排名 <span className="badge">{competitionComplete ? '最終成績' : event.status === 'review' ? '成績覆核中' : '暫定成績'}</span>
           </h3>
           <p>
             {event.kind === 'teams'
               ? 'VP 計入已完成對戰與已結算輪空；同分並列。'
-              : '依有效結果暫時計分，排名包含罰分計算，同分並列。'}
+              : `${competitionComplete ? '依定案結果計分' : '依有效結果暫時計分'}，排名包含罰分計算，同分並列。`}
           </p>
         </div>
         <label className="search">
@@ -236,7 +235,7 @@ export function StandingsView({
       <div className="table-footer">
         <span>
           <i className="live-dot" />
-          {event.status === 'finished' ? '賽事已結束' : '成績每 30 秒更新'} · v{event.revision}
+          {event.status === 'finished' ? '賽段已結束 · 成績已定案' : event.status === 'review' ? '成績覆核中 · 如有疑義請向裁判提出更正 · 每 30 秒更新' : '成績每 30 秒更新'} · v{event.revision}
         </span>
         <span>
           最後更新{' '}

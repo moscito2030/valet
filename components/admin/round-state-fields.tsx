@@ -5,7 +5,7 @@ import { useState } from 'react';
 export function RoundStateFields({ event }: { event: PublicEvent }) {
   const progress = roundProgress(event);
   const [selectedRound, setSelectedRound] = useState(progress.round);
-  const complete = allRoundsComplete(event) || event.status === 'finished';
+  const complete = event.status !== 'live' || allRoundsComplete(event);
   const selectedProgress = roundProgress({ ...event, currentRound: selectedRound });
   const collected =
     selectedRound > 0 &&
@@ -38,7 +38,7 @@ export function RoundStateFields({ event }: { event: PublicEvent }) {
           <>
             <select disabled value="automatic">
               <option value="automatic">
-                {complete ? '賽事已結束' : selectedRound === 0 ? '尚未開始' : '圈間休息'}
+                {complete ? (event.status === 'finished' ? '賽段已結束' : '成績覆核中') : selectedRound === 0 ? '尚未開始' : '圈間休息'}
               </option>
             </select>
             <input type="hidden" name="phase" value={selectedRound === 0 ? 'playing' : 'break'} />

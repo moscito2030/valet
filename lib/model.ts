@@ -140,7 +140,7 @@ export type BridgeEvent = {
   currentRound?: number;
   roundPhase?: 'playing' | 'break';
   roundTimes?: Record<number, { startAt: string; endAt: string }>;
-  status: 'live' | 'finished';
+  status: 'live' | 'review' | 'finished';
   publishBoards: boolean;
   pairMethod?: PairMethod;
   neuberg?: boolean;
@@ -600,7 +600,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
-      status: z.enum(['live', 'finished']),
+      status: z.enum(['live', 'review', 'finished']),
       teamMethod: z.enum(['imp', 'bam']).optional(),
       bam: bamSchema.optional(),
       maxBoardNumber: z.number().int().min(0).optional(),

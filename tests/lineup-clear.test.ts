@@ -77,7 +77,7 @@ test('clear results resets all score state with name and revision protection whi
       updatedAt: '',
     };
   e.stageName = '決賽';
-  e.status = 'finished';
+  e.status = 'review';
   e.penalties = { t1: 3 };
   e.currentRound = 1;
   e.roundPhase = 'break';

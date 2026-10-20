@@ -5,6 +5,7 @@ export type EventSummary = {
   name: string;
   prefix?: string;
   updatedAt?: string;
+  competitionRevision?: number;
   kind: Kind;
   pairMethod?: 'mp' | 'crossimp' | 'butler';
   date: string;

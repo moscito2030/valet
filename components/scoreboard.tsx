@@ -108,7 +108,7 @@ export default function Scoreboard() {
     [password, setPassword] = useState(''),
     [loginError, setLoginError] = useState(''),
     [loggingIn, setLoggingIn] = useState(false);
-  const { event, setEvent, requestGeneration, refreshEvent } = useEventResource(id, tab, setError);
+  const { event, setEvent, requestGeneration, refreshEvent } = useEventResource(id, tab, setError, events.find((entry) => entry.id === id));
   const firstLoad = useRef(true);
   const refreshList = useCallback(async () => {
     const data = await api<{ events: EventSummary[]; storage: string }>('/api/events');
@@ -170,7 +170,8 @@ export default function Scoreboard() {
   async function refresh() {
     setRefreshing(true);
     try {
-      await Promise.all([refreshEvent(), refreshList()]);
+      await refreshList();
+      await refreshEvent(undefined, true);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -220,7 +221,7 @@ export default function Scoreboard() {
   }
   const currentProgress = event ? (event.collectionProgress ?? roundProgress(event)) : null;
   const progressRound = currentProgress?.round ?? event?.currentRound ?? 0;
-  const competitionComplete = event?.status === 'finished' || (!!event && allRoundsComplete(event));
+  const competitionComplete = !!event && (event.status !== 'live' || allRoundsComplete(event));
   const receivedResults = Object.values(event?.results ?? {});
   const cancelledResults = receivedResults.filter((result) => result.status === 'cancelled').length;
   const validResults = receivedResults.length - cancelledResults;
@@ -440,7 +441,7 @@ export default function Scoreboard() {
                       比賽進度
                       {dashboardCollapsed &&
                         (competitionComplete
-                          ? ' · 賽事已結束'
+                          ? ` · ${event.status === 'finished' ? '賽段已結束' : '成績覆核中'}`
                           : progressRound
                             ? ` · 第 ${roundLabel(event, progressRound)}/${roundLabel(event, event.rounds)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
                             : event.rounds
@@ -464,7 +465,7 @@ export default function Scoreboard() {
                       suffix={`/ ${roundLabel(event, event.rounds)} 圈`}
                       detail={
                         competitionComplete
-                          ? '賽事已結束'
+                          ? (event.status === 'finished' ? '賽段已結束' : '成績覆核中')
                           : !progressRound
                             ? '尚未開始'
                             : roundOnBreak
@@ -527,7 +528,7 @@ export default function Scoreboard() {
                   >
                     <strong>
                       {competitionComplete
-                        ? '賽事已結束'
+                        ? (event.status === 'finished' ? '賽段已結束' : '成績覆核中')
                         : progressRound
                           ? `第 ${roundLabel(event, progressRound)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
                           : '比賽尚未開始'}

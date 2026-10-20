@@ -23,11 +23,13 @@ export default function ClubPage() {
   const context = useRef({ id: '', token: '' });
   const submitting = useRef(false);
   const preview = useRef(false);
+  const finished = useRef(false);
   async function read() {
     const { id, token } = context.current;
     const response = await fetch(`/api/club/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error);
+    finished.current = body.status === 'finished';
     setData(body);
     return body as ClubView;
   }
@@ -42,7 +44,7 @@ export default function ClubPage() {
     }
     context.current = { id: new URLSearchParams(location.search).get('event') ?? '', token: location.hash.slice(1) };
     void read().catch(e => setError(e.message));
-    const timer = setInterval(() => { void read().catch(e => setError(e.message)); }, 10000);
+    const timer = setInterval(() => { if (!finished.current) void read().catch(e => setError(e.message)); }, 10000);
     return () => clearInterval(timer);
   }, []);
   useEffect(() => { if (data && draftRound !== data.round) setDraft(null); }, [data?.round, draftRound]);
@@ -132,7 +134,7 @@ export default function ClubPage() {
               <small>{data.assignment![side].toUpperCase()} · {data.roles?.inputPair === data.assignment![side] ? '輸入方' : '確認方'}</small>
             </div>)}
           </div>
-          <p className="club-entry-hint">{data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
+          <p className="club-entry-hint">{data.status === 'finished' ? '賽段已結束，成績已定案。' : data.status === 'review' ? '成績覆核中，如有疑義請向裁判提出更正。' : data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
             <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} ／ EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
             {b.result && b.result.status !== 'cancelled' && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}

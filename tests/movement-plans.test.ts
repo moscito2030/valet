@@ -39,7 +39,7 @@ test('movement application protects recorded results and rejects inapplicable pl
   event.results['r1m1o:1'] = { assignmentId: 'r1m1o', board: 1, level: 0, strain: 'NT', doubled: 1, declarer: 'N', tricks: 0, lead: '', nsScore: 0, updatedAt: '', status: 'cancelled' };
   assert.throws(() => applyMutation({ event, requests: [], projection: project(event) }, command), /尚未收分/);
   event.results = {}; event.status = 'finished';
-  assert.throws(() => applyMutation({ event, requests: [], projection: project(event) }, command), /尚未收分/);
+  assert.throws(() => applyMutation({ event, requests: [], projection: project(event) }, command), /已定案/);
   assert.throws(() => buildMovement(event, 'howell-6-8'), /不適用/);
 });
 

@@ -118,7 +118,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             <div className="competition-grid competition-list">{competition.stages.map(s => <div key={s.id}><a className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
               <span className={`event-icon ${s.kind}`} aria-hidden="true"><Users size={23} /></span>
               <div className="competition-card-copy"><h3>{s.name}</h3><p>{dateRangeLabel(s)} · {format(s)}</p><p>{s.venue || '地點未公布'}</p><p>{s.participants} {s.kind === 'pairs' ? '對搭檔' : '隊'} · {s.rounds} 圈 · {s.boards} 副牌</p></div>
-              <span className="competition-status">{s.stageArchived ? '已封存 · 僅裁判可見' : s.status === 'finished' ? '已結束' : !s.rounds ? '待設定賽程' : '進行中'}</span>
+              <span className="competition-status">{s.stageArchived ? '已封存 · 僅裁判可見' : s.status === 'finished' ? '已結束' : s.status === 'review' ? '成績覆核中' : !s.rounds ? '待設定賽程' : '進行中'}</span>
             </a></div>)}</div>
             {!competition.stages.length && <p className="empty">尚未安排賽段，裁判可點選「新增賽段」。</p>}
           </section>
@@ -135,7 +135,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
             <span className={`event-icon ${c.stages[0]?.kind ?? ''}`} aria-hidden="true"><Users size={23} /></span>
             <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{`${c.stages.length} 個賽段`}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
-            <span className="competition-status">{c.archived ? '已封存 · 僅裁判可見' : !c.stages.length ? '尚未安排賽段' : c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
+            <span className="competition-status">{c.archived ? '已封存 · 僅裁判可見' : !c.stages.length ? '尚未安排賽段' : c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => s.status === 'finished' || s.status === 'review') ? '成績覆核中' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}
