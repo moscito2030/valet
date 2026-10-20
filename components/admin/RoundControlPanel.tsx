@@ -49,7 +49,11 @@ export function RoundControlPanel({ busy, event, save, collection }: Props) {
         </div>
         {round > 0 && !reviewing && !finished && (
           <span className="badge">
-            {settled ? '成績已發布' : `已收 ${progress.received}／${progress.expected} 副`}
+            {settled
+              ? '成績已發布'
+              : collection
+                ? `${collection.total - collection.pending}／${collection.total} 桌已確認`
+                : `已收 ${progress.received}／${progress.expected} 副`}
           </span>
         )}
       </div>
@@ -134,13 +138,6 @@ export function RoundControlPanel({ busy, event, save, collection }: Props) {
               <span>提前結束</span>
             </button>
           </div>
-          {round > 0 && (
-            <p className="round-console-caption">
-              {settled
-                ? '本圈成績已發布'
-                : `${collection.total - collection.pending}／${collection.total} 桌已確認`}
-            </p>
-          )}
         </>
       )}
       <div className="button-row round-workflow-actions">
