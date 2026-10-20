@@ -46,9 +46,9 @@ export function pairScoreHistory(event: PublicEvent, person: string) {
       }
       return {
         board, round: a.round, open,
-        close: valid ? previous : null,
-        low: valid ? Math.min(previous, ...field) : null,
-        high: valid ? Math.max(previous, ...field) : null,
+        close: valid || score?.cancelled ? previous : null,
+        low: valid || score?.cancelled ? field.length ? Math.min(...field) : previous : null,
+        high: valid || score?.cancelled ? field.length ? Math.max(...field) : previous : null,
         provisional: score?.provisional ?? false,
         cancelled: score?.cancelled ?? false,
       };

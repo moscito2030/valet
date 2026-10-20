@@ -40,7 +40,7 @@ test('MP uses cumulative earned MP divided by cumulative top, not the average of
   const history = pairScoreHistory(e, 'p1');
   assert.equal(history[0].close, 50);
   assert.equal(history[1].close, 100 * 4 / 6);
-  assert.equal(history[2].close, null);
+  assert.equal(history[2].close, history[1].close);
 });
 
 test('wicks use the field on the selected side, added to the previous cumulative result', () => {
@@ -76,4 +76,45 @@ test('MP wick endpoints use each field result with the accumulated top', () => {
   assert.equal(p.close, 25);
   assert.equal(p.low, 25);
   assert.equal(p.high, 75);
+});
+
+test('chart axes stay centered on neutral with integer symmetric ticks for fractional scores', () => {
+  for (const method of ['mp', 'crossimp'] as const) {
+    const e = fixture();
+    e.pairMethod = method;
+    const a = e.assignments.find(a => a.ns === 'p1')!;
+    e.projection.pairScores[`${a.id}:${a.boards[0]}`] = { ns: 1.25, ew: 2.75, top: 4, provisional: false };
+    const html = renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1' }));
+    assert.match(html, /y1="110" y2="110" class="pair-chart-baseline"/);
+    const ticks = [...html.matchAll(/<text x="44"[^>]*>([^<]+)<\/text>/g)].map(m => Number(m[1]));
+    const base = method === 'mp' ? 50 : 0;
+    assert.equal(ticks.length, 3);
+    assert.ok(ticks.every(Number.isInteger));
+    assert.equal(ticks[1], base);
+    assert.equal(ticks[0] - base, base - ticks[2]);
+  }
+});
+
+test('cancelled boards retain field wicks without changing accumulated IMP or MP', () => {
+  for (const method of ['mp', 'crossimp'] as const) {
+    const e = fixture();
+    e.pairMethod = method;
+    const a = e.assignments.find(a => a.round === 1 && a.ns === 'p1')!;
+    e.projection.pairScores[`${a.id}:${a.boards[0]}`] = { ns: null, ew: null, top: 0, provisional: false, cancelled: true };
+    const others = e.assignments.filter(other => other.round === 1 && other.id !== a.id);
+    others.forEach((other, i) => {
+      e.projection.pairScores[`${other.id}:${other.boards[0]}`] = {
+        ns: method === 'mp' ? i * 2 : [-3, 3][i],
+        ew: method === 'mp' ? 2 - i * 2 : [3, -3][i],
+        top: 2, provisional: false,
+      };
+    });
+    const p = pairScoreHistory(e, 'p1')[0];
+    assert.equal(p.close, method === 'mp' ? 50 : 0);
+    assert.equal(p.low, method === 'mp' ? 0 : -3);
+    assert.equal(p.high, method === 'mp' ? 100 : 3);
+    const html = renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1' }));
+    assert.match(html, /pair-chart-wick/);
+    assert.match(html, /取消牌，不計入累積/);
+  }
 });
