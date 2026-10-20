@@ -123,7 +123,7 @@ export function ClubAdmin({
           collection={
             event.club?.enabled
               ? {
-                    pending: pending.length,
+                  pending: pending.length,
                   total: assignments.length,
                   toggle: () => setShowTables(!showTables),
                   finish: () => {
@@ -314,28 +314,36 @@ export function ClubAdmin({
                         </div>
                       </button>
                       {!accepted && !finalized && event.status === 'live' && (
-                        <button
-                          type="button"
-                          className="button subtle club-progress-action"
-                          disabled={
-                            busy ||
-                            !event.club?.enabled ||
-                            finalized ||
-                            event.status !== 'live' ||
-                            accepted
-                          }
-                          onClick={() => {
-                            const missing = a.boards.length - received;
-                            if (
-                              window.confirm(
-                                `${tableDeviceLabel(event, a)}：${missing ? `取消尚未輸入的 ${missing} 副牌，` : ''}保留已有成績，並由裁判確認本桌。若這是最後一桌，將自動結算並發布本圈成績。確定繼續？`,
+                        <>
+                          <button
+                            type="button"
+                            className="button subtle club-progress-action"
+                            aria-describedby={`club-confirm-note-${a.id}`}
+                            disabled={
+                              busy ||
+                              !event.club?.enabled ||
+                              finalized ||
+                              event.status !== 'live' ||
+                              accepted
+                            }
+                            onClick={() => {
+                              const missing = a.boards.length - received;
+                              if (
+                                window.confirm(
+                                  `${tableDeviceLabel(event, a)}：${missing ? `取消尚未輸入的 ${missing} 副牌，` : ''}保留已有成績，並由裁判確認本桌。若這是最後一桌，將自動結算並發布本圈成績。確定繼續？`,
+                                )
                               )
-                            )
-                              void act({ action: 'complete-table', assignmentId: a.id, round });
-                          }}
-                        >
-                          {received === a.boards.length ? '裁判代為確認' : '取消缺牌並確認'}
-                        </button>
+                                void act({ action: 'complete-table', assignmentId: a.id, round });
+                            }}
+                          >
+                            {received === a.boards.length
+                              ? '裁判代為確認本桌成績'
+                              : '取消本桌未登分牌局並確認成績'}
+                          </button>
+                          <p id={`club-confirm-note-${a.id}`} className="club-progress-action-note">
+                            保留已登分成績；若為最後一桌，將自動結算本圈。
+                          </p>
+                        </>
                       )}
                     </div>
                   );
