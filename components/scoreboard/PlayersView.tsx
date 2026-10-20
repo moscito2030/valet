@@ -211,29 +211,8 @@ export function PlayersView({
     (b) => b.round === playerRound && b.participantId === playerId,
   );
 
-  return (
-    <div className="player-results-view">
-    <div className="player-results-layout">
-    <section className="panel player-results">
-      <div className={`panel-heading${event.kind === 'teams' ? ' team-results-heading' : ''}`}>
-        <div className="team-result-intro">
-          <div>
-            <div className="team-result-title-row">
-              <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
-              {event.kind === 'teams' && <span className="team-result-title-action"><span className="muted" aria-hidden="true">·</span><TeamButlerPopover event={event} teamId={playerId} inline /></span>}
-            </div>
-          </div>
-          {event.kind === 'teams' && !event.teamMovement && (
-            <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
-              <span className="butler-toggle-track" aria-hidden="true"><span /></span>
-              顯示單副 Butler
-            </button>
-          )}
-        </div>
-        <div
-          className={`player-result-filters${event.kind === 'teams' ? '' : ' pairs-result-filters'}`}
-        >
-          <div className="participant-picker">
+  const participantPicker = (
+<div className="participant-picker">
             查看{event.kind === 'teams' ? '隊伍' : '搭檔'}
             <button
               className="participant-picker-trigger"
@@ -278,6 +257,32 @@ export function PlayersView({
               ))}
             </div>
           </div>
+  );
+
+  return (
+    <div className="player-results-view">
+    <div className="player-results-layout">
+    {event.kind === 'pairs' && <section className="panel pair-picker-panel" aria-label="查看搭檔">{participantPicker}</section>}
+    <section className="panel player-results">
+      <div className={`panel-heading${event.kind === 'teams' ? ' team-results-heading' : ''}`}>
+        <div className="team-result-intro">
+          <div>
+            <div className="team-result-title-row">
+              <h3>{event.kind === 'teams' ? '隊伍' : '搭檔'}個別成績</h3>
+              {event.kind === 'teams' && <span className="team-result-title-action"><span className="muted" aria-hidden="true">·</span><TeamButlerPopover event={event} teamId={playerId} inline /></span>}
+            </div>
+          </div>
+          {event.kind === 'teams' && !event.teamMovement && (
+            <button type="button" className="butler-display-toggle" role="switch" aria-checked={showContractButler} onClick={() => setShowContractButler?.(!showContractButler)}>
+              <span className="butler-toggle-track" aria-hidden="true"><span /></span>
+              顯示單副 Butler
+            </button>
+          )}
+        </div>
+        <div
+          className={`player-result-filters${event.kind === 'teams' ? '' : ' pairs-result-filters'}`}
+        >
+          {event.kind === 'teams' && participantPicker}
           {event.kind === 'teams' && (
             <label className="participant-picker">
               查看圈次
