@@ -91,6 +91,19 @@ export function ClubAdmin({
         </Modal>
       )}
       <h4>裝置收分</h4>
+      {event.club?.enabled && event.status === 'live' &&
+        [...new Set(event.assignments.map((a) => a.round))]
+          .filter((r) => r < round && !event.club?.finalized.includes(r))
+          .sort((a, b) => a - b)
+          .map((r) => (
+            <div className="alert" key={r}>
+              <span>第 {roundLabel(event, r)} 圈尚未結算，成績尚未發布至排名。</span>
+              <button type="button" className="button subtle" disabled={busy}
+                onClick={() => void act({ action: 'finalize', round: r, force: false, reason: '補結算已完成圈次，保留目前收分狀態' })}>
+                補結算第 {roundLabel(event, r)} 圈
+              </button>
+            </div>
+          ))}
       <label className="field">
         收分模式
         <select

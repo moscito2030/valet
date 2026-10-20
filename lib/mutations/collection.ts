@@ -190,7 +190,7 @@ export function applyCollectionCommand(
     if (
       !club?.enabled ||
       e.status !== 'live' ||
-      command.round !== e.currentRound ||
+      command.round > (e.currentRound ?? 0) ||
       club.finalized.includes(command.round)
     )
       throw new DomainError('此圈無法結算');
@@ -230,8 +230,10 @@ export function applyCollectionCommand(
         };
     }
     club.finalized.push(command.round);
-    e.roundPhase = 'break';
+    const isCurrentRound = command.round === e.currentRound;
+    if (isCurrentRound) e.roundPhase = 'break';
     if (
+      isCurrentRound &&
       command.force &&
       command.round < e.rounds &&
       e.assignments.some((a) => a.round === command.round + 1) &&
@@ -243,7 +245,8 @@ export function applyCollectionCommand(
     }
     detail =
       '第 ' + command.round + ' 圈結算並發布' + (command.force ? '（強制確認並取消未收牌）' : '');
-    if (e.currentRound !== command.round) detail += `；第 ${e.currentRound} 圈開始進行`;
+    if (!isCurrentRound) detail += `；保留目前第 ${e.currentRound} 圈狀態`;
+    else if (e.currentRound !== command.round) detail += `；第 ${e.currentRound} 圈開始進行`;
   }
   context.detail = detail;
 }

@@ -73,6 +73,41 @@ test('club finalization is atomic; forced finalization audits cancellations and 
   s.apply({ action: 'settings', status: 'finished' });
   assert.equal(s.state.event.status, 'finished');
 });
+test('late finalization publishes the previous round without interrupting current collection or rotating tokens', () => {
+  const s = setup();
+  for (const a of s.state.event.assignments.filter(a => a.round === 1)) {
+    for (const b of a.boards) s.apply({ action: 'club-play', round: 1, confirm: false, tokenHash: s.hash(a.ns), result: s.result(a.id, b) });
+    s.apply({ action: 'club-play', round: 1, confirm: true, tokenHash: s.hash(a.ew), reviewVersion: clubView(s.state.event, a.ew).reviewVersion });
+  }
+  s.apply({ action: 'round-control', round: 2, phase: 'playing' });
+  const tokens = { ...s.state.event.club!.tokens };
+  const current = s.state.event.assignments.find(a => a.round === 2)!;
+  s.apply({ action: 'club-play', round: 2, confirm: false, tokenHash: s.hash(current.ns), result: s.result(current.id, current.boards[0]) });
+  const results = structuredClone(s.state.event.results);
+  assert.equal(Object.keys(audienceEvent(s.state.event).results).length, 0);
+  s.apply({ action: 'club-finalize', round: 1, force: false });
+  assert.equal(s.state.event.currentRound, 2);
+  assert.equal(s.state.event.roundPhase, 'playing');
+  assert.deepEqual(s.state.event.club!.tokens, tokens);
+  assert.deepEqual(s.state.event.results, results);
+  const visible = audienceEvent(s.state.event);
+  assert.ok(Object.keys(visible.results).length > 0);
+  assert.ok(visible.projection.standings.some(p => p.played > 0));
+  assert.ok(Object.values(visible.results).every(r => !r.assignmentId.includes(current.id)));
+  s.apply({ action: 'club-play', round: 2, confirm: false, tokenHash: tokens[current.ns], result: s.result(current.id, current.boards[0], 10) });
+  assert.equal(clubView(s.state.event, current.ns).boards[0].result?.tricks, 10);
+});
+
+test('late finalization still rejects missing confirmation and future rounds', () => {
+  const s = setup();
+  assert.throws(() => s.apply({ action: 'club-finalize', round: 2, force: true }), /無法結算/);
+  s.apply({ action: 'round-control', round: 2, phase: 'playing' });
+  assert.throws(() => s.apply({ action: 'club-finalize', round: 1, force: false }), /未確認/);
+  s.apply({ action: 'club-finalize', round: 1, force: true });
+  assert.equal(s.state.event.currentRound, 2);
+  assert.equal(s.state.event.roundPhase, 'playing');
+});
+
 test('club ordinary finalization requires opposing approval and retries do not duplicate audit', () => {
   const s = setup();
   for (const a of s.state.event.assignments.filter(a => a.round === 1)) {
