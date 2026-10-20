@@ -192,10 +192,11 @@ small {
   margin-left: auto;
 }
 .sidebar-note {
-  padding: 0 13px 27px;
+  padding: 0 0 27px 13px;
 }
 .sidebar-note p {
   font-size: 11px;
+  white-space: nowrap;
   color: var(--theme-muted, #b1c1b6);
   margin: 12px 0 10px;
 }
