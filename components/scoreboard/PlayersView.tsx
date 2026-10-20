@@ -11,6 +11,7 @@ import { ChevronDown } from 'lucide-react';
 import { InterleavedRound } from '../interleaved-round';
 import { Contract, number, pairTone, pairValue, signed, Tab } from '../scoreboard-shared';
 import { TeamButlerPopover } from '../team-butler-popover';
+import { PairScoreChart } from './PairScoreChart';
 
 type Props = {
   showContractButler?: boolean;
@@ -727,6 +728,7 @@ export function PlayersView({
           </table>
         )}
       </div>
+      {event.kind === 'pairs' && <PairScoreChart key={`${event.id}:${playerId}`} event={event} person={playerId} />}
     </section>
   );
 }

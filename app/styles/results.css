@@ -659,6 +659,26 @@ table a:focus-visible {
 .score-placeholder { color: var(--muted); font-weight: 300; }
 .team-imp-average-trigger { display: block; width: 100%; text-align: center; }
 .round-pairs-table .round-table-number { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
+.pair-score-chart { padding: 20px 24px; border-top: 1px solid var(--line); }
+.pair-score-chart-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pair-score-chart-heading > span { font-size: 12px; }
+.pair-score-chart-scroll { overflow-x: auto; margin-top: 16px; }
+.pair-score-chart svg { display: block; max-width: none; }
+.pair-chart-grid { stroke: var(--line); }
+.pair-chart-baseline { stroke: var(--muted); stroke-dasharray: 4 4; }
+.pair-chart-label { fill: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.pair-chart-candle { cursor: pointer; color: var(--text-muted); }
+.pair-chart-candle.gain { color: var(--score-positive); }
+.pair-chart-candle.loss { color: var(--score-negative); }
+.pair-chart-hit { fill: transparent; }
+.pair-chart-candle:hover .pair-chart-hit, .pair-chart-candle.selected .pair-chart-hit { fill: var(--surface-control-hover); }
+.pair-chart-candle:focus-visible { outline: none; }
+.pair-chart-candle:focus-visible .pair-chart-hit { stroke: var(--focus-ring); stroke-width: 2; }
+.pair-chart-wick { stroke: currentColor; stroke-width: 1.5; }
+.pair-chart-body { fill: currentColor; }
+.pair-chart-body.provisional { fill-opacity: .55; stroke: currentColor; stroke-dasharray: 2 2; }
+.pair-chart-detail { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding-top: 12px; font-size: 12px; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .pair-score-chart { padding: 16px 12px; } }
 @media (max-width: 640px) {
   .round-pairs-table .round-table-affix { display: none; }
 }
