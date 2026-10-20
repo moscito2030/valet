@@ -494,6 +494,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       reason: z.string().min(2).max(200),
       round: z.number().int().min(1),
       force: z.boolean(),
+      advance: z.boolean().optional(),
     })
     .strict(),
   z
@@ -504,6 +505,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       reason: z.string().trim().min(2).max(200),
       round: z.number().int().min(0).max(MAX_PLAYER_BOARDS),
       phase: z.enum(['playing', 'break']),
+      publishGroups: z.array(z.number().int().positive()).max(MAX_PLAYER_BOARDS).optional(),
     })
     .strict(),
   z

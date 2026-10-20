@@ -156,10 +156,6 @@ export function AdminPanel({
         ))}
       </div>
       <div className="admin-content">
-        {section === 'club' && event.canDirect && <>
-          <RoundControlPanel busy={busy} event={event} save={save} />
-          <ClubAdmin event={event} reload={load} />
-        </>}
         {error && (
           <div className="alert error" role="alert">
             {error}
@@ -174,6 +170,10 @@ export function AdminPanel({
             </button>
           </div>
         )}
+        {section === 'club' && event.canDirect && <>
+          <RoundControlPanel busy={busy} event={event} save={save} />
+          <ClubAdmin event={event} reload={load} disabled={busy} onBusyChange={setBusy} />
+        </>}
         {!event.rounds && (
           <p className="footnote">
             待設定賽程：請至「賽程與牌局管理」選擇賽程編排，設定圈數與每圈牌數後再開始收分。

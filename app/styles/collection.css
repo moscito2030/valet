@@ -13,6 +13,19 @@
 .club-page .field select, .club-page .field input { min-height: 48px; font-size: 16px; }
 .club-admin h4 { margin: 24px 0 12px; }
 .club-admin p { line-height: 1.6; }
+.round-workflow { padding: 20px; margin-bottom: 24px; border-radius: 10px; background: var(--theme-surface-muted, #f5f6ef); }
+.round-workflow-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.round-workflow-heading .eyebrow { margin: 0 0 8px; color: var(--muted); }
+.round-workflow-heading h4 { margin: 0; font-size: 20px; }
+.round-workflow-description { margin: 12px 0 16px; color: var(--muted); line-height: 1.7; }
+.round-workflow-actions { flex-wrap: wrap; }
+.round-workflow-actions .button { max-width: 100%; white-space: normal; min-height: 44px; }
+.club-admin-tools { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.club-force-list { padding-left: 20px; line-height: 1.8; }
+@media (max-width: 600px) {
+  .round-workflow { padding: 16px; }
+  .round-workflow-actions { align-items: stretch; flex-direction: column; }
+}
 .club-pair-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); gap: 8px; margin: 16px 0; }
 .club-pair-links button { width: 100%; height: 44px; min-width: 0; max-width: 100%; padding: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 .club-pair-label { display: block; width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

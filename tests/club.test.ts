@@ -80,6 +80,8 @@ test('late finalization publishes the previous round without interrupting curren
     s.apply({ action: 'club-play', round: 1, confirm: true, tokenHash: s.hash(a.ew), reviewVersion: clubView(s.state.event, a.ew).reviewVersion });
   }
   s.apply({ action: 'round-control', round: 2, phase: 'playing' });
+  // Simulate a pre-upgrade event that advanced without settling the previous round.
+  s.state.event.club!.finalized = [];
   const tokens = { ...s.state.event.club!.tokens };
   const current = s.state.event.assignments.find(a => a.round === 2)!;
   s.apply({ action: 'club-play', round: 2, confirm: false, tokenHash: s.hash(current.ns), result: s.result(current.id, current.boards[0]) });
@@ -101,24 +103,33 @@ test('late finalization publishes the previous round without interrupting curren
 test('late finalization still rejects missing confirmation and future rounds', () => {
   const s = setup();
   assert.throws(() => s.apply({ action: 'club-finalize', round: 2, force: true }), /無法結算/);
-  s.apply({ action: 'round-control', round: 2, phase: 'playing' });
+  assert.throws(() => s.apply({ action: 'round-control', round: 2, phase: 'playing' }), /前圈未結算/);
+  s.state.event.currentRound = 2; // Legacy state; new transitions cannot create it.
   assert.throws(() => s.apply({ action: 'club-finalize', round: 1, force: false }), /未確認/);
   s.apply({ action: 'club-finalize', round: 1, force: true });
   assert.equal(s.state.event.currentRound, 2);
   assert.equal(s.state.event.roundPhase, 'playing');
 });
 
-test('club ordinary finalization requires opposing approval and retries do not duplicate audit', () => {
+test('last opposing approval settles atomically and retries do not duplicate audit', () => {
   const s = setup();
+  let lastConfirmation: object = {};
+  const tokens = structuredClone(s.state.event.club!.tokens);
   for (const a of s.state.event.assignments.filter(a => a.round === 1)) {
     for (const b of a.boards) s.apply({ action: 'club-play', round: 1, confirm: false, tokenHash: s.hash(a.ns), result: s.result(a.id, b) });
-    s.apply({ action: 'club-play', round: 1, confirm: true, tokenHash: s.hash(a.ew), reviewVersion: clubView(s.state.event, a.ew).reviewVersion });
+    assert.deepEqual(s.state.event.club!.finalized, []);
+    assert.equal(Object.keys(audienceEvent(s.state.event).results).length, 0);
+    lastConfirmation = { action: 'club-play', round: 1, confirm: true, tokenHash: s.hash(a.ew), reviewVersion: clubView(s.state.event, a.ew).reviewVersion, requestId: `confirm-${a.id}` };
+    s.apply(lastConfirmation);
   }
-  s.apply({ action: 'club-finalize', round: 1, force: false, requestId: 'finalize-once' });
+  assert.deepEqual(s.state.event.club!.finalized, [1]);
+  assert.deepEqual(s.state.event.club!.tokens, tokens);
+  assert.match(s.state.event.audit.at(-1)!.detail!, /自動結算/);
+  assert.ok(audienceEvent(s.state.event).projection.standings.every(p => p.played > 0));
   assert.equal(s.state.event.currentRound, 1);
   assert.equal(s.state.event.roundPhase, 'break');
   const state = s.state;
-  s.apply({ action: 'club-finalize', round: 1, force: false, requestId: 'finalize-once' });
+  s.apply(lastConfirmation);
   assert.equal(s.state, state);
   assert.ok(Object.values(state.event.club!.confirmations).every(c => !c.forced));
 });

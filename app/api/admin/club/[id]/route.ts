@@ -14,7 +14,7 @@ const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('enable'), enabled: z.boolean(), mode: z.enum(['pair','table']).optional(), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('issue'), pair: z.string().min(1), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('issue-table'), deviceKey: z.string().min(1).max(300), revision: z.number().int() }).strict(),
-  z.object({ action: z.literal('finalize'), round: z.number().int().min(1), force: z.boolean(), reason: z.string().trim().min(2).max(200), revision: z.number().int() }).strict(),
+  z.object({ action: z.literal('finalize'), round: z.number().int().min(1), force: z.boolean(), advance: z.boolean().optional(), reason: z.string().trim().min(2).max(200), revision: z.number().int() }).strict(),
 ]);
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,7 +28,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (input.action === 'complete-table') {
       await mutateEvent(id, { ...meta, action: 'club-complete-table', assignmentId: input.assignmentId, round: input.round, reason: '裁判取消本桌剩餘牌局並確認輸入' });
     } else if (input.action === 'finalize') {
-      await mutateEvent(id, { ...meta, action: 'club-finalize', round: input.round, force: input.force, reason: input.reason });
+      await mutateEvent(id, { ...meta, action: 'club-finalize', round: input.round, force: input.force, advance: input.advance, reason: input.reason });
     } else {
       token = input.action === 'issue' || input.action === 'issue-table' ? randomBytes(32).toString('hex') : undefined;
       await mutateEvent(id, { ...meta, action: 'club-config', enabled: input.action === 'enable' ? input.enabled : !!event.club?.enabled,

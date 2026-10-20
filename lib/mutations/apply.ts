@@ -8,6 +8,7 @@ import { swissRoundComplete } from '../swiss';
 import { validDeviceSchedule } from '../table-device';
 import type { MutationContext } from './context';
 import { dispatchMutation } from './dispatch';
+import { clubRoundReady } from '../round-workflow';
 
 export function applyMutation(stored: StoredEvent, command: Mutation): StoredEvent {
   if (stored.requests.includes(command.requestId)) return stored;
@@ -55,6 +56,17 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   dispatchMutation(context, command);
   assertKnockoutDecisions(e);
   detail = context.detail;
+  // Check only on writes that can complete a table, never on reads or a polling job.
+  // Settlement and the final confirmation share one revision, projection and storage transaction.
+  if (e.status === 'live' && e.club?.enabled &&
+    ['club-play', 'club-complete-table', 'results', 'results-import', 'ruling', 'split-contract'].includes(command.action)) {
+    const round = 'round' in command ? command.round : (e.currentRound ?? 0);
+    if (round > 0 && clubRoundReady(e, round)) {
+      e.club.finalized.push(round);
+      if (round === e.currentRound) e.roundPhase = 'break';
+      detail = [detail, `第 ${round} 圈全桌確認完成，自動結算並發布成績`].filter(Boolean).join('；');
+    }
+  }
   if (e.club?.mode === 'table' && !validDeviceSchedule(e))
     throw new DomainError('同圈同桌有多筆安排，無法綁定收分裝置');
   if (

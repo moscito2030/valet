@@ -8,6 +8,9 @@ import { parseRoundTimes } from '../round-times-import';
 import { playerBoardError } from '../schedule-limits';
 import { assertSwissTeams, publishSwiss, swissRoundComplete } from '../swiss';
 import { isInterleaved } from '../team-movement';
+import { roundHasActivity, unsettledRoundsBefore } from '../round-workflow';
+import { readyBoardGroups } from '../board-publication-ready';
+import { boardRange } from '../board-groups';
 import type { MutationContext } from './context';
 
 export function applyScheduleCommand(
@@ -29,9 +32,23 @@ export function applyScheduleCommand(
   const { event: e, at, changes } = context;
   let detail: string | undefined;
   if (command.action === 'round-control') {
+    if (e.status !== 'live') throw new DomainError('賽段已進入覆核或結束，請直接由裁判更正成績，不能調整圈次。');
+    if (e.club?.enabled) {
+      const current = e.currentRound ?? 0;
+      if (command.round > current) {
+        if (command.round !== current + 1) throw new DomainError('請依序開始下一圈，不可跳圈。');
+        if (unsettledRoundsBefore(e, command.round).length)
+          throw new DomainError('尚有前圈未結算，請先處理未完成桌次並結算；不能直接開始下一圈。');
+      }
+      if (command.round < current &&
+        (command.round !== current - 1 || roundHasActivity(e, current) ||
+          (command.round > 0 && command.phase !== 'break')))
+        throw new DomainError('本圈已有登分或處理紀錄，不能退圈；請暫停收分或由裁判更正。');
+      if (command.round > 0 && command.phase === 'playing' && e.club.finalized.includes(command.round))
+        throw new DomainError('本圈已結算，請開始下一圈；更正成績不需要重新開圈。');
+    }
     if (!knockoutRoundReady(e, command.round))
       throw new DomainError('請先公布這一圈所有淘汰賽對局');
-    if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     if (
       e.swiss &&
       command.round > 0 &&
@@ -43,6 +60,15 @@ export function applyScheduleCommand(
     if (command.round > 0 && !e.assignments.some((a) => a.round === command.round))
       throw new DomainError('請先安排這一圈的賽程');
     detail = `${e.currentRound ?? 0} → ${command.round}；${command.phase === 'break' ? '圈間休息' : '進行中'}`;
+    if (command.publishGroups?.length) {
+      if (command.round !== (e.currentRound ?? 0) + 1 || command.phase !== 'playing')
+        throw new DomainError('請在開始下一圈時確認公開牌型。');
+      const eligible = readyBoardGroups(e);
+      const groups = [...new Set(command.publishGroups)].map(number => eligible.find(g => g[0].number === number));
+      if (groups.some(g => !g)) throw new DomainError('牌群尚未全部完成，或公開狀態已變更，請重新載入後核對。');
+      for (const group of groups) for (const board of group!) board.published = true;
+      detail += `；公開牌型 ${boardRange(groups.flatMap(g => g!.map(b => b.number)))}`;
+    }
     e.currentRound = command.round;
     e.roundPhase = command.phase;
   } else if (command.action === 'round-times-import') {

@@ -224,7 +224,13 @@ test('finish-review button submits a valid audited command without a score corre
   });
   const button = findAction(panel, '完成覆核並結束賽段');
   assert.equal(button.props.disabled, false);
-  await button.props.onClick();
+  const oldWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: { confirm: () => true } });
+  try { await button.props.onClick(); }
+  finally {
+    if (oldWindow) Object.defineProperty(globalThis, 'window', oldWindow);
+    else Reflect.deleteProperty(globalThis, 'window');
+  }
   assert.equal(updated.event.status, 'finished');
   assert.deepEqual(updated.event.results, raw.results);
   assert.equal(updated.event.audit.at(-1)?.reason, '完成覆核並結束賽段');

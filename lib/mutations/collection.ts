@@ -11,6 +11,7 @@ import { swissRoundComplete } from '../swiss';
 import { deviceAssignment, tableDevices, validDeviceSchedule } from '../table-device';
 import type { MutationContext } from './context';
 import { scoredInput } from './scored-input';
+import { roundStartProblem, unsettledRoundsBefore } from '../round-workflow';
 
 export function applyCollectionCommand(
   context: MutationContext,
@@ -184,6 +185,13 @@ export function applyCollectionCommand(
     };
     detail = `第 ${command.round} 圈桌次 ${a.id}：取消 ${cancelled} 副未輸入牌並由裁判確認；保留已有成績`;
   } else if (command.action === 'club-finalize') {
+    if (command.advance) {
+      if (command.round !== e.currentRound) throw new DomainError('補結算不得移動目前圈次。');
+      const problem = roundStartProblem(e, command.round + 1);
+      if (problem) throw new DomainError(problem);
+      if (unsettledRoundsBefore(e, command.round).length)
+        throw new DomainError('尚有更早圈次未結算，請先補結算。');
+    }
     if (!knockoutRoundReady(e, command.round))
       throw new DomainError('請先公布這一圈所有淘汰賽對局');
     const club = e.club;
@@ -234,7 +242,8 @@ export function applyCollectionCommand(
     if (isCurrentRound) e.roundPhase = 'break';
     if (
       isCurrentRound &&
-      command.force &&
+      (command.advance ?? command.force) &&
+      !unsettledRoundsBefore(e, command.round + 1).length &&
       command.round < e.rounds &&
       e.assignments.some((a) => a.round === command.round + 1) &&
       (!e.swiss || swissRoundComplete(e, command.round + 1)) &&

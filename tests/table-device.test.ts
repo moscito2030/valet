@@ -240,7 +240,7 @@ test('Swiss collection waits for both rooms approval and force-finalize never op
   assert.throws(() => swissPreview(s.e, 2, false), /未收齊/);
   for (const a of s.e.assignments) s.confirm(a);
   assert.equal(swissPreview(s.e, 2, false).pairs.length, 2);
-  s.apply({ action: 'club-finalize', round: 1, force: true });
+  assert.deepEqual(s.e.club!.finalized, [1]);
   assert.equal(s.e.currentRound, 1);
   assert.equal(s.e.roundPhase, 'break');
   assert.equal(clubView(s.e, s.key(s.e.assignments[0])).tableGuide?.kind, 'pending');

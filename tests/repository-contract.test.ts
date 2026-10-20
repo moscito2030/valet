@@ -175,6 +175,29 @@ for (const kind of ['local', 'postgres'] as const)
         assert.equal(writes.filter((r) => r.status === 'rejected' && conflict(r.reason)).length, 1);
         assert.equal((await repo.getEvent(e.id)).event.revision, 2);
       });
+      await t.test('last table completion persists settlement, audit and projection together with retry safety', async () => {
+        const e = stage();
+        await repo.insertEvent(e);
+        let saved = await repo.mutateEvent(e.id, command({ action: 'club-config', enabled: true, mode: 'table' }));
+        saved = await repo.mutateEvent(e.id, command({ action: 'round-control', round: 1, phase: 'playing' }, saved.event.revision));
+        const tables = saved.event.assignments.filter(a => a.round === 1);
+        for (const a of tables.slice(0, -1)) {
+          saved = await repo.mutateEvent(e.id, command({ action: 'club-complete-table', round: 1, assignmentId: a.id }, saved.event.revision));
+          assert.deepEqual(saved.event.club!.finalized, []);
+        }
+        const last = command({ action: 'club-complete-table', round: 1, assignmentId: tables.at(-1)!.id }, saved.event.revision);
+        await repo.mutateEvent(e.id, last);
+        const committed = await repo.getEvent(e.id);
+        await repo.mutateEvent(e.id, last);
+        const retried = await repo.getEvent(e.id);
+        assert.deepEqual(retried, committed);
+        assert.equal(retried.event.revision, saved.event.revision + 1);
+        assert.equal(retried.event.currentRound, 1);
+        assert.equal(retried.event.roundPhase, 'break');
+        assert.deepEqual(retried.event.club!.finalized, [1]);
+        assert.match(retried.event.audit.at(-1)!.detail!, /自動結算/);
+        assert.deepEqual(retried.projection, plain(project(retried.event)));
+      });
       await t.test('failed batch cannot persist partial results or an audit record', async () => {
         const e = stage();
         await repo.insertEvent(e);

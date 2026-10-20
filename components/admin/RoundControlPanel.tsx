@@ -1,60 +1,138 @@
 import { AdminEvent } from '../scoreboard-shared';
-import { allRoundsComplete } from '@/lib/round-progress';
-import { RoundStateFields } from './round-state-fields';
+import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
+import { roundHasActivity, roundStartProblem, unsettledRoundsBefore } from '@/lib/round-workflow';
+import { roundLabel } from '@/lib/team-movement';
+import { StartRoundButton } from './StartRoundButton';
 type Props = {
   busy: boolean;
   event: AdminEvent;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 };
 export function RoundControlPanel({ busy, event, save }: Props) {
+  const round = event.club?.enabled ? (event.currentRound ?? 0) : roundProgress(event).round;
+  const progress = roundProgress({ ...event, currentRound: round });
+  const settled = event.club?.enabled
+    ? event.club.finalized.includes(round)
+    : progress.expected > 0 && progress.received === progress.expected;
+  const finished = event.status === 'finished';
+  const reviewing = event.status === 'review' || allRoundsComplete(event);
+  const paused = event.roundPhase === 'break' && !settled;
+  const next = round + 1;
+  const nextProblem =
+    roundStartProblem(event, next) ??
+    (unsettledRoundsBefore(event, next).length ? '請先處理前圈未完成桌次並結算。' : null);
+  const locked = busy || !event.canDirect;
+  const change = (target: number, phase: 'playing' | 'break', reason: string) =>
+    save({ action: 'round-control', round: target, phase, reason });
+  const canWithdraw = round > 0 && !settled && !roundHasActivity(event, round);
   return (
-    <>
-      <form
-        className="round-settings-form"
-        key={`current-${event.currentRound}-${event.roundPhase}`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const form = new FormData(e.currentTarget);
-          void save({
-            action: 'round-control',
-            round: Number(form.get('round')),
-            phase: String(form.get('phase')),
-            reason: '裁判指定目前圈數與比賽進度',
-          });
-        }}
-      >
-        <h4>目前打到哪一圈</h4>
-        <RoundStateFields key={event.revision} event={event} />
-        <p className="footnote">
-          圈數會隨收分進度往前更新；該圈收齊後進入圈間休息，全部圈次完成後進入成績覆核中。
-        </p>
-        <button className="button primary" disabled={busy || event.status === 'finished'}>
-          儲存目前圈數
-        </button>
-        {event.status === 'finished' && (
-          <p className="footnote">賽段已結束，成績已定案，不可調整目前圈數。</p>
-        )}
-      </form>
-      <div className="setting-row">
+    <section className="round-workflow" aria-label="圈次進度">
+      <div className="round-workflow-heading">
         <div>
-          <strong>賽段狀態 · {event.status === 'finished' ? '已結束' : event.status === 'review' || allRoundsComplete(event) ? '成績覆核中' : '進行中'}</strong>
-          <p>{event.status === 'finished' ? '成績已定案，使用快取呈現，不再接受更正。' : '全部圈次完成後進入成績覆核，選手可向裁判提出更正。確認結束後不可重新開放。'}</p>
+          <p className="eyebrow">圈次進度</p>
+          <h4>
+            {finished
+              ? '賽段已結束'
+              : reviewing
+                ? '成績覆核中'
+                : round === 0
+                  ? '準備開始'
+                  : `第 ${roundLabel(event, round)} 圈 · ${settled ? '圈間休息' : paused ? '收分暫停' : '進行中'}`}
+          </h4>
         </div>
-        <button
-          type="button"
-          disabled={busy || !event.canDirect || event.status === 'finished' || !allRoundsComplete(event)}
-          className="button subtle"
-          onClick={() =>
-            save({
-              action: 'settings',
-              status: 'finished',
-              reason: '完成覆核並結束賽段',
-            })
-          }
-        >
-          {event.status === 'finished' ? '已定案' : '完成覆核並結束賽段'}
-        </button>
+        {round > 0 && !reviewing && !finished && (
+          <span className="badge">
+            {settled ? '成績已發布' : `已收 ${progress.received}／${progress.expected} 副`}
+          </span>
+        )}
       </div>
-    </>
+      <p className="round-workflow-description">
+        {finished
+          ? '成績已定案，不再接受更正。'
+          : reviewing
+            ? '所有圈次已完成，請處理選手的更正請求，再正式結束賽段。'
+            : settled
+              ? '排名已更新。待選手就位後，再開始下一圈。'
+              : round === 0
+                ? '確認選手與桌次就緒後，開始第一圈。'
+                : paused
+                  ? '選手暫時無法輸入或確認；已有成績保留。'
+                  : event.club?.enabled
+                    ? '全桌確認完成後，系統自動結算並更新排名。'
+                    : '本圈收齊後自動進入休息，由裁判開始下一圈。'}
+      </p>
+      <div className="button-row round-workflow-actions">
+        {!finished && reviewing ? (
+          <button
+            type="button"
+            className="button primary"
+            disabled={locked || !allRoundsComplete(event)}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  '完成覆核並結束賽段？成績將正式定案，不再接受更正，也無法重新開放。',
+                )
+              )
+                return;
+              return save({ action: 'settings', status: 'finished', reason: '完成覆核並結束賽段' });
+            }}
+          >
+            完成覆核並結束賽段
+          </button>
+        ) : !finished && (round === 0 || settled) ? (
+          <StartRoundButton
+            key={round}
+            event={event}
+            round={next}
+            disabled={locked || !!nextProblem}
+            save={save}
+          />
+        ) : !finished ? (
+          <>
+            <button
+              type="button"
+              className={`button ${paused ? 'primary' : 'subtle'}`}
+              disabled={locked}
+              onClick={() =>
+                change(
+                  round,
+                  paused ? 'playing' : 'break',
+                  paused ? '繼續本圈收分' : '暫停本圈收分',
+                )
+              }
+            >
+              {paused ? '繼續本圈' : '暫停收分'}
+            </button>
+            {canWithdraw && (
+              <button
+                type="button"
+                className="button subtle"
+                disabled={locked}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      '撤回本圈開始？本圈尚無登分或處理紀錄，將返回上一圈休息；第一圈則回到尚未開始。',
+                    )
+                  )
+                    return;
+                  return change(
+                    round - 1,
+                    round === 1 ? 'playing' : 'break',
+                    '撤回尚無登分紀錄的圈次開始',
+                  );
+                }}
+              >
+                撤回本圈開始
+              </button>
+            )}
+          </>
+        ) : null}
+      </div>
+      {!finished && !reviewing && (round === 0 || settled) && nextProblem && (
+        <p className="footnote" role="status">
+          {nextProblem}
+        </p>
+      )}
+    </section>
   );
 }

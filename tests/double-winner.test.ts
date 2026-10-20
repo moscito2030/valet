@@ -62,7 +62,9 @@ test('3 and 4 table MiniBridge club matches finalize and rank CrossIMP independe
           result: { assignmentId: a.id, board, level: 1, strain: 'NT', declarer: 'N', doubled: 1, tricks: 6 + Number(a.table), lead: '' } });
         apply({ action: 'club-play', round, confirm: true, tokenHash: state.event.club!.tokens[a.ew], reviewVersion: clubView(state.event, a.ew).reviewVersion });
       }
-      apply({ action: 'club-finalize', round, force: false });
+      assert.ok(state.event.club!.finalized.includes(round));
+      assert.equal(state.event.currentRound, round);
+      assert.equal(state.event.roundPhase, 'break');
     }
     const expected = new Map(state.event.participants.map(p => [p.id, 0]));
     for (const board of state.event.boards) {
