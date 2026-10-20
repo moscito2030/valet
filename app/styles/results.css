@@ -712,8 +712,9 @@ table a:focus-visible {
 .pair-chart-detail dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1; gap: 12px; margin: 0; }
 .pair-chart-detail dt { font-size: 10px; color: var(--muted); }
 .pair-chart-detail dd { margin: 3px 0 0; font-size: 13px; white-space: nowrap; }
-.pair-chart-detail.gain dd:nth-child(n) { color: var(--score-positive); }
-.pair-chart-detail.loss dd:nth-child(n) { color: var(--score-negative); }
+.pair-chart-detail dd { color: var(--text-primary); }
+.pair-chart-detail.gain dd.pair-chart-close { color: var(--score-positive); }
+.pair-chart-detail.loss dd.pair-chart-close { color: var(--score-negative); }
 .pair-chart-crosshair { pointer-events: none; }
 .pair-chart-crosshair line { stroke: var(--muted); stroke-dasharray: 3 3; stroke-opacity: .65; }
 .pair-chart-crosshair circle { fill: var(--text-primary); stroke: var(--surface-bg); stroke-width: 1.5; }

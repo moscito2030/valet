@@ -12,7 +12,11 @@ export function boardButlerVolume(event: PublicEvent, board: number) {
     Math.abs(imps(awardedResult(result, 'ns')!.nsScore - datum.ns.datum!)) +
     Math.abs(imps(-awardedResult(result, 'ew')!.nsScore - datum.ew.datum!))
   ) / 2, 0) : null;
-  return { value, tables: valid.length, provisional: results.some(r => !r) };
+  const spread = valid.length ? Math.max(...(['ns', 'ew'] as const).map(side => {
+    const scores = valid.map(result => awardedResult(result, side)!.nsScore * (side === 'ns' ? 1 : -1));
+    return Math.max(...scores) - Math.min(...scores);
+  })) : null;
+  return { value, spread, tables: valid.length, provisional: results.some(r => !r) };
 }
 
 // Identify common-board movements from the actual schedule, including imported movements.
