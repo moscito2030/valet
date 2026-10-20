@@ -38,6 +38,7 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
   );
   useEffect(() => {
     if (!event || event.status === 'finished' || tab === 'admin') return;
+    const interval = (event.audienceRefreshSeconds ?? 30) * 1000;
     let alive = true,
       timer: ReturnType<typeof setTimeout>,
       failures = 0;
@@ -53,14 +54,14 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
           setError('更新失敗，保留上次成績。連線恢復後會重試。');
         }
       }
-      if (alive) timer = setTimeout(tick, Math.min(120000, 30000 * 2 ** failures));
+      if (alive) timer = setTimeout(tick, Math.min(120000, interval * 2 ** failures));
     };
-    timer = setTimeout(tick, 30000);
+    timer = setTimeout(tick, interval);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [event?.id, event?.status, tab, refreshEvent]);
+  }, [event?.id, event?.status, event?.audienceRefreshSeconds, tab, refreshEvent]);
 
   return { event, setEvent, requestGeneration, refreshEvent };
 }

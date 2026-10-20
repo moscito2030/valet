@@ -129,6 +129,7 @@ export type BridgeEvent = {
   awardPlaces?: number;
   awardPlacesNS?: number;
   awardPlacesEW?: number;
+  audienceRefreshSeconds?: number;
   awardDescription?: string;
   winAward?: { enabled: boolean; win: number; loss: number; draw: number };
   movementDescription?: string;
@@ -610,6 +611,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       awardPlacesNS: z.number().int().min(0).max(32).optional(),
       awardPlacesEW: z.number().int().min(0).max(32).optional(),
       awardPlaces: z.number().int().min(0).max(32).optional(),
+      audienceRefreshSeconds: z.number().int().min(15).max(120).optional(),
       awardDescription: z.string().trim().max(2000).optional(),
       winAward: z
         .object({

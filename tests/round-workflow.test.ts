@@ -267,3 +267,13 @@ test('collection console keeps four controls and locks mutations after settlemen
   assert.match(render(), /aria-label="開始第 2 圈"/);
   assert.match(render(), /disabled="" aria-label="提前結束本圈"/);
 });
+
+test('audience refresh setting validates bounds and reaches public event data', () => {
+  const s = setup();
+  s.apply({ action: 'settings', status: 'live', audienceRefreshSeconds: 15 });
+  assert.equal(s.state.event.audienceRefreshSeconds, 15);
+  assert.equal(audienceEvent(s.state.event).audienceRefreshSeconds, 15);
+  for (const value of [0, 14, 121, 15.5]) {
+    assert.equal(mutationSchema.safeParse({action: 'settings', status: 'live', revision: 1, requestId: randomUUID(), reason: '刷新間隔測試', audienceRefreshSeconds: value}).success, false);
+  }
+});

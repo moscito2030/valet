@@ -34,6 +34,19 @@ export function PublicationPanel({
     <>
       {section !== 'boards' && <>
       <TeamScoringSettings event={event} busy={busy} save={save} />
+      {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
+        e.preventDefault();
+        void save({ action: 'settings', status: event.status, audienceRefreshSeconds: Number(new FormData(e.currentTarget).get('audienceRefreshSeconds')), reason: '設定觀眾端刷新頻率' });
+      }}>
+        <h4>觀眾端自動更新</h4>
+        <label className="field">基本刷新間隔
+          <select name="audienceRefreshSeconds" key={event.audienceRefreshSeconds ?? 30} defaultValue={event.audienceRefreshSeconds ?? 30} disabled={busy}>
+            {[15, 30, 60, 120].map(seconds => <option key={seconds} value={seconds}>{seconds} 秒{seconds === 30 ? '（預設）' : ''}</option>)}
+          </select>
+        </label>
+        <p className="footnote">套用於此賽段的觀眾計分版；背景分頁暫停更新，連線失敗時延長間隔，賽段結束後停止。已開啟的頁面會在下次更新後套用。</p>
+        <button className="button subtle" disabled={busy}>儲存刷新間隔</button>
+      </form>}
 
       {event.canDirect && (
         <form
