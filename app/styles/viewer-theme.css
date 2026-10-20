@@ -59,9 +59,17 @@
 :root[data-theme="dracula"] .bridge-hand header:not(.vulnerable) {
   background: var(--theme-info-bg);
 }
+:root[data-theme="sepia"] .bridge-hand header:not(.vulnerable) {
+  background: color-mix(in srgb, var(--sidebar-bg) 13%, var(--surface-bg));
+  color: var(--sidebar-bg);
+}
 :root[data-theme]:not([data-theme="forest"]) .bridge-hand header b {
   background: var(--theme-solid, #2b5a48);
   color: var(--text-on-action);
+}
+:root[data-theme="sepia"] .bridge-hand header:not(.vulnerable) b {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
 }
 :root[data-theme]:not([data-theme="forest"]) .bridge-suit .red {
   color: var(--theme-negative, #b54843);
