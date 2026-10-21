@@ -46,3 +46,14 @@ test('corner contract suits request text presentation on mobile browsers', () =>
     }
   }
 });
+
+test('table-result DD hints show contract outcome and only down tricks are red', async () => {
+  const { ddContractOutcome } = await import('@valet/deal-viewer/play-keyboard');
+  for (let level = 1; level <= 7; level++) {
+    assert.deepEqual(ddContractOutcome(level + 5, level), { text: '-1', green: false });
+    assert.deepEqual(ddContractOutcome(level + 6, level), { text: '=', green: true });
+    if (level < 7) assert.deepEqual(ddContractOutcome(level + 7, level), { text: '1', green: true });
+  }
+  assert.deepEqual(ddContractOutcome(7, 4), { text: '-3', green: false });
+  assert.deepEqual(ddContractOutcome(12, 3), { text: '3', green: true });
+});
