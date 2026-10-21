@@ -201,3 +201,9 @@
 :root[data-theme] .play-keyboard .rack-card[data-suit="D"] {
   color: var(--suit-red);
 }
+
+/* Non-vulnerable names follow the seat badge color in dark themes. */
+:root[data-theme="dracula"] .bridge-hand header:not(.vulnerable) .hand-player-name,
+:root[data-theme="nord"] .bridge-hand header:not(.vulnerable) .hand-player-name {
+  color: var(--theme-solid);
+}
