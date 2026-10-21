@@ -34,3 +34,15 @@ test('corner contract suits request text presentation on mobile browsers', () =>
     assert.ok(!html.includes(symbol + '\uFE0F'));
   }
 });
+
+ test('DD colors distinguish declarer-side maxima from defensive minima', async () => {
+  const { ddIsGreen } = await import('@valet/deal-viewer/play-keyboard');
+  for (const declarer of ['N', 'E', 'S', 'W']) {
+    for (const turn of ['N', 'E', 'S', 'W']) {
+      const sameSide = 'NS'.includes(turn) === 'NS'.includes(declarer);
+      assert.deepEqual([7, 8, 9].map(n => ddIsGreen(n, [7, 8, 9], turn, declarer)),
+        sameSide ? [false, false, true] : [false, true, true]);
+      assert.equal(ddIsGreen(8, [8, 8], turn, declarer), sameSide);
+    }
+  }
+});
