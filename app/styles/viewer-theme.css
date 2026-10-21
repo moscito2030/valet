@@ -191,3 +191,13 @@
 /* Keep corner suits monochrome, including mobile emoji-capable browsers. */
 .analysis-corner { font-variant-emoji: text; }
 :root[data-theme] .analysis-corner .your-contract .contract-bid.red-suit { color: inherit; }
+
+/* Keyboard cards use traditional two-color suits in every theme. */
+:root[data-theme] .play-keyboard .rack-card[data-suit] {
+  color: var(--text-primary);
+  font-variant-emoji: text;
+}
+:root[data-theme] .play-keyboard .rack-card[data-suit="H"],
+:root[data-theme] .play-keyboard .rack-card[data-suit="D"] {
+  color: var(--suit-red);
+}
