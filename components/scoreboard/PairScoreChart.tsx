@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useRef, useState } from 'react';
+import { CircleHelp } from 'lucide-react';
 import { ScoreValue } from '../score-value';
 import { formatScore } from '@/lib/score-format';
 import type { PublicEvent } from '@/lib/model';
@@ -24,6 +25,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
     return () => observer.disconnect();
   }, [commonBoards, hasScores]);
   const notesId = useId();
+  const notesTrigger = useRef<HTMLButtonElement>(null);
   if (!commonBoards) return null;
   const mp = (event.pairMethod ?? 'mp') === 'mp';
   const unit = mp ? '%' : 'IMP';
@@ -50,7 +52,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const tone = active?.close == null || active.close === active.open ? 'flat' : active.close > active.open ? 'gain' : 'loss';
   return <section className="panel pair-score-chart" aria-label="逐副累積成績 K 棒">
     <div className="pair-score-chart-heading">
-      <div><h3>累積{mp ? ' MP%' : ' IMP'}</h3></div>
+      <h3><button type="button" ref={notesTrigger} className="pair-chart-title-button" popoverTarget={notesId} aria-label={mp ? '累積 MP% 計分說明' : '累積 IMP 計分說明'}>累積{mp ? ' MP%' : ' IMP'}<CircleHelp size={15} aria-hidden="true" /></button></h3>
       {latest && <div className="pair-chart-latest"><strong><ScoreValue value={latest.close} unit={unit} /></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
     </div>
     {!valid.length ? <p className="empty compact">尚無可計分成績</p> : <>
@@ -114,7 +116,24 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
         <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
         <span>未扣罰分</span>
       </div>
-      <div className="pair-chart-notes"><button type="button" className="button subtle" popoverTarget={notesId}>計分說明</button><div id={notesId} popover="auto" className="player-detail-popover pair-chart-notes-popover" role="region" aria-label="K 棒計分說明"><p>實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。量柱使用左軸，K 棒使用右軸。量柱為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。</p></div></div>
+
     </>}
+
+    <div id={notesId} popover="auto" className="player-detail-popover pair-chart-notes-popover" role="region" aria-label="K 棒計分說明"
+      onToggle={e => {
+        const popup = e.currentTarget;
+        if (!popup.matches(':popover-open') || !notesTrigger.current) return;
+        const anchor = notesTrigger.current.getBoundingClientRect();
+        const bounds = popup.getBoundingClientRect();
+        const left = Math.max(16, Math.min(anchor.left, window.innerWidth - bounds.width - 16));
+        const below = anchor.bottom + 12;
+        const top = below + bounds.height <= window.innerHeight - 16 ? below : Math.max(16, anchor.top - bounds.height - 12);
+        popup.style.left = left + 'px';
+        popup.style.top = top + 'px';
+      }}>
+      <p><strong>累積分數</strong><br />{mp ? '依累計所得 MP 與累計滿分計算百分率。' : '逐副累加 IMP。'}未扣罰分；未收分與取消牌不計入。</p>
+      <p><strong>K 棒</strong><br />實體表示本副前後的累積分；影線表示全場同方向成績的變動範圍。取消牌保留影線，暫計棒以淡色虛線呈現。</p>
+      <p><strong>全場起伏與分差</strong><br />量柱使用左軸，K 棒使用右軸。全場起伏為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。最大分差為最高與最低 Butler IMP 的差。</p>
+    </div>
   </section>;
 }

@@ -71,3 +71,5 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 依修改範圍檢查手機與寬版、相關主題、一般與裁判權限，以及空資料／暫計狀態。花色與字型問題需包含 iPhone Safari 實機確認；桌面模擬與字串測試不能宣稱已驗證 iOS 顯示。不要為單純文案修改擴充不相關測試。
 
 展示頁與截圖測試操作見 [視覺回歸](visual-testing.md)。
+
+- K 棒以「累積 IMP／MP%」標題按鈕開啟計分說明 popover，貼近標題並限制在視窗內；底部不重複放說明入口。累積分數與寬版「查看搭檔」標題使用一致的 18px 字級。

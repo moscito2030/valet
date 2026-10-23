@@ -213,7 +213,7 @@ export function PlayersView({
 
   const participantPicker = (id: string) => (
 <div className="participant-picker">
-            查看{event.kind === 'teams' ? '隊伍' : '搭檔'}
+            <span className="participant-picker-label">查看{event.kind === 'teams' ? '隊伍' : '搭檔'}</span>
             <button
               className="participant-picker-trigger"
               aria-label="選擇參賽者"
