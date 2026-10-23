@@ -37,10 +37,12 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.10",
     "@playwright/test": "^1.64.1",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "jsdom": "^27.0.1",
     "prettier": "^3.9.10",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"

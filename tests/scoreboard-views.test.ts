@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createElement } from 'react';
+import { act, createElement, type ReactElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { JSDOM } from 'jsdom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PublicationPanel } from '../components/admin/PublicationPanel';
 import { RoundControlPanel } from '../components/admin/RoundControlPanel';
@@ -15,6 +17,33 @@ import { mutationSchema, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
 
 const noop = () => {};
+
+// Hooks must execute inside React; restore globals so other tests stay isolated.
+async function withRenderedView(run: (view: {
+  render: (element: ReactElement) => Promise<void>;
+  button: (label: string) => HTMLButtonElement | undefined;
+}) => Promise<void>) {
+  const dom = new JSDOM('<!doctype html><div id="test-root"></div>', { url: 'http://localhost' });
+  const globals = { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const container = dom.window.document.getElementById('test-root')!;
+  const root = createRoot(container);
+  try {
+    await run({
+      render: async element => { await act(async () => { root.render(element); }); },
+      button: label => Array.from(container.querySelectorAll('button')).find(button => button.textContent?.includes(label)),
+    });
+  } finally {
+    await act(async () => { root.unmount(); });
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+}
+
 function fixture() {
   const event = createEvent({
     name: '介面回歸測試',
@@ -246,20 +275,26 @@ test('match action opens the home team and preserves the selected round', () => 
   assert.equal(tab,'players');
 });
 
-test('team perspective swaps to opponent and back without changing round', () => {
+test('team perspective swaps to opponent and back without changing round', async () => {
   const raw = fixture(), event = audienceEvent(raw, project(raw));
   const match = event.projection.matches[0];
   let person = match.a;
   const props = {event,playerRound:1,playerSort:'round' as const,setBoard:noop,setPerson:(v:any)=>{person=v;},setPlayerRound:()=>{throw new Error('Round must stay unchanged');},setPlayerSort:noop,setRound:noop,setSelectedResult:noop,setTab:noop,setTravellerSide:noop};
-  findAction(PlayersView({...props,person}), '切換視角').props.onClick();
-  assert.equal(person,match.b);
-  findAction(PlayersView({...props,person}), '切換視角').props.onClick();
-  assert.equal(person,match.a);
-  const empty = {...event, assignments:[], projection:{...event.projection,matches:[]}};
-  assert.equal(findAction(PlayersView({...props,event:empty,person}), '切換視角'),undefined);
+  await withRenderedView(async view => {
+    await view.render(createElement(PlayersView, {...props, person}));
+    assert.ok(view.button('切換視角'));
+    await act(async () => { view.button('切換視角')!.click(); });
+    assert.equal(person, match.b);
+    await view.render(createElement(PlayersView, {...props, person}));
+    await act(async () => { view.button('切換視角')!.click(); });
+    assert.equal(person, match.a);
+    const empty = {...event, assignments:[], projection:{...event.projection,matches:[]}};
+    await view.render(createElement(PlayersView, {...props, event: empty, person}));
+    assert.equal(view.button('切換視角'), undefined);
+  });
 });
 
-test('contract Butler display is opt-in and does not remove raw scores or summaries', () => {
+test('contract Butler display is opt-in and does not remove raw scores or summaries', async () => {
   const raw = fixture();
   for (const a of raw.assignments) for (const b of a.boards) raw.results[`${a.id}:${b}`] = {assignmentId:a.id,board:b,level:3,strain:'NT',declarer:'N',doubled:1,tricks:9,lead:'',nsScore:400,updatedAt:raw.updatedAt};
   const event = audienceEvent(raw, project(raw));
@@ -278,9 +313,19 @@ test('contract Butler display is opt-in and does not remove raw scores or summar
   assert.equal((off.match(/popoverTarget="player-vp-scale"/gi) ?? []).length, 2);
   assert.equal((off.match(/popoverTarget="player-butler-summary"/gi) ?? []).length, 2);
   let enabled = false;
-  const action = findAction(PlayersView({...props,setShowContractButler:(v)=>{enabled=v;}}),'顯示單副 Butler');
-  action.props.onClick();
-  assert.equal(enabled,true);
+  await withRenderedView(async view => {
+    const render = () => view.render(createElement(PlayersView, {...props, showContractButler: enabled, setShowContractButler: v => { enabled = v; }}));
+    await render();
+    assert.equal(view.button('顯示單副 Butler')?.getAttribute('aria-checked'), 'false');
+    await act(async () => { view.button('顯示單副 Butler')!.click(); });
+    assert.equal(enabled, true);
+    await render();
+    assert.equal(view.button('顯示單副 Butler')?.getAttribute('aria-checked'), 'true');
+    await act(async () => { view.button('顯示單副 Butler')!.click(); });
+    assert.equal(enabled, false);
+    await render();
+    assert.equal(view.button('顯示單副 Butler')?.getAttribute('aria-checked'), 'false');
+  });
 });
 
 test('round VP dialog uses actual match board count and handles pending and BAM scores', () => {
