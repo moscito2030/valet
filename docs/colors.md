@@ -1,7 +1,7 @@
 # 色彩變數
 
 共用色票集中在 `public/theme-colors.css`，由 `app/styles/colors.css` 匯入，靜態手冊也載入同一份檔案。
-提供原色（forest）、純白（light）、暖紙（sepia）、Nord、Dracula。原色保留既有色值。
+提供生成式藝術（forest）、傷眼睛（light）、租屋補助（sepia）、知識藍（nord）、ドパガキ（dracula）。各位置的花色與身價政策見 [產品設計規則](design-rules.md)。
 
 ## 使用方式
 

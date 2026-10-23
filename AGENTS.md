@@ -18,3 +18,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Product design
 
 - Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
+- Before changing UI, read [Product design rules](docs/design-rules.md) and follow the applicable rules. Update that document when the user changes a design decision.
