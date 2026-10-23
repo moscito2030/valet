@@ -1,4 +1,5 @@
 'use client';
+import { formatScore, pairScoreFormat } from '@/lib/score-format';
 import { SuitSymbol } from './suit-symbol';
 import type { Audit, Board, Kind, PublicEvent, Result, ResultInput, Seat } from '@/lib/model';
 export type EventSummary = {
@@ -23,11 +24,8 @@ export type Tab = 'standings' | 'rounds' | 'boards' | 'players' | 'admin';
 export type AdminEvent = Omit<PublicEvent, "boards"> & { boards: (Omit<import("@/lib/model").Board, "deal"> & { deal?: import("@/lib/model").Board["deal"] })[]; audit?: Audit[]; canDirect?: boolean; club?: import("@/lib/model").BridgeEvent["club"] };
 export const methodNames = { mp: 'MP', crossimp: 'CrossIMP', butler: 'ButlerIMP' };
 export function pairValue(value: number | null | undefined, top: number, method = 'mp') {
-  return value == null
-    ? '—'
-    : method === 'mp'
-      ? `${number(top ? (value / top) * 100 : null)}%`
-      : `${value >= 0 ? '+' : ''}${number(value, method === 'butler' ? 0 : 2)}`;
+  const { value: score, ...options } = pairScoreFormat(value, top, method);
+  return formatScore(score, options);
 }
 export const suitSymbols: Record<string, string> = { S: '♠', H: '♥', D: '♦', C: '♣', NT: 'NT' };
 export function pairTone(value: number | null | undefined, top: number, method: string) {
@@ -50,7 +48,7 @@ export function hasDeal(b: PublicEvent['boards'][number]): b is Board {
   return 'deal' in b;
 }
 export function number(n: number | null, places = 2) {
-  return n === null ? '—' : n.toFixed(places);
+  return formatScore(n, { decimals: places });
 }
 export function signed(n: number) {
   return n > 0 ? `+${n}` : String(n);

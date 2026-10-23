@@ -1,3 +1,4 @@
+import { ScoreValue } from '../score-value';
 import { KnockoutView } from '../knockout-view';
 import { WinAwards } from './WinAwards';
 import { awardPlacesFor } from '@/lib/awards';
@@ -175,15 +176,7 @@ export function StandingsView({
                       onClick={(e) => positionDetail(e.currentTarget)}
                       aria-label={`查看 ${s.name} 總分明細`}
                     >
-                      {number(
-                        s.score,
-                        pairMethod === 'butler' &&
-                          event.kind === 'pairs' &&
-                          Number.isInteger(s.score)
-                          ? 0
-                          : 2,
-                      )}
-                      <small>{event.kind === 'pairs' && pairMethod === 'mp' ? '%' : ''}</small>
+                      <ScoreValue value={s.score} decimals={pairMethod === 'butler' && event.kind === 'pairs' && Number.isInteger(s.score) ? 0 : 2} unit={event.kind === 'pairs' && pairMethod === 'mp' ? '%' : ''} />
                     </button>
                     <div id={`standing-${s.id}`} popover="auto" className="player-detail-popover">
                       <div>
@@ -193,10 +186,7 @@ export function StandingsView({
                             ? '累計 MP'
                             : '累計 IMP'}
                         ：
-                        {number(
-                          s.secondary,
-                          pairMethod === 'butler' && event.kind === 'pairs' ? 0 : 2,
-                        )}
+                        <ScoreValue value={s.secondary} decimals={pairMethod === 'butler' && event.kind === 'pairs' ? 0 : 2} />
                       </div>
                       {event.projection.byes
                         ?.filter((b) => b.participantId === s.id)
@@ -208,10 +198,7 @@ export function StandingsView({
                         ))}
                       <div>
                         調整 {event.kind === 'teams' ? 'VP' : pairMethod === 'mp' ? 'MP' : 'IMP'}：
-                        {number(
-                          s.penalty ?? 0,
-                          pairMethod === 'butler' && Number.isInteger(s.penalty ?? 0) ? 0 : 2,
-                        )}
+                        <ScoreValue value={s.penalty ?? 0} decimals={pairMethod === 'butler' && Number.isInteger(s.penalty ?? 0) ? 0 : 2} />
                       </div>
                     </div>
                   </td>

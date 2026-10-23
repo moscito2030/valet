@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { BarChart3, X } from 'lucide-react';
 import type { BridgeEvent } from '@/lib/model';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
+import { ScoreValue } from './score-value';
 import { teamButlerStats } from '@/lib/team-butler';
 
 type Props = {
@@ -12,8 +13,6 @@ type Props = {
   teamId: string;
   inline?: boolean;
 };
-const decimal = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : '∞');
-const signed = (n: number) => `${n > 0 ? '+' : ''}${decimal(n)}`;
 export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
   const id = useId();
   const [mounted, setMounted] = useState(false);
@@ -131,23 +130,23 @@ export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
                         {pairs && <td className="butler-player butler-player-second">{r.names[1]}</td>}
                         <td>{r.boards}</td>
                         <td className={r.average < 0 ? 'butler-negative' : 'butler-positive'}>
-                          {signed(r.average)}
+                          <ScoreValue value={r.average} signed />
                         </td>
 
                         {pairs && (
                           <>
-                            <td>{signed(r.positiveAverage)}</td>
-                            <td>{signed(r.negativeAverage)}</td>
-                            <td>{signed(r.average)}</td>
-                            <td>{signed(r.total)}</td>
+                            <td><ScoreValue value={r.positiveAverage} signed /></td>
+                            <td><ScoreValue value={r.negativeAverage} signed /></td>
+                            <td><ScoreValue value={r.average} signed /></td>
+                            <td><ScoreValue value={r.total} signed /></td>
                             <td>{r.totalRank}</td>
                           </>
                         )}
                         <td>{r.averageRank}</td>
-                        <td>{r.ratio === null ? '—' : decimal(r.ratio)}</td>
+                        <td>{r.ratio === Infinity ? '∞' : <ScoreValue value={r.ratio} />}</td>
                         <td>{r.ratioRank ?? '—'}</td>
                         <td>{r.mp}</td>
-                        <td>{decimal(r.mpPercent)}%</td>
+                        <td><ScoreValue value={r.mpPercent} unit="%" /></td>
                         <td>{r.mpRank}</td>
                       </tr>
                     ))}

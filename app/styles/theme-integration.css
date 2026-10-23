@@ -24,7 +24,7 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 :root:is([data-theme="dracula"], [data-theme="light"]) :is(
   [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
   .compass-center button.trick-card[data-suit]
-):not(.compact-dd *, .your-contract *) { color: var(--suit-color); }
+):not(.compact-dd *, .your-contract *, .play-keyboard *) { color: var(--suit-color); }
 
 /* Nord keeps its palette, with bolder open suit shapes outside analysis labels. */
 .suit-symbol { font-variant-emoji: text; }

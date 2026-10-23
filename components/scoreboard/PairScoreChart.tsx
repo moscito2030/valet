@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { CompactImp } from '../compact-imp';
+import { ScoreValue } from '../score-value';
+import { formatScore } from '@/lib/score-format';
 import type { PublicEvent } from '@/lib/model';
 import { boardButlerVolume, pairScoreHistory, usesCommonBoards } from '@/lib/pair-score-history';
 
@@ -24,8 +25,8 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   }, [commonBoards, hasScores]);
   if (!commonBoards) return null;
   const mp = (event.pairMethod ?? 'mp') === 'mp';
-  const unit = mp ? '%' : ' IMP';
-  const format = (v: number) => `${v.toFixed(2)}${unit}`;
+  const unit = mp ? '%' : 'IMP';
+  const format = (v: number) => formatScore(v, { unit });
   const highlighted = hovered ?? hoveredBoard ?? focused;
   const active = points.find(p => p.board === (highlighted ?? selected)) ?? valid.at(-1);
   const latest = valid.at(-1);
@@ -49,7 +50,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   return <section className="panel pair-score-chart" aria-label="逐副累積成績 K 棒">
     <div className="pair-score-chart-heading">
       <div><h3>累積{mp ? ' MP%' : ' IMP'}</h3></div>
-      {latest && <div className="pair-chart-latest"><strong><CompactImp text={latest.close!.toFixed(2)} /><small>{mp ? '%' : ' IMP'}</small></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
+      {latest && <div className="pair-chart-latest"><strong><ScoreValue value={latest.close} unit={unit} /></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
     </div>
     {!valid.length ? <p className="empty compact">尚無可計分成績</p> : <>
       <div className={`pair-chart-detail ${tone}`} aria-live="polite">
@@ -57,7 +58,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
           <div className="pair-chart-board"><strong>牌 {active.board}</strong><span>{active.cancelled ? '取消 · 不計分' : active.close === null ? '待收分' : active.provisional ? '暫計' : `第 ${active.round} 圈`}</span></div>
           <dl>{([
             ['前值', active.open, mp ? '%' : ''], ['本副後', active.close, mp ? '%' : ''], ['全場起伏', activeVolume?.value ?? null, ''], ['最大分差', activeVolume?.spread ?? null, ''],
-          ] as const).map(([label, value, unit]) => <div key={label}><dt>{label}</dt><dd className={label === '本副後' ? 'pair-chart-close' : undefined}>{value === null ? '—' : <><CompactImp text={value.toFixed(label === '最大分差' ? 0 : 2)} />{unit && <span className="pair-chart-detail-unit">{unit}</span>}</>}</dd></div>)}</dl>
+          ] as const).map(([label, value, unit]) => <div key={label}><dt>{label}</dt><dd className={label === '本副後' ? 'pair-chart-close' : undefined}><ScoreValue value={value} decimals={label === '最大分差' ? 0 : 2} unit={unit} /></dd></div>)}</dl>
         </>}
       </div>
       <div className="pair-score-chart-scroll" ref={scroller} onMouseLeave={() => setHovered(null)}>

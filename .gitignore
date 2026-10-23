@@ -9,3 +9,6 @@ test-results/
 .tmp/
 /public/vendor/dds/
 /public/manual/
+
+playwright-report/
+.next-visual/

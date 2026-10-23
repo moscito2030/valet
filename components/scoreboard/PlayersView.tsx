@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CompactImp } from '../compact-imp';
+import { PairScoreValue } from '../score-value';
 import { TeamImpColumns } from '../team-imp-columns';
 import { displayedBoardNumber } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
@@ -10,7 +10,7 @@ import { awardedResult, imps, teamBoardPoints, teamStandingsThroughRound, vp } f
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
 import { ChevronDown } from 'lucide-react';
 import { InterleavedRound } from '../interleaved-round';
-import { Contract, number, pairTone, pairValue, signed, Tab } from '../scoreboard-shared';
+import { Contract, number, pairTone, signed, Tab } from '../scoreboard-shared';
 import { TeamButlerPopover } from '../team-butler-popover';
 import { PairScoreChart } from './PairScoreChart';
 
@@ -730,7 +730,7 @@ export function PlayersView({
                         }
                       >
                         <span className="player-points-value">
-                          {value !== null && mp ? pairMethod === 'mp' ? pairValue(value, mp.top, pairMethod) : <CompactImp text={pairValue(value, mp.top, pairMethod)} /> : '—'}
+                          <PairScoreValue value={value} top={mp?.top ?? 0} method={pairMethod} />
                         </span>
                       </td>
                     )}

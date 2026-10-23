@@ -41,7 +41,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 
 ## 數字與單位
 
-- 已採緊湊小數格式的成績元件共用 components/compact-imp.tsx：小數縮小、加底線，視覺隱藏小數點；輔助閱讀仍讀到正常數值。
+- 成績元件共用 components/score-value.tsx 與 lib/score-format.ts；緊湊小數由 components/compact-imp.tsx 呈現：小數縮小、加底線，視覺隱藏小數點；輔助閱讀仍讀到正常數值。
 - 格式化只影響顯示，不改計算精度。
 - K 棒明細順序：前值、本副後、全場起伏、最大分差。只有本副後依上升／下降著色，其餘文字原色。
 - 前值、本副後、全場起伏顯示兩位小數；最大分差顯示整數。
@@ -69,3 +69,5 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 ## 修改後核對
 
 依修改範圍檢查手機與寬版、相關主題、一般與裁判權限，以及空資料／暫計狀態。花色與字型問題需包含 iPhone Safari 實機確認；桌面模擬與字串測試不能宣稱已驗證 iOS 顯示。不要為單純文案修改擴充不相關測試。
+
+展示頁與截圖測試操作見 [視覺回歸](visual-testing.md)。

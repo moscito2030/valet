@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
+  devIndicators: process.env.NEXT_DIST_DIR === '.next-visual' ? false : undefined,
+  distDir: process.env.NEXT_DIST_DIR === '.next-visual' ? '.next-visual' : '.next',
   env: {
     NEXT_PUBLIC_APP_COMMIT: /^[a-f0-9]{40}$/i.test(process.env.VERCEL_GIT_COMMIT_SHA ?? '') ? process.env.VERCEL_GIT_COMMIT_SHA! : '',
     NEXT_PUBLIC_APP_COMMIT_MESSAGE: process.env.VERCEL_GIT_COMMIT_MESSAGE ?? '',

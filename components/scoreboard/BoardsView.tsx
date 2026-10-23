@@ -1,5 +1,5 @@
 import { DiscussionProvider } from '../board-discussion-context';
-import { CompactImp } from '../compact-imp';
+import { PairScoreValue } from '../score-value';
 import { BoardDanmaku } from '../board-danmaku';
 import { BoardDiscussion } from '../board-discussion';
 import { displayedBoardNumber, boardRounds as getBoardRounds } from '@/lib/board-navigation';
@@ -14,7 +14,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { BoardInformation, DealExplorer } from '../deal-explorer';
 import { HcpSummary } from '../hcp-fields';
 import { BoardShareActions } from '../board-share-actions';
-import { Contract, hasDeal, pairTone, pairValue, signed } from '../scoreboard-shared';
+import { Contract, hasDeal, pairTone, signed } from '../scoreboard-shared';
 import { DealDiagram } from '../scoreboard-widgets';
 
 type Props = {
@@ -567,9 +567,7 @@ export function BoardsView({
                           <td
                             className={`mono ${scoreTone}`}
                           >
-                            {pairMethod === 'mp'
-                              ? pairValue(mp?.[travellerSide], mp?.top ?? 0, pairMethod)
-                              : <CompactImp text={pairValue(mp?.[travellerSide], mp?.top ?? 0, pairMethod)} />}
+                            {<PairScoreValue value={mp?.[travellerSide]} top={mp?.top ?? 0} method={pairMethod} />}
                             {mp?.provisional && <small className="block muted">暫定</small>}
                           </td>
                         </tr>
