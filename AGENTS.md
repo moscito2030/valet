@@ -14,3 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - After creating a commit, always report its actual commit hash (short hexadecimal SHA is sufficient) in the final response, together with a brief change summary, validation results, and whether it was pushed. If multiple commits were created, report each hash. Do not omit the hash after context compaction.
 - The user controls pushes. Do not push unless explicitly requested for that occasion; remind the user when completed commits are ready to push.
 - The project remote is https://github.com/moscito2030/valet.git.
+
+## Product design
+
+- Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
