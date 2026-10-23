@@ -775,9 +775,9 @@ table a:focus-visible {
 .match-bottom { align-items: baseline; }
 
 
-.pair-chart-notes summary { cursor: pointer; width: fit-content; }
-.pair-chart-notes summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
-.pair-chart-notes p { margin: 8px 0 0; }
 
 .score-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .score-unit { margin-inline-start: .2em; font-size: .8em; }
+
+.pair-chart-notes-popover { width: min(420px, calc(100vw - 32px)); box-sizing: border-box; font-size: 13px; line-height: 1.8; }
+.pair-chart-notes-popover p { margin: 0; }

@@ -39,6 +39,9 @@ test('table hover highlights the matching candle and clears without an external 
   const board = a.boards[0];
   event.projection.pairScores[`${a.id}:${board}`] = { ns: 2, ew: 2, top: 4, provisional: false };
   const render = (hoveredBoard: number | null) => renderToStaticMarkup(createElement(PairScoreChart, { event, person: 'p1', hoveredBoard }));
+  assert.doesNotMatch(render(board), /<(?:details|summary)\b/);
+  assert.match(render(board), /popoverTarget="[^"]+"[^>]*>計分說明/);
+  assert.match(render(board), /popover="auto"[^>]*aria-label="K 棒計分說明"/);
   assert.match(render(board), /pair-chart-crosshair/);
   assert.match(render(board), /pair-chart-candle flat selected/);
   assert.doesNotMatch(render(null), /pair-chart-crosshair/);

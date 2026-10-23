@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { ScoreValue } from '../score-value';
 import { formatScore } from '@/lib/score-format';
 import type { PublicEvent } from '@/lib/model';
@@ -23,6 +23,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
     observer.observe(element);
     return () => observer.disconnect();
   }, [commonBoards, hasScores]);
+  const notesId = useId();
   if (!commonBoards) return null;
   const mp = (event.pairMethod ?? 'mp') === 'mp';
   const unit = mp ? '%' : 'IMP';
@@ -113,7 +114,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
         <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
         <span>未扣罰分</span>
       </div>
-      <details className="pair-chart-notes"><summary>計分說明</summary><p>實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。量柱使用左軸，K 棒使用右軸。量柱為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。</p></details>
+      <div className="pair-chart-notes"><button type="button" className="button subtle" popoverTarget={notesId}>計分說明</button><div id={notesId} popover="auto" className="player-detail-popover pair-chart-notes-popover" role="region" aria-label="K 棒計分說明"><p>實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。量柱使用左軸，K 棒使用右軸。量柱為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。</p></div></div>
     </>}
   </section>;
 }

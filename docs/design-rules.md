@@ -8,7 +8,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 
 - 標題直接說明內容；不另加重述標題的副標或宣傳問句。
 - 版面能表達的關係，不再用常駐說明重複解釋。
-- 計算方法與進階細節放入可展開的說明或手冊。
+- 計算方法與進階細節放入共用按鈕開啟的 popover／dialog 或手冊。禁止在產品介面使用原生 HTML details／summary；主要內容用一般區段呈現，不用摺疊控制項隱藏。
 - 單位、暫計、未公開、私下檢視與破壞性操作影響不能為了簡潔而隱藏。
 - 完成覆核等正常完成操作不用警告色；刪除、清除等破壞性操作才使用危險操作樣式。
 
