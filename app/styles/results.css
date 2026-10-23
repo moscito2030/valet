@@ -775,3 +775,7 @@ table a:focus-visible {
 .match-bottom { align-items: baseline; }
 
 .pair-chart-detail-unit { margin-left: .2em; }
+
+.pair-chart-notes summary { cursor: pointer; width: fit-content; }
+.pair-chart-notes summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.pair-chart-notes p { margin: 8px 0 0; }

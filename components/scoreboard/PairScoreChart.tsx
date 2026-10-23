@@ -48,7 +48,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const tone = active?.close == null || active.close === active.open ? 'flat' : active.close > active.open ? 'gain' : 'loss';
   return <section className="panel pair-score-chart" aria-label="逐副累積成績 K 棒">
     <div className="pair-score-chart-heading">
-      <div><h3>累積{mp ? ' MP%' : ' IMP'}</h3><p>全場共牌 <span aria-hidden="true">·</span> 逐副走勢</p></div>
+      <div><h3>累積{mp ? ' MP%' : ' IMP'}</h3></div>
       {latest && <div className="pair-chart-latest"><strong><CompactImp text={latest.close!.toFixed(2)} /><small>{mp ? '%' : ' IMP'}</small></strong><span>截至牌 {latest.board}{latest.provisional ? ' · 暫計' : ''}</span></div>}
     </div>
     {!valid.length ? <p className="empty compact">尚無可計分成績</p> : <>
@@ -108,12 +108,11 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
           <text x={right + 12} y="224" className="pair-chart-label">牌號</text>
         </svg>
       </div>
-      <p className="pair-chart-volume-summary">牌 {active?.board} · Butler IMP 量 {activeVolume?.value == null ? '—' : activeVolume.value.toFixed(1)}{activeVolume?.provisional ? '（暫計）' : ''} · {activeVolume?.tables ?? 0} 桌</p>
       <div className="pair-chart-footer">
         <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
-        <span>滑過或點選查看</span>
+        <span>未扣罰分</span>
       </div>
-      <p className="pair-chart-notes">實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。量柱使用左軸，K 棒使用右軸。量柱為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。</p>
+      <details className="pair-chart-notes"><summary>計分說明</summary><p>實體為前後累積分；影線為本副全場同方向成績的累積變動範圍。{mp ? 'MP% 依累計所得 MP 與累計滿分計算。' : 'IMP 逐副累加。'}未收分、取消牌不計入累積，未扣罰分。取消牌保留影線，暫計棒以淡色虛線呈現。量柱使用左軸，K 棒使用右軸。量柱為每桌 Butler IMP 絕對值加總；不平衡得分取 NS、EW 絕對值平均，取消與人工平均分不計。</p></details>
     </>}
   </section>;
 }

@@ -44,12 +44,12 @@ export function PublicationPanel({
           <input type="checkbox" name="showScoreCandles" key={String(event.showScoreCandles !== false)} defaultChecked={event.showScoreCandles !== false} disabled={busy} />
           展示 K 棒
         </label>
-        <p className="footnote">在搭檔成績展示逐副累積走勢，適用於全場共牌的雙人賽。</p>
+        <p className="footnote">適用於全場共牌的雙人賽。</p>
         <label className="checkbox-label">
           <input type="checkbox" name="danmakuDefaultEnabled" key={String(!!event.danmakuDefaultEnabled)} defaultChecked={!!event.danmakuDefaultEnabled} disabled={busy} />
           彈幕預設啟動
         </label>
-        <p className="footnote">開啟逐副成績時預設播放彈幕，觀眾仍可自行關閉。僅在牌型已公開且有留言時播放。</p>
+        <p className="footnote">牌型公開後播放，觀眾可自行關閉。</p>
         <button className="button subtle" disabled={busy}>儲存 K 棒與彈幕設定</button>
       </form>}
       {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
@@ -62,7 +62,7 @@ export function PublicationPanel({
             {[15, 30, 60, 120].map(seconds => <option key={seconds} value={seconds}>{seconds} 秒{seconds === 30 ? '（預設）' : ''}</option>)}
           </select>
         </label>
-        <p className="footnote">套用於此賽段的觀眾計分版；背景分頁暫停更新，連線失敗時延長間隔，賽段結束後停止。已開啟的頁面會在下次更新後套用。</p>
+        <p className="footnote">套用於此賽段的觀眾計分版。</p>
         <button className="button subtle" disabled={busy}>儲存刷新間隔</button>
       </form>}
 

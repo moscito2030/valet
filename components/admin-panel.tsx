@@ -131,7 +131,6 @@ export function AdminPanel({
       <div className="panel-heading admin-panel-heading">
         <h3>{event.canDirect ? '裁判後台' : '賽務後台'}</h3>
         <span className="badge admin-version">版本 {event.revision}</span>
-        <p className="admin-panel-description">原始結果、排名與更正紀錄一併儲存。</p>
       </div>
       <div className="admin-tabs">
         {[

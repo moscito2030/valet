@@ -70,8 +70,6 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
       <div className="panel-heading discussion-heading">
         <div>
           <h3>牌局討論</h3>
-          <p className="discussion-description">
-            交流叫牌與打牌思路，請聚焦本副牌。
             {data?.director && (
               <button
                 type="button"
@@ -79,10 +77,9 @@ export function BoardDiscussion({ eventId, board }: { eventId: string; board: nu
                 disabled={busy}
                 onClick={() => send('PATCH', { action: 'close', closed: !data.closed })}
               >
-                （{data.closed ? '開啟本副討論' : '關閉本副討論'}）
+                {data.closed ? '開啟本副討論' : '關閉本副討論'}
               </button>
             )}
-          </p>
         </div>
       </div>
       <div className="discussion-body">

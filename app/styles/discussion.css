@@ -407,3 +407,5 @@
   .discussion-thread-reply::before, .discussion-thread-reply::after { left: -8px; }
   .discussion-thread-reply::after { width: 7px; }
 }
+
+.discussion-heading > div:first-child { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }

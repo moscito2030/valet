@@ -124,7 +124,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
             {!competition.stages.length && <p className="empty">尚未安排賽段，裁判可點選「新增賽段」。</p>}
           </section>
         </> : <>
-          <div className="page-heading"><div><h1>即時掌握你的表現</h1><p>還在用過時的 Excel 試算表舉辦比賽嗎？</p></div>{session.director && <button className="button subtle" onClick={() => setCreating(true)}><Plus size={16} />建立賽事</button>}</div>
+          <div className="page-heading"><div><h1>賽事</h1></div>{session.director && <button className="button subtle" onClick={() => setCreating(true)}><Plus size={16} />建立賽事</button>}</div>
           <div className="hub-search">
             <label className="field" htmlFor="competition-search">搜尋賽事</label>
             <div className="field hub-search-input">

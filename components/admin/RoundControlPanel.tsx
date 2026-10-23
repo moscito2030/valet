@@ -37,7 +37,6 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
     <section className="round-workflow" aria-label="圈次進度">
       <div className="round-workflow-heading">
         <div>
-          <p className="eyebrow">圈次進度</p>
           <h4>
             {finished
               ? '賽段已結束'
@@ -61,16 +60,16 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
         {finished
           ? '成績已定案，不再接受更正。'
           : reviewing
-            ? '所有圈次已完成，請處理選手的更正請求，再正式結束賽段。'
+            ? '處理更正請求後，完成覆核並結束賽段。'
             : settled
-              ? '排名已更新。待選手就位後，再開始下一圈。'
+              ? '選手就位後，開始下一圈。'
               : round === 0
-                ? '確認選手與桌次就緒後，開始第一圈。'
+                ? '選手就位後，開始第一圈。'
                 : paused
                   ? '選手暫時無法輸入或確認；已有成績保留。'
                   : event.club?.enabled
-                    ? '全桌確認完成後，系統自動結算並更新排名。'
-                    : '本圈收齊後自動進入休息，由裁判開始下一圈。'}
+                    ? '全桌確認後自動結算。'
+                    : '收齊後自動結算，由裁判開始下一圈。'}
       </p>
       {collection && !reviewing && !finished && (
         <>
