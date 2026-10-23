@@ -27,3 +27,7 @@
 Nord 與 Dracula 是針對網站的調整版，參考 [Nord 官方色票](https://www.nordtheme.com/docs/colors-and-palettes/) 與 [Dracula 官方規格](https://draculatheme.com/spec)。次要文字與分數色經對比測試調整，並非逐色照搬編輯器主題。
 
 新增主題需更新色票與選單資料，並執行 `tests/theme.test.ts` 的儲存、系統偏好、跨分頁及文字對比測試；另外檢查手機、表單、牌局、浮動表格與手冊。
+
+## 共用呈現規則
+
+花色實心／空心由 `--suit-solid-display`、`--suit-outline-display` 與 `--suit-outline-*` 控制，主程式與外部牌桌共用同一組 CSS 類別。身價使用 `--seat-nonvul-*`／`--seat-vul-*` 區分底色、姓名文字、座位標記與標記文字，主題差異只在集中色票定義。`SuitSymbol` 統一加入文字呈現標記，並接受可存取名稱，外層不再重複宣告圖像角色。

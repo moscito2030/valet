@@ -46,38 +46,21 @@
 :root[data-theme]:not([data-theme="forest"]) .trick-card.red-suit {
   color: var(--theme-negative, #b54843);
 }
-:root[data-theme]:not([data-theme="forest"]) .bridge-hand header.vulnerable {
-  background: var(--theme-negative-bg, #f5dfdd);
-  color: var(--theme-negative, #863630);
-}
-:root[data-theme]:not([data-theme="forest"]) .bridge-hand header.vulnerable b {
-  background: var(--theme-negative, #a84540);
-}
 :root[data-theme]:not([data-theme="forest"]) .bridge-hand header {
-  background: var(--theme-surface-muted, #e7efe9);
-}
-:root[data-theme="dracula"] .bridge-hand header:not(.vulnerable) {
-  background: var(--theme-info-bg);
-}
-:root[data-theme="sepia"] .bridge-hand header:not(.vulnerable) {
-  background: color-mix(in srgb, var(--sidebar-bg) 13%, var(--surface-bg));
-  color: var(--sidebar-bg);
+  background: var(--seat-nonvul-bg);
+  color: var(--seat-nonvul-text);
 }
 :root[data-theme]:not([data-theme="forest"]) .bridge-hand header b {
-  background: var(--theme-solid, #2b5a48);
-  color: var(--text-on-action);
+  background: var(--seat-nonvul-badge);
+  color: var(--seat-nonvul-badge-text);
 }
-:root[data-theme="sepia"] .bridge-hand header:not(.vulnerable) b {
-  background: var(--sidebar-bg);
-  color: var(--sidebar-text);
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand header.vulnerable {
+  background: var(--seat-vul-bg);
+  color: var(--seat-vul-text);
 }
-:root[data-theme="sepia"]:not([data-theme="forest"]) .bridge-hand header.vulnerable {
-  background: color-mix(in srgb, var(--sidebar-brand) 24%, var(--surface-bg));
-  color: var(--sidebar-bg);
-}
-:root[data-theme="sepia"]:not([data-theme="forest"]) .bridge-hand header.vulnerable b {
-  background: var(--sidebar-brand);
-  color: var(--sidebar-bg);
+:root[data-theme]:not([data-theme="forest"]) .bridge-hand header.vulnerable b {
+  background: var(--seat-vul-badge);
+  color: var(--seat-vul-badge-text);
 }
 :root[data-theme]:not([data-theme="forest"]) .bridge-suit .red {
   color: var(--theme-negative, #b54843);
@@ -200,10 +183,4 @@
 :root[data-theme] .play-keyboard .rack-card[data-suit="H"],
 :root[data-theme] .play-keyboard .rack-card[data-suit="D"] {
   color: var(--suit-red);
-}
-
-/* Non-vulnerable names follow the seat badge color in dark themes. */
-:root[data-theme="dracula"] .bridge-hand header:not(.vulnerable) .hand-player-name,
-:root[data-theme="nord"] .bridge-hand header:not(.vulnerable) .hand-player-name {
-  color: var(--theme-solid);
 }

@@ -116,6 +116,15 @@
   --theme-backdrop: #00000050;
 }
 :root[data-theme="sepia"] {
+  --seat-nonvul-bg: color-mix(in srgb, var(--sidebar-bg) 13%, var(--surface-bg));
+  --seat-nonvul-text: var(--sidebar-bg);
+  --seat-nonvul-badge: var(--sidebar-bg);
+  --seat-nonvul-badge-text: var(--sidebar-text);
+  --seat-vul-bg: color-mix(in srgb, var(--sidebar-brand) 24%, var(--surface-bg));
+  --seat-vul-text: var(--sidebar-bg);
+  --seat-vul-badge: var(--sidebar-brand);
+  --seat-vul-badge-text: var(--sidebar-bg);
+
   color-scheme: light;
   --page-bg: #f5f0e4;
   --surface-bg: #fffbf1;
@@ -177,6 +186,10 @@
   --theme-backdrop: #00000050;
 }
 :root[data-theme="nord"] {
+  --suit-solid-display: none;
+  --suit-outline-display: inline;
+  --seat-nonvul-text: var(--theme-solid);
+
   color-scheme: dark;
   --page-bg: #2e3440;
   --surface-bg: #3b4252;
@@ -238,6 +251,9 @@
   --theme-backdrop: #00000050;
 }
 :root[data-theme="dracula"] {
+  --seat-nonvul-bg: var(--theme-info-bg);
+  --seat-nonvul-text: var(--theme-solid);
+
   color-scheme: dark;
   --page-bg: #282a36;
   --surface-bg: #303341;
@@ -301,4 +317,20 @@
   --theme-solid: #8be9fd;
   --theme-shadow: #00000035;
   --theme-backdrop: #00000050;
+}
+
+/* Shared presentation roles: theme values belong here, not in components. */
+:root {
+  --suit-solid-display: inline;
+  --suit-outline-display: none;
+  --suit-outline-size: .78em;
+  --suit-outline-stroke: .025em;
+  --seat-nonvul-bg: var(--theme-surface-muted, #e7efe9);
+  --seat-nonvul-text: var(--text-primary);
+  --seat-nonvul-badge: var(--theme-solid, #2b5a48);
+  --seat-nonvul-badge-text: var(--text-on-action);
+  --seat-vul-bg: var(--theme-negative-bg, #f5dfdd);
+  --seat-vul-text: var(--theme-negative, #863630);
+  --seat-vul-badge: var(--theme-negative, #a84540);
+  --seat-vul-badge-text: var(--text-on-action);
 }

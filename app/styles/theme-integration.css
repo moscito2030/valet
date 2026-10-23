@@ -16,24 +16,24 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 @media print { body { padding-bottom: 0; } valet-theme-picker { display: none; } }
 
 /* Semantic suit marks keep the Dracula palette consistent across viewer and host. */
-:root[data-theme="dracula"] [data-suit="S"] { --suit-color: var(--suit-S); }
-:root[data-theme="dracula"] [data-suit="H"] { --suit-color: var(--suit-H); }
-:root[data-theme="dracula"] [data-suit="D"] { --suit-color: var(--suit-D); }
-:root[data-theme="dracula"] [data-suit="C"] { --suit-color: var(--suit-C); }
+:root:is([data-theme="dracula"], [data-theme="light"]) [data-suit="S"] { --suit-color: var(--suit-S); }
+:root:is([data-theme="dracula"], [data-theme="light"]) [data-suit="H"] { --suit-color: var(--suit-H); }
+:root:is([data-theme="dracula"], [data-theme="light"]) [data-suit="D"] { --suit-color: var(--suit-D); }
+:root:is([data-theme="dracula"], [data-theme="light"]) [data-suit="C"] { --suit-color: var(--suit-C); }
 /* Match legacy viewer red-card specificity; analysis labels stay monochrome. */
-:root[data-theme="dracula"] :is(
+:root:is([data-theme="dracula"], [data-theme="light"]) :is(
   [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
   .compass-center button.trick-card[data-suit]
 ):not(.compact-dd *, .your-contract *) { color: var(--suit-color); }
 
 /* Nord keeps its palette, with bolder open suit shapes outside analysis labels. */
-.suit-symbol-outline { display: none; }
-:root[data-theme="nord"] .suit-symbol-solid { display: none; }
-:root[data-theme="nord"] .suit-symbol-outline {
-  display: inline;
-  font-size: 0.78em;
+.suit-symbol { font-variant-emoji: text; }
+.suit-symbol-solid { display: var(--suit-solid-display); }
+.suit-symbol-outline {
+  display: var(--suit-outline-display);
+  font-size: var(--suit-outline-size);
   font-weight: 700;
-  -webkit-text-stroke: 0.025em currentColor;
+  -webkit-text-stroke: var(--suit-outline-stroke) currentColor;
 }
 :root[data-theme="nord"] .sidebar [data-suit="S"],
 :root[data-theme="nord"] .sidebar [data-suit="C"] { color: var(--text-primary); }
@@ -46,13 +46,5 @@ body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 }
 
 /* Light theme uses traditional pure red/black; analysis labels keep their tone. */
-:root[data-theme="light"] [data-suit="S"] { --suit-color: var(--suit-S); }
-:root[data-theme="light"] [data-suit="H"] { --suit-color: var(--suit-H); }
-:root[data-theme="light"] [data-suit="D"] { --suit-color: var(--suit-D); }
-:root[data-theme="light"] [data-suit="C"] { --suit-color: var(--suit-C); }
 :root[data-theme="light"] .sidebar [data-suit="S"],
 :root[data-theme="light"] .sidebar [data-suit="C"] { --suit-color: var(--sidebar-text); }
-:root[data-theme="light"] :is(
-  [data-suit="S"], [data-suit="H"], [data-suit="D"], [data-suit="C"],
-  .compass-center button.trick-card[data-suit]
-):not(.compact-dd *, .your-contract *) { color: var(--suit-color); }

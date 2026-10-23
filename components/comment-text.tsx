@@ -19,10 +19,8 @@ export function CommentText({ text }: { text: string }) {
             key={index}
             data-suit={part[1].toUpperCase()}
             className={`discussion-suit${suit.red ? ' discussion-suit-red' : ''}`}
-            role="img"
-            aria-label={suit.label}
           >
-            <SuitSymbol suit={part[1].toUpperCase()} />
+            <SuitSymbol suit={part[1].toUpperCase()} label={suit.label} />
           </span>
         ) : (
           part

@@ -8,8 +8,10 @@ test('comment suit shorthand handles case, contracts, holdings and adjacent toke
   const result = render('4!S !hAKQ !d!c\n!x');
   assert.equal((result.match(/role="img"/g) ?? []).length, 4);
   assert.equal((result.match(/discussion-suit-red/g) ?? []).length, 2);
-  assert.match(result, /4<span[^>]*>♠<\/span>/);
-  assert.match(result, /♥<\/span>AKQ/);
+  assert.match(result, /4<span/);
+  assert.ok(result.includes('♠\uFE0E'));
+  assert.ok(result.includes('♥\uFE0E'));
+  assert.match(result, /<\/span>AKQ/);
   assert.ok(result.endsWith('\n!x'));
   assert.match(result, /aria-label="梅花"/);
   assert.equal(render('♠ ♥ ♦ ♣'), '♠ ♥ ♦ ♣');
