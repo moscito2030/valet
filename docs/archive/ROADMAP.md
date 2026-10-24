@@ -1,5 +1,7 @@
 > 歷史規劃文件；目前功能與部署方式請以 [README](../../README.md) 及現行操作文件為準。
 
+> 下方標題保留專案更名前的歷史名稱與原始用途；現行專案名稱為 Valet，這份線上對戰平台規劃不代表現行產品需求。
+
 # Alternative Online Bridge: Overall Plan
 
 This project aims to provide an open, self-hostable online bridge platform that can be run by clubs, federations, teachers, casual groups, or independent organizers without depending on a single centralized service.

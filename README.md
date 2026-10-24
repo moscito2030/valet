@@ -86,6 +86,8 @@ Valet 是繁體中文的橋牌賽事工具，適合橋藝社、俱樂部與小�
 
 ## 本機試用
 
+專案名稱與 Git repository 名稱皆為 `valet`，標準 checkout 目錄為 `valet/`。目前產品範圍以本 README、現行操作文件與程式碼為準；`docs/archive/` 保留更名前的歷史規劃，不作為開發待辦。
+
 需要 Node.js 22 或較新的相容版本。在專案目錄執行：
 
 ```sh
@@ -127,7 +129,7 @@ npm run build
 
 本專案使用獨立 Valet Viewer 倉庫維護的 `@valet/deal-viewer`，透過 vendor/ 內固定版本打包檔安裝。沒有指向其他倉庫的本機連結，因此可獨立 npm ci、建置與部署。
 
-修改檢視器請到 Valet Viewer，升版並執行 `npm run sync -- ../alternative_online_bridge ../valet-review`。三個專案都需驗證並各自 commit，未經使用者指定不 push。
+修改檢視器請到 Valet Viewer，升版並執行 `npm run sync -- ../valet ../valet-review`。此指令假設三個 checkout 為相鄰目錄，且主程式目錄已命名為 `valet`；若本機尚未搬移，請傳入實際 checkout 路徑。三個專案都需驗證並各自 commit，未經使用者指定不 push。
 
 「輸出至 Valet Review」會透過分享連結傳入目前單副牌型（不含各桌成績）。正式部署請在建置前設定 `NEXT_PUBLIC_VALET_REVIEW_URL` 為 Review 網址；本機 localhost／127.0.0.1 預設使用同主機的 3001 埠。
 
