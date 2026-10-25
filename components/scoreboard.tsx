@@ -26,19 +26,21 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AdminPanel } from './admin-panel';
+import dynamic from 'next/dynamic';
 import { Breadcrumbs } from './breadcrumbs';
 import { Modal } from './event-dialogs';
 import { ManualLink } from './manual-link';
 import { api, EventSummary, methodNames, Tab } from './scoreboard-shared';
 import { Stat } from './scoreboard-widgets';
-import { BoardsView } from './scoreboard/BoardsView';
 import { PlayersView } from './scoreboard/PlayersView';
 import { RoundsView } from './scoreboard/RoundsView';
 import { StandingsView } from './scoreboard/StandingsView';
 import { useEventResource } from './scoreboard/use-event-resource';
 import { usePrivatePreview } from './scoreboard/use-private-preview';
 import { SessionControl } from './session-control';
+
+const AdminPanel = dynamic(() => import('./admin-panel').then((module) => module.AdminPanel));
+const BoardsView = dynamic(() => import('./scoreboard/BoardsView').then((module) => module.BoardsView));
 
 function CurrentTaipeiTime({ active }: { active: boolean }) {
   const [now, setNow] = useState<Date | null>(null);

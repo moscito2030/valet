@@ -11,3 +11,13 @@
 驗證：完整測試 353 pass／0 fail／0 skipped；typecheck、production build 通過；手機／桌面五主題截圖及慢字型回歸 12 pass，未更新視覺基準。原始回應與檢查紀錄保存在本機忽略目錄 `.tmp/font-{current,variable}.css`、`.tmp/probe-fonts.mjs`、`.tmp/stage1-*.log`。
 
 正式 PSI 指標應於該提交部署 READY、正式 alias 與頁面 SHA 核對後記錄；capture 相同的報告不算獨立樣本。未完成 iPhone Safari 實機驗證。
+
+部署 `fe8c8e5a0855b14ec76fad6a97e7829e0aba2205`／`dpl_DxTVdWDumApChUHsoz6cUvLz1XGW` 已 READY 並核對正式 alias、首頁版本。官方 PSI `vspkrperai`（2026-10-25 02:00:15 UTC；capture 02:00 UTC，Lighthouse 13.5.0）：手機 65，FCP/LCP/SI 4817/6317/4817 ms、TBT 0、CLS .009；桌面 100，461/676/763 ms、TBT 9、CLS .002。未使用 CSS 估計由 159 降至 57 KiB，與宣告去重符合；單次手機分數低於上一個獨立樣本 83，不能宣稱穩定升分或僅憑分數認定回歸。CrUX 無資料；詳細 UI 與 calculator 觀察在 `.tmp/incremental-performance/psi-observations.json`。
+
+## 2. 首頁／成績功能分包
+
+原本 page 同時靜態匯入 CompetitionHub 與 Scoreboard；本機 production manifest 顯示二者共用四個入口 chunks，合計 734517 bytes（未壓縮，非完整網路總量）。加入 client 邊界的 dynamic Scoreboard，保留既有 query 深連結與 SSR；成績中的 AdminPanel、BoardsView 亦依分頁載入，不改權限或業務處理。
+
+新首頁入口三個 chunks 合計 66601 bytes；production 真實首頁 script 回應檢查未包含 event mutation／board discussion 實作標記。此檢查不等同證明全部非必要程式均已移除。新增固定資料、無寫入的深連結→逐副→排名回歸，並對 production 在手機／桌面驗證。
+
+完整測試 353 pass；typecheck、production build 通過。既有五主題基準不更新；新增導航測試初次因測試 selector 誤用 standings-table 失敗，改為既有 ranking-table 後，production 導航與慢字型 4 pass。全部視覺／導航最終結果記於 `.tmp/stage2-visual-final.log`。
