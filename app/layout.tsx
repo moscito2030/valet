@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import './globals.css';
 import '@valet/deal-viewer/style.css';
 const fontStylesheets = [
-  'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&family=IBM+Plex+Sans:wght@500&family=IBM+Plex+Mono:wght@600&display=swap',
+  'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400..700&family=DM+Sans:wght@400..700&family=Source+Serif+4:wght@400..700&family=IBM+Plex+Sans:wght@500&family=IBM+Plex+Mono:wght@600&display=swap',
   'https://fonts.googleapis.com/css2?family=Libertinus+Serif:wght@600&text=VALET&display=swap',
 ];
 export const metadata: Metadata = {
