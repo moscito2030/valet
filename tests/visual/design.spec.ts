@@ -4,6 +4,10 @@ for (const theme of ['forest', 'light', 'sepia', 'nord', 'dracula']) {
     await page.addInitScript((theme) => localStorage.setItem('valet-theme', theme), theme);
     await page.goto('/design-preview');
     await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
+    // Font stylesheets now attach after hydration; wait for their CSS before font readiness.
+    await page.waitForFunction(() =>
+      [...document.styleSheets].filter((sheet) => sheet.href?.startsWith('https://fonts.googleapis.com/')).length === 2,
+    );
     await page.evaluate(() => document.fonts.ready);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     await expect(page.getByRole('heading', { name: '設計預覽' })).toBeVisible();
