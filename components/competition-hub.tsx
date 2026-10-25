@@ -47,11 +47,13 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   const [query, setQuery] = useState('');
   const [date, setDate] = useState('');
   const load = useCallback(async () => {
-    const [list, auth] = await Promise.all([
-      request<{ competitions: Competition[] }>('/api/competitions'),
-      request<{ admin: boolean; director: boolean }>('/api/session'),
+    await Promise.all([
+      request<{ competitions: Competition[] }>('/api/competitions').then((list) => {
+        setCompetitions(list.competitions);
+        setLoading(false);
+      }),
+      request<{ admin: boolean; director: boolean }>('/api/session').then(setSession),
     ]);
-    setCompetitions(list.competitions); setSession(auth);
   }, []);
   useEffect(() => { void load().catch(e => setError(e.message)).finally(() => setLoading(false)); }, [load]);
   const competition = competitions.find(c => c.id === competitionId);
