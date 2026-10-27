@@ -6,6 +6,7 @@ type Props = {
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 };
 export function PenaltyPanel({ busy, event, save }: Props) {
+  if (event.knockout) return <p>淘汰賽請至「淘汰賽」分頁選擇對局，由裁判調整 IMP 或處理棄權。</p>;
   return (
     <form
       onSubmit={async (e) => {

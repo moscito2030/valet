@@ -14,6 +14,9 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
     return;
   }
   switch (command.action) {
+    case 'knockout-adjust':
+    case 'knockout-overtime':
+    case 'knockout-forfeit':
     case 'knockout-config':
     case 'knockout-publish':
     case 'knockout-decide':

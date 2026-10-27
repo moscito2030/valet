@@ -1,5 +1,5 @@
 import { ParticipantsSetup } from '../participants-setup';
-import { KnockoutPanel } from '../knockout-panel';
+
 import {
   exportMovement,
   exportPbn,
@@ -102,7 +102,7 @@ export function ImportPanel({
       } else if (importType === 'pbn') {
         const boards = parsePbn(text);
         setPreview(
-          `共 ${boards.length} 副完整牌型：${boards.map((b) => b.number).join(', ')}。需與全場牌號一致，且尚未收分。`,
+          `共 ${boards.length} 副完整牌型：${boards.map((b) => b.number).join(', ')}。${event.knockout ? '只更新所列未打牌號，保留已收分牌局。' : '需與全場牌號一致，且尚未收分。'}`,
         );
       } else {
         const rows = parseMovement(text, event as BridgeEvent);
@@ -156,14 +156,9 @@ export function ImportPanel({
 
   return (
     <>
+      {event.teamFormat === 'knockout' && !event.knockout && <p>設定名單後，請至「淘汰賽」分頁設定對戰表。</p>}
       {event.canDirect && <ParticipantsSetup key={event.revision} event={event as BridgeEvent} busy={busy} save={save} />}
-      <KnockoutPanel
-        key={`knockout-${event.id}-${event.revision}`}
-        event={event as BridgeEvent}
-        busy={busy}
-        save={save}
-      />
-      {!event.knockout && (
+      {!event.knockout && event.teamFormat !== 'knockout' && (
         <SwissPanel
           key={`swiss-${event.id}-${event.revision}`}
           event={event as BridgeEvent}
@@ -171,7 +166,7 @@ export function ImportPanel({
           save={save}
         />
       )}
-      {!event.swiss && !event.knockout && (
+      {!event.swiss && !event.knockout && event.teamFormat !== 'knockout' && (
         <MovementPanel
           key={`movement-${event.id}-${event.revision}`}
           event={event as BridgeEvent}
@@ -302,7 +297,7 @@ export function ImportPanel({
               : importType === 'lineups'
                 ? '欄位：assignmentId,N,E,S,W。新姓名會自動加入該座位所屬隊伍，預覽會列出新增隊員。空白座位表示清除，未列出的桌次保持不變。'
                 : importType === 'pbn'
-                  ? '牌型僅能在尚未收分時替換。'
+                  ? event.knockout ? '可匯入加賽或其他已安排的未打牌號；已收分牌號不可更換。' : '牌型僅能在尚未收分時替換。'
                   : importType === 'round-times'
                     ? '欄位：round,startAt,endAt。時間使用 HH:mm（賽段開始日期）或 YYYY-MM-DD HH:mm，皆為臺灣時間。只更新所列圈次；開始與結束皆留空可清除該圈時間。時間不會自動切換圈次。'
                     : `可先匯出賽程再修改，逐圈匯入時每圈須包含完整賽程；已收分的圈次不可更改，已結束賽段不可更改。${event.kind === 'teams' ? '一般隊制賽填 room：open／closed，同桌兩室方向相反、牌組相同。交錯循環另填 matchId 配對跨圈兩桌，須在收分前一次匯入完整賽程。奇數隊輪空可附 byeVp，預設 12。' : ''}`}

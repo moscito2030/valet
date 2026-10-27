@@ -1,3 +1,4 @@
+import { isImpKnockout, knockoutExemptAssignments } from './knockout-status';
 import { bamBoardPoints, type TeamScoring } from './team-method';
 import {
   BridgeEvent,
@@ -166,6 +167,7 @@ type ProjectionInput = Pick<
   | 'assignments'
   | 'results'
   | 'teamMethod'
+  | 'teamFormat'
   | 'bam'
   | 'pairMethod'
   | 'neuberg'
@@ -201,7 +203,7 @@ export function project(e: ProjectionInput): Projection {
     matches: [],
     pairScores: {},
     received: Object.keys(e.results).length,
-    expected: e.assignments.reduce((n, a) => n + a.boards.length, 0),
+    expected: e.assignments.reduce((n, a) => n + (knockoutExemptAssignments(e).has(a.id) ? a.boards.filter((b) => !!e.results[resultKey(a.id, b)]).length : a.boards.length), 0),
   };
   for (const a of e.assignments) for (const id of [a.ns, a.ew]) byId[id].total += a.boards.length;
   if (e.kind === 'teams') {
@@ -256,7 +258,7 @@ export function project(e: ProjectionInput): Projection {
         match.completed++;
       }
       for (const id of [match.a, match.b]) byId[id].played += match.completed;
-      if (match.completed === match.total && cancelled < match.total) {
+      if (!isImpKnockout(e) && match.completed === match.total && cancelled < match.total) {
         match.vpA =
           e.teamMethod === 'bam'
             ? Math.round(match.bamA! * 100) / 100
@@ -381,6 +383,16 @@ export function project(e: ProjectionInput): Projection {
           : 50;
       row.secondary = t.mp;
     }
+  }
+  if (isImpKnockout(e)) {
+    projection.standings = standing.map((row) => {
+      const placement = (e.knockout?.nodes ?? []).flatMap((n) => {
+        const d = e.knockout!.decisions[n.id];
+        return d ? [{ id: d.winner, place: n.winnerPlace }, { id: d.loser, place: n.loserPlace }] : [];
+      }).find((p) => p.id === row.id && p.place);
+      return { ...row, score: null, secondary: 0, rank: placement?.place ?? 0 };
+    });
+    return projection;
   }
   for (const row of standing) {
     row.penalty = e.penalties?.[row.id] ?? 0;

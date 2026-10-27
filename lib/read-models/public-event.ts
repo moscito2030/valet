@@ -1,3 +1,4 @@
+import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
 import { publicBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
@@ -13,6 +14,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     kind: event.kind,
     rankingMode: event.rankingMode,
     teamMethod: event.teamMethod,
+    teamFormat: event.teamFormat,
     bam: event.bam,
     gameMode: event.gameMode,
     date: event.date,
@@ -54,11 +56,14 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     knockout: event.knockout
       ? {
           nodes: event.knockout.nodes,
+          adjustments: event.knockout.adjustments,
+          extraLegs: event.knockout.extraLegs,
+          withdrawn: event.knockout.withdrawn,
           published: event.knockout.published,
           decisions: Object.fromEntries(
             Object.entries(event.knockout.decisions).map(([id, d]) => [
               id,
-              { winner: d.winner, loser: d.loser, reason: d.reason },
+              { winner: d.winner, loser: d.loser, reason: d.reason, method: d.method },
             ]),
           ),
         }
@@ -101,7 +106,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   };
   const finalized = new Set(club?.finalized ?? []);
   const visible = club?.enabled
-    ? new Set(event.assignments.filter((a) => finalized.has(a.round)).map((a) => a.id))
+    ? new Set(event.assignments.filter((a) => finalized.has(a.round) || knockoutExemptAssignments(event).has(a.id)).map((a) => a.id))
     : null;
   const results = visible
     ? Object.fromEntries(
@@ -112,7 +117,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   // A board can recur in later rounds: keep its deal private until every scheduled use is settled.
   const unsettledBoards = new Set(
     club?.enabled
-      ? event.assignments.filter((a) => !finalized.has(a.round)).flatMap((a) => a.boards)
+      ? event.assignments.filter((a) => !finalized.has(a.round) && !knockoutExemptAssignments(event).has(a.id)).flatMap((a) => a.boards)
       : [],
   );
   const boards = publicBoards(event).map((b) => {
@@ -130,6 +135,6 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     ...safe,
     boards,
     collectionProgress: roundProgress(event),
-    projection: allResultsVisible && projection ? projection : project({ ...event, results }),
+    projection: allResultsVisible && projection && !event.knockout ? projection : project({ ...event, results }),
   };
 }

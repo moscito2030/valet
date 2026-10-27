@@ -41,8 +41,7 @@ export function SplitContractEditor({
   return (
     <EditorPopover className="split-contract-editor" title={result.split ? '不平衡合約（已套用）' : '裁判判罰：不平衡合約'}>
       <p className="footnote">
-        分別指定 NS、EW 獲判的完整合約及實得墩數。雙方各自與另一室比較，VP 總和不一定為
-        20；原始紀錄仍保留。
+        分別指定 NS、EW 獲判的完整合約及實得墩數。雙方各自與另一室比較，分別計算比較分；原始紀錄仍保留。
       </p>
       {(['ns', 'ew'] as const).map((side) => {
         const r = contracts[side];

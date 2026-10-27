@@ -1,3 +1,4 @@
+import { KnockoutMatchSummary } from '../knockout-match-summary';
 import { boardRange } from '@/lib/board-groups';
 import type { PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
@@ -106,7 +107,7 @@ export function RoundsView({
                     >
                       <strong>{name(id)}</strong>
                       <small>
-                        {participantNumber(id, event.kind)} / {number(standing?.score ?? null)} VP
+                        {participantNumber(id, event.kind)}{!event.knockout && ` / ${number(standing?.score ?? null)} VP`}
                         {standing && !event.knockout && ` / #${standing.rank}`}
                       </small>
                     </button>
@@ -122,8 +123,9 @@ export function RoundsView({
                   </div>
                 );
               })}
+              {event.knockout && <KnockoutMatchSummary event={event} matchId={m.id} />}
               <div className="match-bottom">
-                <MatchVpScale event={event} match={m} />
+                {!event.knockout && <MatchVpScale event={event} match={m} />}
                 <button
                   className="match-results-link"
                   onClick={() => {

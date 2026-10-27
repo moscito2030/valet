@@ -42,6 +42,7 @@ Valet 是繁體中文的橋牌賽事工具，適合橋藝社、俱樂部與小�
 | 比賽形式 | 計分與查看方式 |
 | --- | --- |
 | 隊制賽 | 開閉兩室比較、IMP 與 WBF 連續 20–0 VP；對戰收齊後換算 VP |
+| 純 IMP 淘汰賽 | 多節累積 IMP 淨差決勝，支援加賽、對局調整、棄權／退賽、多層名次賽與專用成績匯出 |
 | 雙人賽 | MP、CrossIMP 或 ButlerIMP；兩種 IMP 計分可設定去頭去尾 |
 | 迷你橋牌 | 自動處理一線與成局門檻、超墩及宕墩，不需輸入線位與身價 |
 
@@ -122,6 +123,8 @@ npm test
 npm run typecheck
 npm run build
 ```
+
+純 IMP 淘汰賽端到端回歸使用 `npm run test:knockout`（需先安裝 Playwright Chromium）。指令自行啟動 `127.0.0.1:3117`，每次建立新的 `.tmp/ko-e2e-*` 本機資料目錄並清空資料庫連線設定，不重用既有伺服器；涵蓋桌面與手機的編排、加賽、判罰、棄權、CSV、列印及權限。詳見[純 IMP 淘汰賽手冊](manual/src/knockout.md)。
 
 雙夢家分析使用 [bridge-dds](https://github.com/bookchris/bridge-dds-js)；VP 換算依據 [WBF 連續 VP 公式](https://www.worldbridge.org/wp-content/uploads/2019/06/VP-Scale-Functiondetails.pdf)。
 

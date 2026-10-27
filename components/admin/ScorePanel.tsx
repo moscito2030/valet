@@ -158,7 +158,7 @@ export function ScorePanel({
             const method = event.pairMethod ?? 'mp';
             const score = standing?.score;
             const summary = id
-              ? `${participantNumber(id, event.kind)} / ${score == null ? '—' : `${score >= 0 && method !== 'mp' ? '+' : ''}${number(score, method === 'butler' && Number.isInteger(score) ? 0 : 2)}${event.kind === 'teams' ? ' VP' : method === 'mp' ? '%' : ' IMP'}`}${standing ? ` / #${standing.rank}` : ''}`
+              ? event.knockout ? participantNumber(id, event.kind) : `${participantNumber(id, event.kind)} / ${score == null ? '—' : `${score >= 0 && method !== 'mp' ? '+' : ''}${number(score, method === 'butler' && Number.isInteger(score) ? 0 : 2)}${event.kind === 'teams' ? ' VP' : method === 'mp' ? '%' : ' IMP'}`}${standing ? ` / #${standing.rank}` : ''}`
               : '—';
             return (
               <div className="seating-participant" key={side}>

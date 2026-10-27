@@ -1,3 +1,4 @@
+import { knockoutExemptAssignments } from './knockout-status';
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 
@@ -7,6 +8,7 @@ export function allRoundsComplete(
 ) {
   if (event.knockout && event.knockout.nodes.some((n) => !event.knockout!.decisions[n.id]))
     return false;
+  const exempt = knockoutExemptAssignments(event);
   return (
     event.rounds > 0 &&
     Array.from({ length: event.rounds }, (_, i) => i + 1).every((round) => {
@@ -21,16 +23,16 @@ export function allRoundsComplete(
       return (
         tables.length > 0 &&
         tables.every(
-          (a) => a.boards.length > 0 && a.boards.every((b) => !!event.results[resultKey(a.id, b)]),
+          (a) => exempt.has(a.id) || (a.boards.length > 0 && a.boards.every((b) => !!event.results[resultKey(a.id, b)])),
         ) &&
-        (!event.club?.enabled || event.club.finalized.includes(round))
+        (!event.club?.enabled || tables.every((a) => exempt.has(a.id)) || event.club.finalized.includes(round))
       );
     })
   );
 }
 
 export function roundProgress(
-  event: Pick<BridgeEvent, 'currentRound' | 'assignments' | 'results'>,
+  event: Pick<BridgeEvent, 'currentRound' | 'assignments' | 'results'> & Partial<Pick<BridgeEvent, 'knockout'>>,
 ) {
   const round =
     event.currentRound ||
@@ -40,13 +42,14 @@ export function roundProgress(
         .filter((a) => a.boards.some((b) => !!event.results[resultKey(a.id, b)]))
         .map((a) => a.round),
     );
+  const exempt = knockoutExemptAssignments(event);
   const tables = event.assignments
     .filter((a) => a.round === round)
     .map((assignment) => {
-      const expected = assignment.boards.length;
       const received = assignment.boards.filter(
         (b) => !!event.results[resultKey(assignment.id, b)],
       ).length;
+      const expected = exempt.has(assignment.id) ? received : assignment.boards.length;
       return { assignment, received, expected, ratio: expected ? received / expected : 1 };
     });
   const unfinished = tables.filter((table) => table.received < table.expected);

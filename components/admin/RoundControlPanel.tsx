@@ -21,7 +21,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
   const progress = roundProgress({ ...event, currentRound: round });
   const settled = event.club?.enabled
     ? event.club.finalized.includes(round)
-    : progress.expected > 0 && progress.received === progress.expected;
+    : progress.received === progress.expected && (progress.expected > 0 || event.assignments.some((a) => a.round === round));
   const finished = event.status === 'finished';
   const reviewing = event.status === 'review' || allRoundsComplete(event);
   const paused = event.roundPhase === 'break' && !settled;

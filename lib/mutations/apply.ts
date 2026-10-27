@@ -20,6 +20,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'split-contract', 'penalty', 'movement', 'movement-plan', 'participants-setup',
       'round-control', 'swiss-config', 'swiss-publish', 'knockout-config',
       'knockout-publish', 'knockout-decide', 'knockout-reopen',
+      'knockout-adjust', 'knockout-overtime', 'knockout-forfeit',
       'club-play', 'club-finalize', 'club-complete-table'].includes(command.action) ||
     (command.action === 'settings' && (command.status !== 'finished' ||
       command.teamMethod !== undefined || command.bam !== undefined))
@@ -107,6 +108,9 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   e.audit.push({
     at,
     action: {
+      'knockout-adjust': '調整淘汰對局 IMP',
+      'knockout-overtime': '追加淘汰加賽',
+      'knockout-forfeit': '淘汰對局棄權／退賽',
       'knockout-config': '設定淘汰賽對戰表',
       'knockout-publish': '公布淘汰賽對戰',
       'knockout-decide': '確認淘汰賽勝負',

@@ -1,6 +1,6 @@
 import type { BridgeEvent, Result } from './model';
 export const defaultBam = { win: 2, draw: 1, loss: 0 };
-export type TeamScoring = Pick<BridgeEvent, 'teamMethod' | 'bam'>;
+export type TeamScoring = Pick<BridgeEvent, 'teamMethod' | 'bam' | 'knockout' | 'teamFormat'>;
 export function bamBoardPoints(
   open: Result,
   closed: Result,
@@ -15,7 +15,7 @@ export function bamBoardPoints(
 }
 export function teamScoringLabel(event: TeamScoring) {
   const s = event.bam ?? defaultBam;
-  return event.teamMethod === 'bam'
+  return (event.knockout || event.teamFormat === 'knockout') && event.teamMethod !== 'bam' ? '純 IMP 淘汰賽' : event.teamMethod === 'bam'
     ? `Board-A-Match · 勝／和／負 ${s.win}／${s.draw}／${s.loss} VP`
     : 'IMP · WBF 20–0 VP';
 }

@@ -1,9 +1,10 @@
 'use client';
-import type { ResultInput } from '@/lib/model';
+import type { BridgeEvent, ResultInput } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { useCallback, useEffect, useState } from 'react';
 import { AuditPanel } from './admin/AuditPanel';
 import { ImportPanel } from './admin/ImportPanel';
+import { KnockoutPanel } from './knockout-panel';
 import { PenaltyPanel } from './admin/PenaltyPanel';
 import { PublicationPanel } from './admin/PublicationPanel';
 import { ScorePanel } from './admin/ScorePanel';
@@ -138,6 +139,7 @@ export function AdminPanel({
           ...(event.canDirect
             ? [
                 ['import', '賽程與牌局管理'],
+                ...(event.kind === 'teams' ? [['knockout', '淘汰賽']] : []),
                 ['club', '圈次與裝置收分'],
               ]
             : []),
@@ -235,6 +237,7 @@ export function AdminPanel({
             setError={setError}
           />
         )}
+        {section === 'knockout' && event.canDirect && <KnockoutPanel key={`ko-${event.id}-${event.revision}`} event={event as BridgeEvent} busy={busy} save={save} />}
         {section === 'penalty' && <PenaltyPanel busy={busy} event={event} save={save} />}
         {section === 'audit' && event.canDirect && <AuditPanel event={event} />}
       </div>

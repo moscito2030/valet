@@ -19,7 +19,7 @@ async function request<T>(url: string, body?: object, method = 'POST'): Promise<
   return data;
 }
 const competitionDateLabel = (c: Competition) => c.date ? dateRangeLabel(c) : '日期未定';
-const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? '迷你橋牌 · ' : '') + (s.kind === 'teams' ? (s.teamMethod === 'bam' ? '隊制賽 · Board-A-Match' : '隊制賽 · IMP / VP') : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
+const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? '迷你橋牌 · ' : '') + (s.kind === 'teams' ? (s.teamMethod === 'bam' ? '隊制賽 · Board-A-Match' : s.teamFormat === 'knockout' ? '隊制賽 · 純 IMP 淘汰賽' : '隊制賽 · IMP / VP') : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
 
 export default function CompetitionHub({ competitionId }: { competitionId?: string }) {
   const [competitions, setCompetitions] = useState<Competition[]>([]);

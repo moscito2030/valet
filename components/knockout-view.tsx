@@ -1,6 +1,7 @@
 'use client';
 import type { PublicEvent } from '@/lib/model';
 import type { KnockoutSource } from '@/lib/knockout-schema';
+import { knockoutDecisionLabel, exportKnockoutCsv, knockoutPrintHtml } from '@/lib/knockout-report';
 import { knockoutScore, knockoutSource } from '@/lib/knockout';
 export function KnockoutView({ event }: { event: PublicEvent }) {
   const ko = event.knockout;
@@ -21,7 +22,7 @@ export function KnockoutView({ event }: { event: PublicEvent }) {
       const d = ko.decisions[n.id];
       return d
         ? [
-            ...(n.winnerPlace ? [{ place: n.winnerPlace, id: d.winner }] : []),
+            ...(n.winnerPlace && d.winner ? [{ place: n.winnerPlace, id: d.winner }] : []),
             ...(n.loserPlace && d.loser ? [{ place: n.loserPlace, id: d.loser }] : []),
           ]
         : [];
@@ -32,8 +33,12 @@ export function KnockoutView({ event }: { event: PublicEvent }) {
       <div className="panel-heading">
         <div>
           <h2>淘汰賽對戰表</h2>
-          <p>IMP 累計淨差／BAM 累計 VP 決勝；勝負與最終名次由裁判確認後公布。</p>
+          <p>{event.teamMethod === 'bam' ? 'BAM 累計決勝' : '純 IMP 累計淨差決勝'}；勝負與最終名次由裁判確認後公布。</p>
         </div>
+      </div>
+      <div className="button-row">
+        <button className="button subtle" onClick={() => { const url = URL.createObjectURL(new Blob([exportKnockoutCsv(event)], { type: 'text/csv;charset=utf-8' })); const a = document.createElement('a'); a.href = url; a.download = `${event.id}-knockout.csv`; a.click(); URL.revokeObjectURL(url); }}>匯出淘汰賽成績 CSV</button>
+        <button className="button subtle" onClick={() => { const page = window.open('', '_blank'); if (!page) return; page.opener = null; page.document.write(knockoutPrintHtml(event)); page.document.close(); page.focus(); page.print(); }}>列印淘汰賽成績</button>
       </div>
       {!!placements.length && (
         <div className="table-scroll">
@@ -82,10 +87,13 @@ export function KnockoutView({ event }: { event: PublicEvent }) {
                         {!p
                           ? '待公布'
                           : p.b === null
-                            ? '輪空晉級'
+                            ? d?.method === 'withdrawal' ? (p.a ? '對手退賽，免賽晉級' : '雙方退賽，無勝方') : '輪空晉級'
                             : `${s.a.toFixed(2)} : ${s.b.toFixed(2)} ${event.teamMethod === 'bam' ? 'VP' : 'IMP'}${s.complete ? '' : '（未收齊）'}`}
                       </p>
-                      {d && <strong>勝方：{name(d.winner)}</strong>}
+                      {d?.winner && <strong>勝方：{name(d.winner)}</strong>}
+                      {d && <p>{knockoutDecisionLabel(d.method)}：{d.reason}</p>}
+                      {ko.adjustments?.[n.id] && <p>IMP 調整 {ko.adjustments[n.id].a} / {ko.adjustments[n.id].b}：{ko.adjustments[n.id].reason}</p>}
+                      {ko.extraLegs?.[n.id]?.map((leg) => <p key={leg.round}>加賽：第 {leg.round} 圈，{leg.boards.length} 牌</p>)}
                       {n.winnerPlace && (
                         <p className="footnote">
                           勝方第 {n.winnerPlace} 名

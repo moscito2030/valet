@@ -31,6 +31,7 @@ export function applyScheduleCommand(
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
+  if (e.teamFormat === 'knockout' && ['swiss-config', 'movement', 'movement-plan'].includes(command.action)) throw new DomainError('純 IMP 淘汰賽請至「淘汰賽」設定對戰表');
   if (command.action === 'round-control') {
     if (e.status !== 'live') throw new DomainError('賽段已進入覆核或結束，請直接由裁判更正成績，不能調整圈次。');
     if (e.club?.enabled) {

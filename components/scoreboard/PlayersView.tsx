@@ -6,6 +6,7 @@ import { directionalDatum } from '@/lib/datum';
 import type { Assignment, PublicEvent } from '@/lib/model';
 import { resultKey } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
+import { KnockoutMatchSummary } from '../knockout-match-summary';
 import { awardedResult, imps, teamBoardPoints, teamStandingsThroughRound, vp } from '@/lib/scoring';
 import { isInterleaved, roundLabel } from '@/lib/team-movement';
 import { ChevronDown } from 'lucide-react';
@@ -173,7 +174,7 @@ export function PlayersView({
   const playerMatchScore = event?.projection.matches.find(
     (match) => match.id === playerMatch?.matchId,
   );
-  const provisionalVp = !!playerMatchScore &&
+  const provisionalVp = !event.knockout && !!playerMatchScore &&
     (playerMatchScore.vpA === null || playerMatchScore.vpB === null) &&
     playerMatchScore.completed < playerMatchScore.total && playerMatchScore.total > 0 &&
     teamPlayerRows.some(({ a, b, closed }) => closed && [a, closed].every((assignment) => {
@@ -198,7 +199,7 @@ export function PlayersView({
       : vpA
     : null;
   const playerVpScale =
-    event.teamMethod !== 'bam' && playerVpBoards > 0
+    !event.knockout && event.teamMethod !== 'bam' && playerVpBoards > 0
       ? Array.from({ length: Math.ceil(15 * Math.sqrt(playerVpBoards)) + 1 }, (_, margin) => ({
           margin,
           winner: vp(margin, playerVpBoards),
@@ -308,7 +309,7 @@ export function PlayersView({
                 <button
                   type="button"
                   className="match-context-trigger"
-                  title="查看賽前與賽後累積 VP" popoverTarget="player-preround-summary"
+                  title={event.knockout ? '查看淘汰對局累積 IMP' : '查看賽前與賽後累積 VP'} popoverTarget="player-preround-summary"
                   onClick={(e) => positionDetail(e.currentTarget)}
                 >
                   <span className="match-context-label">第 {playerMatch.table} 桌</span>
@@ -327,6 +328,7 @@ export function PlayersView({
                   popover="auto"
                   className="player-detail-popover"
                 >
+                  {event.knockout ? <KnockoutMatchSummary event={event} matchId={playerMatchScore?.id} /> : <>
                   <strong>第 {roundLabel(event, playerRound)} 圈 · 累積 VP</strong>
                   <p>賽前 → {playerMatchScore?.vpA != null ? '賽後' : '目前已結算'}</p>
                   {[playerId!, playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns].map(
@@ -341,7 +343,7 @@ export function PlayersView({
                       );
                     },
                   )}
-                  <small className="muted">計入已完成對戰與已結算輪空的 VP。</small>
+                  <small className="muted">計入已完成對戰與已結算輪空的 VP。</small></>}
                 </div>
               </>
             ) : (
@@ -484,7 +486,7 @@ export function PlayersView({
                           : `${playerImpFor} : ${playerImpAgainst}`
                         : '— : —').split(' : ').map((value, index) => <span key={index}>{value}</span>)}
                     </button>
-                    <button
+                    {!event.knockout && <><button
                       type="button"
                       className="contract-link"
                       title={event.teamMethod === 'bam' ? '查看 BAM 計分規則' : '查看 VP 換算表'} popoverTarget="player-vp-scale"
@@ -500,7 +502,7 @@ export function PlayersView({
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
                       <span>{number(playerMatchVp)}</span><span>{number(opponentMatchVp)}</span>
-                    </button>
+                    </button></>}
                   </div>
                   <div
                     key={`${playerId}-${playerRound}-butler`}
@@ -527,7 +529,7 @@ export function PlayersView({
                     </div>
                     <small className="muted">加總本圈兩室已收的有效成績；取消牌不計入。</small>
                   </div>
-                  <div
+                  {!event.knockout && <div
                     key={`${playerId}-${playerRound}-${playerVpBoards}`}
                     id="player-vp-scale"
                     popover="auto"
@@ -579,7 +581,7 @@ export function PlayersView({
                     ) : (
                       <p>{event.teamMethod === 'bam' ? '取消牌不給分；收齊後將本圈 VP 計入總排名。' : '本圈沒有可計分的牌。'}</p>
                     )}
-                  </div>
+                  </div>}
                 </td>
               </tr>
             </tfoot>

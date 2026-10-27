@@ -72,6 +72,7 @@ export function applyScoresCommand(
       e.results[key] = after;
     }
   } else if (command.action === 'penalty') {
+    if (e.knockout) throw new DomainError('淘汰賽請由裁判使用對局 IMP 調整，不使用累積 VP 判罰');
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     if (!e.participants.some((p) => p.id === command.participantId))
       throw new DomainError('找不到參賽者');

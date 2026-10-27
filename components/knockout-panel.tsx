@@ -5,6 +5,7 @@ import type { KnockoutNode, KnockoutSource } from '@/lib/knockout-schema';
 import { knockoutScore, seedKnockout, validateKnockout } from '@/lib/knockout';
 import { availableKnockoutOutputs, newKnockoutPlacement } from '@/lib/knockout';
 import { project } from '@/lib/scoring';
+import { KnockoutControls } from './knockout-controls';
 import { Modal } from './event-dialogs';
 export function KnockoutPanel({
   event,
@@ -23,7 +24,8 @@ export function KnockoutPanel({
   const [editing, setEditing] = useState<string | null>(null),
     [reason, setReason] = useState(''),
     [winners, setWinners] = useState<Record<string, string>>({});
-  if (event.kind !== 'teams' || event.swiss || event.participants.length<2) return null;
+  if (event.kind !== 'teams' || event.swiss) return null;
+  if (event.participants.length < 2) return <p>請先至「賽程與牌局管理」設定至少兩隊名單，再建立淘汰對戰表。</p>;
   const locked =
     Object.keys(event.results).length > 0 ||
     !!(event.knockout && Object.keys(event.knockout.published).length) ||
@@ -293,7 +295,7 @@ export function KnockoutPanel({
                 d = event.knockout!.decisions[n.id],
                 score = knockoutScore(event, n, projection);
               return (
-                <div className="setting-row" key={n.id}>
+                <div className="setting-row knockout-decision" key={n.id}>
                   <div>
                     <strong>
                       {n.name} · {name(p.a)} vs {name(p.b!)}
@@ -304,6 +306,7 @@ export function KnockoutPanel({
                       {d ? '已確認勝方 ' + name(d.winner) : score.complete ? '已收齊' : '未收齊'}
                     </p>
                   </div>
+                  {!d && <KnockoutControls event={event} node={n} busy={busy} save={save} />}
                   {d ? (
                     <button
                       type="button"

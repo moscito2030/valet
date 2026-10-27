@@ -1,3 +1,4 @@
+import { knockoutExemptAssignments } from './knockout-status';
 import type { BridgeEvent } from './model';
 import { clubAccepted, clubConfirmationKey } from './club-confirmation';
 import { knockoutRoundReady } from './knockout';
@@ -19,7 +20,7 @@ export function roundStartProblem(event: RoundEvent, round: number): string | nu
 export function unsettledRoundsBefore(event: RoundEvent, round: number): number[] {
   if (!event.club?.enabled) return [];
   return [...new Set(event.assignments.filter((a) => a.round < round).map((a) => a.round))]
-    .filter((r) => !event.club!.finalized.includes(r))
+    .filter((r) => !event.club!.finalized.includes(r) && event.assignments.some((a) => a.round === r && !knockoutExemptAssignments(event).has(a.id)))
     .sort((a, b) => a - b);
 }
 
@@ -30,7 +31,7 @@ export function clubRoundReady(event: RoundEvent, round: number): boolean {
     roundStartProblem(event, round)
   )
     return false;
-  return event.assignments.filter((a) => a.round === round).every((a) => clubAccepted(event, a));
+  return event.assignments.filter((a) => a.round === round).every((a) => knockoutExemptAssignments(event).has(a.id) || clubAccepted(event, a));
 }
 
 export function roundHasActivity(

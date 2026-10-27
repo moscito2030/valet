@@ -12,7 +12,7 @@ export function hydrateEvent(stored: StoredEvent, competition: CompetitionInfo):
       !Number.isFinite(match.marginA) || !Number.isFinite(match.marginB) ||
       typeof match.split !== 'boolean',
     ));
-  const projection = legacy ? project(event) : stored.projection;
+  const projection = legacy || event.knockout ? project(event) : stored.projection;
   // Persisted projections may predate numeric tie ordering. Normalize on read,
   // without recalculating scores or writing a new event revision.
   const standings = [...projection.standings].sort((a, b) =>

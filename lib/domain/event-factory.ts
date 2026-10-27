@@ -1,3 +1,4 @@
+import { seedKnockout, validateKnockout } from '../knockout';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { DomainError } from '../domain-error';
@@ -24,6 +25,7 @@ export function createEvent(
     prefix: data.prefix ?? '',
     ...(data.firstStageName ? { hasStages: true, stageName: data.firstStageName } : {}),
     kind: data.kind,
+    ...(data.kind === 'teams' ? { teamFormat: data.teamFormat ?? 'league' } : {}),
     ...(data.kind==='pairs'?{rankingMode:data.rankingMode??(data.movementPlan?'double':'single')}:{ }),
     ...(data.kind === 'teams' ? { teamMethod: data.teamMethod ?? 'imp', ...(data.teamMethod === 'bam' ? { bam: data.bam ?? {win:2,draw:1,loss:0} } : {}) } : {}),
     ...(data.kind === 'teams' && participants.length % 2 ? { byeVp: data.teamMethod === 'bam' ? 0 : 12 } : {}),
@@ -117,6 +119,16 @@ export function createEvent(
     }));
     e.movementImported = true;
     e.movementDescription = `${plan.option.label}；${plan.option.note}`;
+  }
+  if (data.teamFormat === 'knockout' && participants.length >= 2) {
+    const nodes = seedKnockout(participants.map((p) => p.id), data.rounds || 1, data.boardsPerRound || 8);
+    validateKnockout(nodes, e);
+    e.knockout = { nodes, published: {}, decisions: {} };
+    e.rounds = Math.max(...nodes.map((n) => n.startRound + n.rounds - 1));
+    e.boardsPerRound = data.boardsPerRound || 8;
+    e.assignments = [];
+    e.byeVp = 0;
+    e.boards = Array.from({ length: e.rounds * e.boardsPerRound }, (_, i) => makeBoard(i + 1));
   }
   // New events have no real deals until PBN import. Use empty hands instead of generated ones.
   e.boards = e.boards.map((b) => ({ ...b, deal: { N: [], E: [], S: [], W: [] } }));

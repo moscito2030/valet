@@ -4,17 +4,26 @@ import type { Knockout, KnockoutNode, KnockoutSource } from './knockout-schema';
 import { DomainError } from './domain-error';
 import { project } from './scoring';
 export const knockoutMatchId = (id: string, round: number) => `ko-${id}-r${round}`;
-export function knockoutAssignments(event: Pick<BridgeEvent, 'assignments'>, node: KnockoutNode) {
+export function knockoutLegs(event: Pick<BridgeEvent, 'knockout'>, node: KnockoutNode) {
+  return [
+    ...Array.from({ length: node.rounds }, (_, i) => ({ round: node.startRound + i, extra: false })),
+    ...(event.knockout?.extraLegs?.[node.id] ?? []).map((leg) => ({ round: leg.round, extra: true })),
+  ];
+}
+export function knockoutAssignments(event: Pick<BridgeEvent, 'assignments'> & Partial<Pick<BridgeEvent, 'knockout'>>, node: KnockoutNode) {
   const ids = new Set(
-    Array.from({ length: node.rounds }, (_, i) => knockoutMatchId(node.id, node.startRound + i)),
+    knockoutLegs(event, node).map((leg) => knockoutMatchId(node.id, leg.round)),
   );
-  return event.assignments.filter((a) => ids.has(a.matchId));
+  return event.assignments.filter((a) => ids.has(a.matchId)).sort(
+    (a, b) => a.round - b.round || Number(a.table) - Number(b.table) || a.room.localeCompare(b.room),
+  );
 }
 export function knockoutSource(source: KnockoutSource, ko: Knockout): string | null | undefined {
   if (source.kind === 'bye') return null;
   if (source.kind === 'team') return source.id;
   const d = ko.decisions[source.id];
-  return d ? (source.kind === 'winner' ? d.winner : (d.loser ?? null)) : undefined;
+  const id = d ? (source.kind === 'winner' ? d.winner : (d.loser ?? null)) : undefined;
+  return id && ko.withdrawn?.[id] ? null : d && !id ? null : id;
 }
 export function validateKnockout(
   nodes: KnockoutNode[],
@@ -88,17 +97,18 @@ export function validateKnockout(
   return Math.max(0, ...path.values());
 }
 export function knockoutBasis(
-  event: Pick<BridgeEvent, 'assignments' | 'results'>,
+  event: Pick<BridgeEvent, 'assignments' | 'results'> & Partial<Pick<BridgeEvent, 'knockout'>>,
   node: KnockoutNode,
 ) {
-  return JSON.stringify(
-    knockoutAssignments(event, node).map((a) => [
+  const scores = knockoutAssignments(event, node).map((a) => [
       a.id,
       a.ns,
       a.ew,
       a.boards.map((b) => [b, event.results[resultKey(a.id, b)] ?? null]),
-    ]),
-  );
+    ]);
+  const adjustment = event.knockout?.adjustments?.[node.id];
+  // Preserve legacy decision bases until a match actually receives an adjustment.
+  return JSON.stringify(adjustment ? { scores, adjustment } : scores);
 }
 export function assertKnockoutDecisions(event: BridgeEvent) {
   if (!event.knockout) return;
@@ -113,25 +123,30 @@ export function knockoutScore(
   node: KnockoutNode,
   projection: Projection,
 ) {
-  const matches = Array.from({ length: node.rounds }, (_, i) =>
-    projection.matches.find((m) => m.id === knockoutMatchId(node.id, node.startRound + i)),
+  const matches = knockoutLegs(event, node).map((leg) =>
+    projection.matches.find((m) => m.id === knockoutMatchId(node.id, leg.round)),
   );
   const complete = matches.every((m) => m && m.completed === m.total);
-  const a = matches.reduce(
+  const rawA = matches.reduce(
     (s, m) => s + (event.teamMethod === 'bam' ? (m?.bamA ?? 0) : (m?.marginA ?? 0)),
     0,
   );
-  const b = matches.reduce(
+  const rawB = matches.reduce(
     (s, m) => s + (event.teamMethod === 'bam' ? (m?.bamB ?? 0) : (m?.marginB ?? 0)),
     0,
   );
-  return { a, b, complete, tied: Math.abs(a - b) < 1e-8 };
+  const adjustment = event.knockout?.adjustments?.[node.id];
+  // IMP values are net margins, not points won. A 1 IMP penalty changes the
+  // offender's net by -1 and the opponent's net by +1, not half an IMP.
+  const delta = (adjustment?.a ?? 0) - (adjustment?.b ?? 0);
+  const a = Number((rawA + delta).toFixed(2)), b = Number((rawB - delta).toFixed(2));
+  return { a, b, rawA, rawB, complete, tied: Math.abs(a - b) < 1e-8 };
 }
 export function knockoutRoundReady(event: Pick<BridgeEvent, 'knockout'>, round: number) {
   return (
     !event.knockout ||
     event.knockout.nodes
-      .filter((n) => n.startRound <= round && round < n.startRound + n.rounds)
+      .filter((n) => knockoutLegs(event, n).some((leg) => leg.round === round))
       .every((n) => !!event.knockout!.published[n.id])
   );
 }

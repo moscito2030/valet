@@ -1,6 +1,7 @@
+import { knockoutExemptAssignments } from '../knockout-status';
 import { hasDirectionalAwards } from '../awards';
 import { DomainError } from '../domain-error';
-import { Mutation } from '../model';
+import { resultKey, Mutation } from '../model';
 import { swissRoundComplete } from '../swiss';
 import { allRoundsComplete } from '../round-progress';
 import type { MutationContext } from './context';
@@ -45,13 +46,13 @@ export function applySettingsCommand(
       throw new DomainError('尚有圈次未安排賽程，不能結束賽事。');
     if (
       command.status === 'finished' &&
-      Object.keys(e.results).length !== e.assignments.reduce((n, a) => n + a.boards.length, 0)
+      e.assignments.some((a) => !knockoutExemptAssignments(e).has(a.id) && a.boards.some((b) => !e.results[resultKey(a.id, b)]))
     )
       throw new DomainError('還有未收齊的成績，不能結束賽事。');
     if (
       command.status === 'finished' &&
       e.club?.enabled &&
-      e.assignments.some((a) => !e.club!.finalized.includes(a.round))
+      e.assignments.some((a) => !knockoutExemptAssignments(e).has(a.id) && !e.club!.finalized.includes(a.round))
     )
       throw new DomainError('請先結算所有圈次');
     e.status = command.status;
@@ -94,6 +95,7 @@ export function applySettingsCommand(
       )
         throw new DomainError('已有成績或已公布 Swiss 對戰，不能變更計分規則');
       const method = command.teamMethod ?? e.teamMethod ?? 'imp';
+      if (e.teamFormat === 'knockout' && method === 'bam') throw new DomainError('純 IMP 淘汰賽不可改為 BAM');
       if (command.bam && method !== 'bam') throw new DomainError('請選擇 Board-A-Match 計分');
       if (method !== (e.teamMethod ?? 'imp')) e.byeVp = method === 'bam' ? 0 : 12;
       e.teamMethod = method;

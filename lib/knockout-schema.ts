@@ -24,5 +24,9 @@ export type KnockoutNode = z.infer<typeof knockoutNodeSchema>;
 export type Knockout = {
   nodes: KnockoutNode[];
   published: Record<string, { a: string; b: string | null }>;
-  decisions: Record<string, { winner: string; loser?: string; basis?: string; reason?: string }>;
+  decisions: Record<string, { winner: string; loser?: string; basis?: string; reason?: string; method?: 'score' | 'director' | 'forfeit' | 'withdrawal' | 'bye' }>;
+  /** Optional for compatibility with tournaments saved before these features. */
+  adjustments?: Record<string, { a: number; b: number; reason: string }>;
+  extraLegs?: Record<string, { round: number; boards: number[] }[]>;
+  withdrawn?: Record<string, { reason: string }>;
 };

@@ -21,13 +21,27 @@ export function applyDealsCommand(
     detail = `${targets.map((board) => `B${board.number}`).join('、')}: ${b.published ? '公開' : '隱藏'} → ${command.published ? '公開' : '隱藏'}`;
     for (const target of targets) target.published = command.published;
   } else if (command.action === 'pbn') {
-    if (Object.keys(e.results).length)
+    if (!e.knockout && Object.keys(e.results).length)
       throw new DomainError('已有成績時不可更換牌型與身價。請在收分前匯入。');
     let boards: Board[];
     try {
       boards = parsePbn(command.pbn);
     } catch (error) {
       throw new DomainError((error as Error).message);
+    }
+    if (e.knockout) {
+      if (boards.some((b) => !e.boards.some((old) => old.number === b.number)))
+        throw new DomainError('PBN 包含尚未安排的牌號，請先追加加賽');
+      if (boards.some((b) => Object.values(e.results).some((r) => r.board === b.number)))
+        throw new DomainError('已收分牌號不可更換牌型與身價；請只匯入未打牌號');
+      e.boards = e.boards.map((old) => {
+        const board = boards.find((b) => b.number === old.number);
+        return board ? { ...board, group: old.group ?? board.group,
+          published: old.published ?? e.publishBoards,
+          ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) } : old;
+      });
+      context.detail = `匯入未打牌號：${boards.map((b) => b.number).join('、')}；保留已收分牌局`;
+      return;
     }
     if (
       boards.length !== e.boards.length ||

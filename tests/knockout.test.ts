@@ -85,7 +85,7 @@ test('five teams seed byes advance without scores or invented bye VP', () => {
   const e = setup(5);
   assert.equal(Object.values(e.knockout!.decisions).length, 3);
   assert.deepEqual(teamByes(e), []);
-  assert.ok(project(e).standings.every((s) => s.score === 0));
+  assert.ok(project(e).standings.every((s) => s.score === null));
   assert.ok(e.knockout!.published.s2m2);
 });
 test('multi-leg IMP aggregates raw margins; BAM aggregates board VP', () => {

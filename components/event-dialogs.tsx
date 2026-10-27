@@ -154,7 +154,7 @@ export function CreateDialog({
             雙人賽
           </button>
         </div>
-        {kind === 'teams' && <TeamScoringFields />}
+        {kind === 'teams' && <TeamScoringFields allowKnockout />}
         {kind === 'pairs' && (
           <div className="form-grid">
             <div className="field">

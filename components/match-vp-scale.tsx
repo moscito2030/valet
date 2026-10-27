@@ -9,6 +9,7 @@ import { number, signed } from './scoreboard-shared';
 export function MatchVpScale({ event, match }: { event: PublicEvent; match: MatchScore }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  if (event.knockout && event.teamMethod !== 'bam') return <span>純 IMP</span>;
   const bam = event.teamMethod === 'bam';
   const assignments = event.assignments.filter((a) => a.matchId === match.id);
   const open = assignments.find((a) => a.room === 'open');

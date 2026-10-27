@@ -119,6 +119,7 @@ export type BridgeEvent = {
   rankingMode?: 'single' | 'double';
   gameMode?: 'bridge' | 'minibridge';
   teamMethod?: 'imp' | 'bam';
+  teamFormat?: 'league' | 'knockout';
   bam?: { win: number; draw: number; loss: number };
   date: string;
   endDate?: string;
@@ -173,6 +174,7 @@ export const createSchema = z
     kind: z.enum(['teams', 'pairs']),
     gameMode: z.enum(['bridge', 'minibridge']).optional(),
     teamMethod: z.enum(['imp', 'bam']).optional(),
+    teamFormat: z.enum(['league', 'knockout']).optional(),
     bam: bamSchema.optional(),
     rankingMode: z.enum(['single', 'double']).optional(),
     movementPlan: z
@@ -191,6 +193,9 @@ export const createSchema = z
   })
   .strict()
   .superRefine((v, ctx) => {
+    if (v.teamFormat && v.kind !== 'teams') ctx.addIssue({ code: 'custom', message: '隊制賽制不適用雙人賽' });
+    if (v.teamFormat === 'knockout' && (v.kind !== 'teams' || v.teamMethod === 'bam' || v.names.length === 1))
+      ctx.addIssue({ code: 'custom', message: '純 IMP 淘汰賽需至少兩隊，且使用 IMP 計分' });
     if (v.kind !== 'teams' && (v.teamMethod || v.bam))
       ctx.addIssue({ code: 'custom', message: 'BAM 計分僅適用隊制賽' });
     if (v.bam && v.teamMethod !== 'bam')
@@ -227,6 +232,9 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: '雙人賽至少四對' });
   });
 export const mutationSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('knockout-adjust'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), nodeId: z.string().min(1).max(40), a: z.number().min(-10000).max(10000).multipleOf(0.01), b: z.number().min(-10000).max(10000).multipleOf(0.01) }).strict(),
+  z.object({ action: z.literal('knockout-overtime'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), nodeId: z.string().min(1).max(40), boards: z.number().int().min(1).max(16) }).strict(),
+  z.object({ action: z.literal('knockout-forfeit'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), nodeId: z.string().min(1).max(40), loser: z.string().min(1).max(80), withdraw: z.boolean() }).strict(),
  z.object({action:z.literal('participants-setup'),revision:z.number().int().min(1),requestId:z.string().uuid(),reason:z.string().trim().min(2).max(200),names:z.array(z.string().trim().min(1).max(60)).max(80),rankingMode:z.enum(['single','double']).optional()}).strict(),
   z
     .object({

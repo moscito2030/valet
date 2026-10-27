@@ -20,6 +20,7 @@
     "manual:build": "node scripts/build-manual.mjs",
     "manual:check": "node scripts/check-manual.mjs",
     "test:visual": "playwright test",
+    "test:knockout": "playwright test --config playwright.ko.config.ts",
     "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {

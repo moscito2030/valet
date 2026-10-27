@@ -21,7 +21,7 @@ export type WinAwardRow = {
 type Input = Pick<
   BridgeEvent,
   'kind' | 'participants' | 'assignments' | 'results' | 'teamMethod'
-  | 'pairMethod' | 'winAward'
+  | 'pairMethod' | 'winAward' | 'knockout'
 > & { projection: Projection };
 // Consume the caller's projection and visible results; never recompute with private results.
 export function winAwardStats(event: Input): WinAwardRow[] {
@@ -46,7 +46,13 @@ export function winAwardStats(event: Input): WinAwardRow[] {
   }
   const outcome = (margin: number): WinAwardEntry['outcome'] =>
     Math.abs(margin) < 1e-8 ? 'draw' : margin > 0 ? 'win' : 'loss';
-  if (event.kind === 'teams') {
+  if (event.knockout) {
+    for (const n of event.knockout.nodes) {
+      const p = event.knockout.published[n.id], d = event.knockout.decisions[n.id];
+      if (!p?.b) continue;
+      for (const id of [p.a, p.b]) add(id, { key: n.id, round: n.startRound, outcome: !d ? 'pending' : d.winner === id ? 'win' : 'loss', score: null });
+    }
+  } else if (event.kind === 'teams') {
     for (const match of event.projection.matches) {
       const completed = match.completed === match.total && match.total > 0;
       for (const [id, margin, vp] of [

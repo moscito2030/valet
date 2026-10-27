@@ -550,6 +550,18 @@ table a:focus-visible {
   overflow-x: auto;
   align-items: flex-start;
 }
+
+.knockout-decision { display: block; }
+.knockout-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 20px;
+  margin-block: 16px;
+}
+.knockout-controls form { min-width: 0; border: 1px solid var(--line); padding: 14px; }
+.knockout-controls h5 { font-size: 13px; margin-bottom: 12px; }
+.knockout-controls .button { margin-top: 12px; }
+.knockout-match-summary { margin-block: 12px; overflow-wrap: anywhere; }
 .knockout-stage {
   flex: 1 0 240px;
   min-width: 0;

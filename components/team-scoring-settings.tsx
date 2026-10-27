@@ -6,6 +6,7 @@ export function teamScoringPayload(form: FormData) {
   const teamMethod = form.get('teamMethod') === 'bam' ? ('bam' as const) : ('imp' as const);
   return {
     teamMethod,
+    ...(form.get('teamMethod') === 'imp-ko' ? { teamFormat: 'knockout' as const } : {}),
     ...(teamMethod === 'bam'
       ? {
           bam: {
@@ -20,11 +21,13 @@ export function teamScoringPayload(form: FormData) {
 export function TeamScoringFields({
   event = {},
   disabled = false,
+  allowKnockout = false,
 }: {
   event?: TeamScoring;
   disabled?: boolean;
+  allowKnockout?: boolean;
 }) {
-  const [method, setMethod] = useState(event.teamMethod ?? 'imp');
+  const [method, setMethod] = useState<string>(event.teamMethod ?? 'imp');
   const scale = event.bam ?? defaultBam;
   return (
     <>
@@ -36,8 +39,9 @@ export function TeamScoringFields({
           disabled={disabled}
           onChange={(e) => setMethod(e.target.value as 'imp' | 'bam')}
         >
-          <option value="imp">IMP／VP</option>
-          <option value="bam">Board-A-Match</option>
+          <option value="imp">{(event.knockout || event.teamFormat === 'knockout') && event.teamMethod !== 'bam' ? '純 IMP 淘汰賽' : 'IMP／VP'}</option>
+          {allowKnockout && <option value="imp-ko">純 IMP 淘汰賽</option>}
+          {event.teamFormat !== 'knockout' && <option value="bam">Board-A-Match</option>}
         </select>
       </label>
       {method === 'bam' && (
@@ -80,7 +84,7 @@ export function TeamScoringSettings({
 }: {
   event: Pick<
     BridgeEvent,
-    'kind' | 'teamMethod' | 'bam' | 'results' | 'swiss' | 'knockout' | 'status'
+    'kind' | 'teamMethod' | 'bam' | 'results' | 'swiss' | 'knockout' | 'status' | 'teamFormat'
   >;
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;

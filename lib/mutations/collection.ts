@@ -1,3 +1,4 @@
+import { knockoutExemptAssignments } from '../knockout-status';
 import { knockoutRoundReady } from '../knockout';
 import {
   clubAccepted,
@@ -207,6 +208,7 @@ export function applyCollectionCommand(
     if (e.swiss && !swissRoundComplete(e, command.round))
       throw new DomainError('Swiss 本圈尚未完整公布，不能結算');
     for (const a of assignments) {
+      if (knockoutExemptAssignments(e).has(a.id)) continue;
       const accepted = clubAccepted(e, a);
       if (!accepted && !command.force) throw new DomainError('尚有桌次未收齊成績或對方未確認');
       for (const board of a.boards) {

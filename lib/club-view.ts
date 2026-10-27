@@ -1,3 +1,4 @@
+import { knockoutExemptAssignments } from './knockout-status';
 import { dealHcp } from './recorded-hcp';
 import { clubAccepted, clubReviewVersion, clubRoles } from './club-confirmation';
 import type { BridgeEvent } from './model';
@@ -13,7 +14,7 @@ export function clubView(event: BridgeEvent, pair: string) {
     ? deviceAssignment(event, pair, round)
     : event.assignments.find((a) => a.round === round && (a.ns === pair || a.ew === pair));
   const roles = assignment ? clubRoles(event, assignment) : null;
-  const accepted = !!assignment && clubAccepted(event, assignment);
+  const accepted = !!assignment && (knockoutExemptAssignments(event).has(assignment.id) || clubAccepted(event, assignment));
   const showGuide =
     accepted ||
     event.roundPhase === 'break' ||

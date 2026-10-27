@@ -6,6 +6,7 @@
 - [建立賽事與賽段](events.md)
 - [設定賽程與牌局](movement.md)
 - [Swiss 隊制賽](swiss.md)
+- [純 IMP 隊制淘汰賽](knockout.md)
 - [裁判收分、更正與結算](director.md)
 - [賽員手機收分指南](players.md)
 - [計分與排名](scoring.md)

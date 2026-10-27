@@ -1,6 +1,6 @@
 import { clubConfirmationKey } from '../club-confirmation';
 import type { MutationContext } from './context';
-import type { Mutation } from '../model';
+import type { BridgeEvent, Mutation } from '../model';
 import { resultKey } from '../model';
 import { DomainError } from '../domain-error';
 import { makeBoard } from '../domain/board-factory';
@@ -9,6 +9,7 @@ import {
   knockoutAssignments,
   knockoutBasis,
   knockoutMatchId,
+  knockoutLegs,
   knockoutSource,
   validateKnockout,
 } from '../knockout';
@@ -16,7 +17,7 @@ export function applyKnockoutCommand(
   context: MutationContext,
   command: Extract<
     Mutation,
-    { action: 'knockout-config' | 'knockout-publish' | 'knockout-decide' | 'knockout-reopen' }
+    { action: 'knockout-config' | 'knockout-publish' | 'knockout-decide' | 'knockout-reopen' | 'knockout-adjust' | 'knockout-overtime' | 'knockout-forfeit' }
   >,
 ) {
   const e = context.event;
@@ -34,6 +35,9 @@ export function applyKnockoutCommand(
     delete e.swiss;
     delete e.teamMovement;
     e.byeVp = 0;
+    if (e.teamMethod !== 'bam') e.teamFormat = 'knockout';
+    if (Object.values(e.penalties ?? {}).some(Boolean))
+      throw new DomainError('請先清除原有 VP 判罰；淘汰賽請使用對局 IMP 調整');
     e.assignments = [];
     e.rounds = Math.max(...command.nodes.map((n) => n.startRound + n.rounds - 1));
     e.boardsPerRound = Math.max(...command.nodes.map((n) => n.boardsPerRound));
@@ -86,11 +90,17 @@ export function applyKnockoutCommand(
       const left = knockoutSource(n.a, ko),
         right = knockoutSource(n.b, ko);
       if (left === undefined || right === undefined) continue;
-      if (left === null && right === null) throw new DomainError('對局沒有參賽隊伍');
+      if (left === null && right === null) {
+        ko.published[n.id] = { a: '', b: null };
+        ko.decisions[n.id] = { winner: '', method: 'withdrawal', reason: '雙方均已退賽，無勝方' };
+        count++;
+        continue;
+      }
       if (left === null || right === null) {
         const winner = left ?? right!;
         ko.published[n.id] = { a: winner, b: null };
-        ko.decisions[n.id] = { winner, reason: '種子輪空晉級' };
+        const bye = n.a.kind === 'bye' || n.b.kind === 'bye';
+        ko.decisions[n.id] = { winner, method: bye ? 'bye' : 'withdrawal', reason: bye ? '種子輪空晉級' : '對手退賽，免賽晉級' };
         count++;
         continue;
       }
@@ -104,8 +114,14 @@ export function applyKnockoutCommand(
           )
         )
           throw new DomainError('公布對局與現有桌次或隊伍時段衝突');
-        const matchId = knockoutMatchId(n.id, round),
-          boards = Array.from({ length: n.boardsPerRound }, (_, i) => starts.get(round)! + i);
+        const matchId = knockoutMatchId(n.id, round);
+        // After overtime, unpublished descendants may have moved. Allocate fresh boards,
+        // sharing only with other matches in the same round, never a previously played round.
+        const start = Object.keys(ko.extraLegs ?? {}).length
+          ? (e.assignments.find((a) => a.round === round)?.boards[0] ?? Math.max(0, ...e.boards.map((b) => b.number)) + 1)
+          : starts.get(round)!;
+        const boards = Array.from({ length: n.boardsPerRound }, (_, i) => start + i);
+        ensureBoards(e, boards);
         e.assignments.push(
           {
             id: matchId + 'o',
@@ -169,25 +185,97 @@ export function applyKnockoutCommand(
     }
     e.assignments = e.assignments.filter((a) => !remove.has(a.id));
     for (const id of descendants) {
+      const decision = ko.decisions[id];
+      if (decision?.method === 'withdrawal' && decision.loser && ko.withdrawn)
+        delete ko.withdrawn[decision.loser];
       delete ko.published[id];
       delete ko.decisions[id];
+      if (ko.extraLegs) delete ko.extraLegs[id];
+      if (ko.adjustments) delete ko.adjustments[id];
     }
+    if (ko.decisions[n.id].method === 'withdrawal' && ko.decisions[n.id].loser && ko.withdrawn)
+      delete ko.withdrawn[ko.decisions[n.id].loser!];
     delete ko.decisions[n.id];
+    e.status = 'live';
     context.detail = `撤回 ${n.name} 勝負及 ${descendants.size} 個後續安排`;
     return;
   }
   const p = ko.published[n.id];
   if (!p?.b) throw new DomainError('請先公布這場對局');
   if (ko.decisions[n.id]) throw new DomainError('這場已確認勝負');
+  if (command.action === 'knockout-adjust') {
+    if (e.teamMethod === 'bam') throw new DomainError('IMP 調整僅適用純 IMP 淘汰賽');
+    ko.adjustments ??= {};
+    ko.adjustments[n.id] = { a: command.a, b: command.b, reason: command.reason };
+    context.detail = `${n.name} IMP 調整：${command.a} / ${command.b}（替換原調整）`;
+    return;
+  }
+  if (command.action === 'knockout-forfeit') {
+    if (![p.a, p.b].includes(command.loser)) throw new DomainError('棄權隊伍不在本對局');
+    ko.decisions[n.id] = { winner: command.loser === p.a ? p.b : p.a, loser: command.loser,
+      method: command.withdraw ? 'withdrawal' : 'forfeit', reason: command.reason, basis: knockoutBasis(e, n) };
+    if (command.withdraw) {
+      ko.withdrawn ??= {};
+      ko.withdrawn[command.loser] = { reason: command.reason };
+    }
+    context.detail = `${n.name}：${command.loser} ${command.withdraw ? '退賽（不參加後續名次賽）' : '本場棄權'}；保留已打成績，不補造未打牌局`;
+    return;
+  }
   const assignments = knockoutAssignments(e, n);
   if (
-    assignments.length !== n.rounds * 2 ||
+    assignments.length !== knockoutLegs(e, n).length * 2 ||
     assignments.some((a) => a.boards.some((b) => !e.results[resultKey(a.id, b)]))
   )
     throw new DomainError('本對局尚未收齊所有圈次成績');
   if (e.club?.enabled && assignments.some((a) => !e.club!.finalized.includes(a.round)))
     throw new DomainError('請先結算並發布本對局的所有圈次');
   const score = currentKnockoutScore(e, n);
+  if (command.action === 'knockout-overtime') {
+    if (e.teamMethod === 'bam') throw new DomainError('此加賽流程僅適用純 IMP 淘汰賽');
+    if (!score.tied) throw new DomainError('只有累積 IMP 平手時可追加加賽');
+    const round = Math.max(e.currentRound ?? 0, ...e.assignments.map((a) => a.round)) + 1;
+    if (round > 1024) throw new DomainError('圈次超過 1024 上限');
+    const start = Math.max(0, ...e.boards.map((b) => b.number)) + 1;
+    const boards = Array.from({ length: command.boards }, (_, i) => start + i);
+    ko.extraLegs ??= {};
+    (ko.extraLegs[n.id] ??= []).push({ round, boards });
+    // Move only unresolved descendants, never alter existing assignments or scored IDs.
+    const ends = new Map<string, number>();
+    const counts = new Map<string, number>();
+    const scheduled: typeof ko.nodes = [];
+    for (const node of ko.nodes) {
+      const prior = [node.a, node.b].flatMap((s) => s.kind === 'winner' || s.kind === 'loser' ? [s.id] : []);
+      const earliest = Math.max(1, ...prior.map((id) => (ends.get(id) ?? 0) + 1));
+      if (node.startRound < earliest) {
+        if (ko.published[node.id]) throw new DomainError('後續對局已公布，請先撤回相關勝負');
+        node.startRound = earliest;
+      }
+      if (!ko.published[node.id]) {
+        let conflict;
+        do {
+          conflict = scheduled.find((old) => old.table === node.table && knockoutLegs(e, old).some((leg) =>
+            leg.round >= node.startRound && leg.round < node.startRound + node.rounds));
+          if (conflict) node.startRound = Math.max(...knockoutLegs(e, conflict).map((l) => l.round)) + 1;
+        } while (conflict);
+      }
+      if (node.startRound + node.rounds - 1 > 1024) throw new DomainError('加賽後圈次超過 1024 上限');
+      ends.set(node.id, Math.max(node.startRound + node.rounds - 1, ...(ko.extraLegs[node.id] ?? []).map((x) => x.round)));
+      const count = Math.max(0, ...prior.map((id) => counts.get(id) ?? 0)) + node.rounds * node.boardsPerRound + (ko.extraLegs[node.id] ?? []).reduce((s, x) => s + x.boards.length, 0);
+      if (count > 1024) throw new DomainError('加賽後任一隊伍的可能路徑超過 1024 牌');
+      counts.set(node.id, count);
+      scheduled.push(node);
+    }
+    ensureBoards(e, boards);
+    const matchId = knockoutMatchId(n.id, round);
+    e.assignments.push(
+      { id: matchId + 'o', matchId, round, table: n.table, room: 'open', ns: p.a, ew: p.b, boards },
+      { id: matchId + 'c', matchId, round, table: n.table, room: 'closed', ns: p.b, ew: p.a, boards },
+    );
+    e.rounds = Math.max(round, ...ends.values());
+    e.status = 'live';
+    context.detail = `${n.name} 追加第 ${round} 圈加賽 ${command.boards} 牌；後續對局延後，已公布對局不變`;
+    return;
+  }
   const expected = score.tied ? undefined : score.a > score.b ? p.a : p.b;
   const winner = command.winner ?? expected;
   if (!winner || ![p.a, p.b].includes(winner))
@@ -198,6 +286,14 @@ export function applyKnockoutCommand(
     loser: winner === p.a ? p.b : p.a,
     basis: knockoutBasis(e, n),
     reason: command.reason,
+    method: score.tied ? 'director' : 'score',
   };
   context.detail = `${n.name}：${winner} 晉級／勝方，${score.a}：${score.b}`;
+}
+
+function ensureBoards(e: BridgeEvent, numbers: number[]) {
+  for (const number of numbers) if (!e.boards.some((b) => b.number === number)) {
+    e.boards.push({ ...makeBoard(number), deal: { N: [], E: [], S: [], W: [] },
+      ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) });
+  }
 }

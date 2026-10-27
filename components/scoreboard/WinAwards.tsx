@@ -22,7 +22,7 @@ export function WinAwards({
       <h3>勝場獎統計</h3>
       <p className="footnote">
         勝／和／負：{event.winAward.win}／{event.winAward.draw}／{event.winAward.loss}{' '}
-        倍。獨立於總排名，不含判罰與輪空。點按名稱查看逐圈明細。
+        倍。{event.knockout ? '依裁判確認的完整對局勝負（含調整、加賽與棄權），不含輪空；點按名稱查看對局明細。' : '獨立於總排名，不含判罰與輪空。點按名稱查看逐圈明細。'}
       </p>
       <div className="table-scroll">
         <table>
