@@ -2,6 +2,8 @@ import { clubConfirmationKey } from '../club-confirmation';
 import { DomainError } from '../domain-error';
 import { parseResultsCsv } from '../imports';
 import { Mutation, Result, ResultInput, resultKey } from '../model';
+import { clubAssignmentFinalized } from '../club-confirmation';
+import { isImpKnockout } from '../knockout-status';
 import type { MutationContext } from './context';
 import { scoredInput } from './scored-input';
 
@@ -21,7 +23,7 @@ export function applyScoresCommand(
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     const a = e.assignments.find(a => a.id === command.assignmentId);
     if (!a || !a.boards.includes(command.board)) throw new DomainError('桌次與牌號不符合賽程');
-    if (e.club?.finalized.includes(a.round)) throw new DomainError('本圈已結算，不開放清除單副成績');
+    if (clubAssignmentFinalized(e, a)) throw new DomainError('本圈已結算，不開放清除單副成績');
     const key = resultKey(a.id, command.board);
     const before = e.results[key];
     if (!before) throw new DomainError('此副尚未收分');
@@ -43,6 +45,7 @@ export function applyScoresCommand(
     if (e.club) {
       e.club.confirmations = {};
       e.club.finalized = [];
+      delete e.club.publishedAssignments;
     }
   } else if (command.action === 'results' || command.action === 'results-import') {
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事，再更正成績。');
@@ -72,7 +75,7 @@ export function applyScoresCommand(
       e.results[key] = after;
     }
   } else if (command.action === 'penalty') {
-    if (e.knockout) throw new DomainError('淘汰賽請由裁判使用對局 IMP 調整，不使用累積 VP 判罰');
+    if ((e.knockout || isImpKnockout(e)) && command.amount !== 0) throw new DomainError('淘汰賽請由裁判使用對局 IMP 調整，不使用累積 VP 判罰');
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     if (!e.participants.some((p) => p.id === command.participantId))
       throw new DomainError('找不到參賽者');

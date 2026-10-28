@@ -1,13 +1,26 @@
 import { knockoutExemptAssignments } from './knockout-status';
 import type { BridgeEvent } from './model';
-import { clubAccepted, clubConfirmationKey } from './club-confirmation';
-import { knockoutRoundReady } from './knockout';
+import { clubAccepted, clubAssignmentFinalized, clubConfirmationKey } from './club-confirmation';
+import { knockoutLegs, knockoutRoundReady } from './knockout';
 import { swissRoundComplete } from './swiss';
 
 type RoundEvent = Pick<
   BridgeEvent,
   'assignments' | 'results' | 'club' | 'rounds' | 'participants' | 'swiss' | 'knockout'
 >;
+
+function scheduledRounds(event: RoundEvent) {
+  return new Set([...event.assignments.map((a) => a.round),
+    ...(event.knockout?.nodes.filter((n) => !event.knockout!.published[n.id]).flatMap((n) => knockoutLegs(event, n).map((l) => l.round)) ?? [])]);
+}
+export function nextScheduledRound(event: RoundEvent, current: number) {
+  if (!event.knockout) return current + 1;
+  return Math.min(event.rounds + 1, ...[...scheduledRounds(event)].filter((round) => round > current));
+}
+export function previousScheduledRound(event: RoundEvent, current: number) {
+  if (!event.knockout) return current - 1;
+  return Math.max(0, ...[...scheduledRounds(event)].filter((round) => round < current));
+}
 
 export function roundStartProblem(event: RoundEvent, round: number): string | null {
   if (round < 1 || round > event.rounds) return '沒有下一圈。';
@@ -19,8 +32,9 @@ export function roundStartProblem(event: RoundEvent, round: number): string | nu
 
 export function unsettledRoundsBefore(event: RoundEvent, round: number): number[] {
   if (!event.club?.enabled) return [];
+  const exempt = knockoutExemptAssignments(event);
   return [...new Set(event.assignments.filter((a) => a.round < round).map((a) => a.round))]
-    .filter((r) => !event.club!.finalized.includes(r) && event.assignments.some((a) => a.round === r && !knockoutExemptAssignments(event).has(a.id)))
+    .filter((r) => !event.club!.finalized.includes(r) && event.assignments.some((a) => a.round === r && !exempt.has(a.id) && !event.club!.publishedAssignments?.includes(a.id)))
     .sort((a, b) => a - b);
 }
 
@@ -31,7 +45,8 @@ export function clubRoundReady(event: RoundEvent, round: number): boolean {
     roundStartProblem(event, round)
   )
     return false;
-  return event.assignments.filter((a) => a.round === round).every((a) => knockoutExemptAssignments(event).has(a.id) || clubAccepted(event, a));
+  const exempt = knockoutExemptAssignments(event);
+  return event.assignments.filter((a) => a.round === round).every((a) => exempt.has(a.id) || clubAssignmentFinalized(event, a) || clubAccepted(event, a));
 }
 
 export function roundHasActivity(

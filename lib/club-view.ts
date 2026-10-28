@@ -1,6 +1,7 @@
+import { nextScheduledRound } from './round-workflow';
 import { knockoutExemptAssignments } from './knockout-status';
 import { dealHcp } from './recorded-hcp';
-import { clubAccepted, clubReviewVersion, clubRoles } from './club-confirmation';
+import { clubAccepted, clubAssignmentFinalized, clubReviewVersion, clubRoles } from './club-confirmation';
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
 import { deviceAssignment, tableDeviceLabel, tableDevices } from './table-device';
@@ -14,13 +15,13 @@ export function clubView(event: BridgeEvent, pair: string) {
     ? deviceAssignment(event, pair, round)
     : event.assignments.find((a) => a.round === round && (a.ns === pair || a.ew === pair));
   const roles = assignment ? clubRoles(event, assignment) : null;
-  const accepted = !!assignment && (knockoutExemptAssignments(event).has(assignment.id) || clubAccepted(event, assignment));
+  const accepted = !!assignment && (knockoutExemptAssignments(event).has(assignment.id) || clubAssignmentFinalized(event, assignment) || clubAccepted(event, assignment));
   const showGuide =
     accepted ||
     event.roundPhase === 'break' ||
     (round > 0 && !assignment) ||
     event.status === 'finished';
-  const nextRound = round + 1;
+  const nextRound = nextScheduledRound(event, round);
   const next = tableMode
     ? deviceAssignment(event, pair, nextRound)
     : event.assignments.find((a) => a.round === nextRound && (a.ns === pair || a.ew === pair));

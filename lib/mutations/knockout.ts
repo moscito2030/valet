@@ -66,6 +66,7 @@ export function applyKnockoutCommand(
     if (e.club) {
       e.club.confirmations = {};
       e.club.finalized = [];
+      delete e.club.publishedAssignments;
     }
     context.detail = `儲存 ${command.nodes.length} 個對局`;
     return;
@@ -121,7 +122,13 @@ export function applyKnockoutCommand(
           ? (e.assignments.find((a) => a.round === round)?.boards[0] ?? Math.max(0, ...e.boards.map((b) => b.number)) + 1)
           : starts.get(round)!;
         const boards = Array.from({ length: n.boardsPerRound }, (_, i) => start + i);
-        ensureBoards(e, boards);
+        const capacity = Math.max(n.boardsPerRound, ...ko.nodes
+          .filter((node) => node.startRound <= round && round < node.startRound + node.rounds)
+          .map((node) => node.boardsPerRound));
+        const reserved = Array.from({ length: capacity }, (_, i) => start + i);
+        if (e.assignments.some((a) => a.round !== round && a.boards.some((b) => reserved.includes(b))))
+          throw new DomainError('本圈牌號與其他圈次重疊，請先由裁判核對賽程');
+        ensureBoards(e, reserved);
         e.assignments.push(
           {
             id: matchId + 'o',
@@ -178,6 +185,15 @@ export function applyKnockoutCommand(
     if (Object.values(e.results).some((r) => remove.has(r.assignmentId)))
       throw new DomainError('後續對局已有成績；請先清除後續成績，再撤回來源勝負');
     if (e.club) {
+      const reopenSource = ['forfeit', 'withdrawal'].includes(ko.decisions[n.id].method ?? '');
+      const sourceIds = new Set(reopenSource ? knockoutAssignments(e, n).map((a) => a.id) : []);
+      const invalidated = new Set([...remove, ...sourceIds]);
+      const rounds = new Set(e.assignments.filter((a) => invalidated.has(a.id)).map((a) => a.round));
+      const retained = e.assignments.filter((a) => rounds.has(a.round) && e.club!.finalized.includes(a.round) && !invalidated.has(a.id)).map((a) => a.id);
+      e.club.publishedAssignments = [...new Set([...(e.club.publishedAssignments ?? []), ...retained])].filter((id) => !invalidated.has(id));
+      e.club.finalized = e.club.finalized.filter((round) => !rounds.has(round));
+      for (const a of e.assignments.filter((a) => sourceIds.has(a.id)))
+        delete e.club.confirmations[clubConfirmationKey(e, a)];
       for (const a of e.assignments.filter((a) => remove.has(a.id))) {
         delete e.club.confirmations[clubConfirmationKey(e, a)];
         if (e.club.inputOverrides) delete e.club.inputOverrides[a.id];
@@ -227,7 +243,7 @@ export function applyKnockoutCommand(
     assignments.some((a) => a.boards.some((b) => !e.results[resultKey(a.id, b)]))
   )
     throw new DomainError('本對局尚未收齊所有圈次成績');
-  if (e.club?.enabled && assignments.some((a) => !e.club!.finalized.includes(a.round)))
+  if (e.club?.enabled && assignments.some((a) => !e.club!.finalized.includes(a.round) && !e.club!.publishedAssignments?.includes(a.id)))
     throw new DomainError('請先結算並發布本對局的所有圈次');
   const score = currentKnockoutScore(e, n);
   if (command.action === 'knockout-overtime') {
@@ -265,7 +281,10 @@ export function applyKnockoutCommand(
       counts.set(node.id, count);
       scheduled.push(node);
     }
-    ensureBoards(e, boards);
+    const capacity = Math.max(command.boards, ...ko.nodes
+      .filter((node) => node.startRound <= round && round < node.startRound + node.rounds)
+      .map((node) => node.boardsPerRound));
+    ensureBoards(e, Array.from({ length: capacity }, (_, i) => start + i));
     const matchId = knockoutMatchId(n.id, round);
     e.assignments.push(
       { id: matchId + 'o', matchId, round, table: n.table, room: 'open', ns: p.a, ew: p.b, boards },

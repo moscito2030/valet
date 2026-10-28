@@ -1,6 +1,10 @@
 import type { Assignment, BridgeEvent } from './model';
 import { resultKey } from './model';
 
+export function clubAssignmentFinalized(event: Pick<BridgeEvent, 'club'>, assignment: Pick<Assignment, 'id' | 'round'>) {
+  return !!(event.club?.finalized.includes(assignment.round) || event.club?.publishedAssignments?.includes(assignment.id));
+}
+
 export function clubRoles(event: Pick<BridgeEvent, 'club'>, assignment: Assignment) {
   const override = event.club?.inputOverrides?.[assignment.id];
   const rule = event.club?.inputRule ?? 'ns';

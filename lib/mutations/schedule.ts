@@ -8,7 +8,7 @@ import { parseRoundTimes } from '../round-times-import';
 import { playerBoardError } from '../schedule-limits';
 import { assertSwissTeams, publishSwiss, swissRoundComplete } from '../swiss';
 import { isInterleaved } from '../team-movement';
-import { roundHasActivity, unsettledRoundsBefore } from '../round-workflow';
+import { nextScheduledRound, previousScheduledRound, roundHasActivity, unsettledRoundsBefore } from '../round-workflow';
 import { readyBoardGroups } from '../board-publication-ready';
 import { boardRange } from '../board-groups';
 import type { MutationContext } from './context';
@@ -37,12 +37,12 @@ export function applyScheduleCommand(
     if (e.club?.enabled) {
       const current = e.currentRound ?? 0;
       if (command.round > current) {
-        if (command.round !== current + 1) throw new DomainError('請依序開始下一圈，不可跳圈。');
+        if (command.round !== nextScheduledRound(e, current)) throw new DomainError('請依序開始下一圈，不可跳圈。');
         if (unsettledRoundsBefore(e, command.round).length)
           throw new DomainError('尚有前圈未結算，請先處理未完成桌次並結算；不能直接開始下一圈。');
       }
       if (command.round < current &&
-        (command.round !== current - 1 || roundHasActivity(e, current) ||
+        (command.round !== previousScheduledRound(e, current) || roundHasActivity(e, current) ||
           (command.round > 0 && command.phase !== 'break')))
         throw new DomainError('本圈已有登分或處理紀錄，不能退圈；請暫停收分或由裁判更正。');
       if (command.round > 0 && command.phase === 'playing' && e.club.finalized.includes(command.round))

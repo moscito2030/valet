@@ -1,3 +1,4 @@
+import { isImpKnockout } from '@/lib/knockout-status';
 import { ScoreValue } from '../score-value';
 import { KnockoutView } from '../knockout-view';
 import { WinAwards } from './WinAwards';
@@ -27,6 +28,7 @@ export function StandingsView({
   setTab,
   toggleFollow,
 }: Props) {
+  if (isImpKnockout(event) && !event.knockout) return <section className="panel empty">待設定淘汰賽對戰表；請由裁判設定名單與對局。</section>;
   if (event.knockout)
     return (
       <>

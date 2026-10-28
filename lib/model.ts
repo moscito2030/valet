@@ -109,6 +109,8 @@ export type BridgeEvent = {
     tokens: Record<string, string>;
     confirmations: Record<string, { at: string; forced: boolean; reviewVersion?: string }>;
     finalized: number[];
+    /** Tables that remain public when another table reopens a previously settled KO round. */
+    publishedAssignments?: string[];
     inputRule?: 'ns' | 'ew' | 'lower' | 'higher';
     inputOverrides?: Record<string, string>;
   };

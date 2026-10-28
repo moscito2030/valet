@@ -198,12 +198,13 @@ export function project(e: ProjectionInput): Projection {
     total: 0,
   }));
   const byId = Object.fromEntries(standing.map((s) => [s.id, s]));
+  const exempt = knockoutExemptAssignments(e);
   const projection: Projection = {
     standings: standing,
     matches: [],
     pairScores: {},
     received: Object.keys(e.results).length,
-    expected: e.assignments.reduce((n, a) => n + (knockoutExemptAssignments(e).has(a.id) ? a.boards.filter((b) => !!e.results[resultKey(a.id, b)]).length : a.boards.length), 0),
+    expected: e.assignments.reduce((n, a) => n + (exempt.has(a.id) ? a.boards.filter((b) => !!e.results[resultKey(a.id, b)]).length : a.boards.length), 0),
   };
   for (const a of e.assignments) for (const id of [a.ns, a.ew]) byId[id].total += a.boards.length;
   if (e.kind === 'teams') {

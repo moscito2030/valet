@@ -44,15 +44,20 @@ export function applySettingsCommand(
       new Set(e.assignments.map((a) => a.round)).size !== e.rounds
     )
       throw new DomainError('尚有圈次未安排賽程，不能結束賽事。');
+    const scheduled = new Map(e.assignments.map((a) => [a.id, new Set(a.boards)]));
+    if (command.status === 'finished' && Object.entries(e.results).some(([key, r]) =>
+      key !== resultKey(r.assignmentId, r.board) || !scheduled.get(r.assignmentId)?.has(r.board)))
+      throw new DomainError('成績包含不在現有賽程的紀錄，不能結束賽事。');
+    const exempt = knockoutExemptAssignments(e);
     if (
       command.status === 'finished' &&
-      e.assignments.some((a) => !knockoutExemptAssignments(e).has(a.id) && a.boards.some((b) => !e.results[resultKey(a.id, b)]))
+      e.assignments.some((a) => !exempt.has(a.id) && a.boards.some((b) => !e.results[resultKey(a.id, b)]))
     )
       throw new DomainError('還有未收齊的成績，不能結束賽事。');
     if (
       command.status === 'finished' &&
       e.club?.enabled &&
-      e.assignments.some((a) => !knockoutExemptAssignments(e).has(a.id) && !e.club!.finalized.includes(a.round))
+      e.assignments.some((a) => !exempt.has(a.id) && !e.club!.finalized.includes(a.round) && !e.club!.publishedAssignments?.includes(a.id))
     )
       throw new DomainError('請先結算所有圈次');
     e.status = command.status;

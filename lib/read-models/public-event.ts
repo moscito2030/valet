@@ -105,8 +105,10 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     results: normalizeResults(event.results),
   };
   const finalized = new Set(club?.finalized ?? []);
+  const exempt = knockoutExemptAssignments(event);
+  const published = new Set(club?.publishedAssignments ?? []);
   const visible = club?.enabled
-    ? new Set(event.assignments.filter((a) => finalized.has(a.round) || knockoutExemptAssignments(event).has(a.id)).map((a) => a.id))
+    ? new Set(event.assignments.filter((a) => finalized.has(a.round) || published.has(a.id) || exempt.has(a.id)).map((a) => a.id))
     : null;
   const results = visible
     ? Object.fromEntries(
@@ -117,7 +119,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   // A board can recur in later rounds: keep its deal private until every scheduled use is settled.
   const unsettledBoards = new Set(
     club?.enabled
-      ? event.assignments.filter((a) => !finalized.has(a.round) && !knockoutExemptAssignments(event).has(a.id)).flatMap((a) => a.boards)
+      ? event.assignments.filter((a) => !finalized.has(a.round) && !published.has(a.id) && !exempt.has(a.id)).flatMap((a) => a.boards)
       : [],
   );
   const boards = publicBoards(event).map((b) => {

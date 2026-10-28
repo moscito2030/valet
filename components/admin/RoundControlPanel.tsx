@@ -1,6 +1,6 @@
 import { AdminEvent } from '../scoreboard-shared';
 import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
-import { roundHasActivity, roundStartProblem, unsettledRoundsBefore } from '@/lib/round-workflow';
+import { nextScheduledRound, previousScheduledRound, roundHasActivity, roundStartProblem, unsettledRoundsBefore } from '@/lib/round-workflow';
 import { roundLabel } from '@/lib/team-movement';
 import { StartRoundButton } from './StartRoundButton';
 import { SkipBack, SkipForward, Play, Pause, ListChecks, SlidersHorizontal } from 'lucide-react';
@@ -25,7 +25,8 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
   const finished = event.status === 'finished';
   const reviewing = event.status === 'review' || allRoundsComplete(event);
   const paused = event.roundPhase === 'break' && !settled;
-  const next = round + 1;
+  const next = nextScheduledRound(event, round);
+  const previous = previousScheduledRound(event, round);
   const nextProblem =
     roundStartProblem(event, next) ??
     (unsettledRoundsBefore(event, next).length ? '請先處理前圈未完成桌次並結算。' : null);
@@ -81,7 +82,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
               onClick={() => {
                 if (window.confirm('撤回本圈開始？將返回上一圈休息；第一圈則回到尚未開始。'))
                   void change(
-                    round - 1,
+                    previous,
                     round === 1 ? 'playing' : 'break',
                     '撤回尚無登分紀錄的圈次開始',
                   );
@@ -194,7 +195,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
                   )
                     return;
                   return change(
-                    round - 1,
+                    previous,
                     round === 1 ? 'playing' : 'break',
                     '撤回尚無登分紀錄的圈次開始',
                   );

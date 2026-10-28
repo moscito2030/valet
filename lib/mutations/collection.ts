@@ -2,6 +2,7 @@ import { knockoutExemptAssignments } from '../knockout-status';
 import { knockoutRoundReady } from '../knockout';
 import {
   clubAccepted,
+  clubAssignmentFinalized,
   clubConfirmationKey,
   clubReviewVersion,
   clubRoles,
@@ -12,7 +13,7 @@ import { swissRoundComplete } from '../swiss';
 import { deviceAssignment, tableDevices, validDeviceSchedule } from '../table-device';
 import type { MutationContext } from './context';
 import { scoredInput } from './scored-input';
-import { roundStartProblem, unsettledRoundsBefore } from '../round-workflow';
+import { nextScheduledRound, roundStartProblem, unsettledRoundsBefore } from '../round-workflow';
 
 export function applyCollectionCommand(
   context: MutationContext,
@@ -50,13 +51,13 @@ export function applyCollectionCommand(
         // Keep settled tables' historical roles when changing future input rules.
         e.club.inputOverrides ??= {};
         for (const a of e.assignments) {
-          if (e.club.finalized.includes(a.round)) e.club.inputOverrides[a.id] = previous.get(a.id)!;
+          if (clubAssignmentFinalized(e, a)) e.club.inputOverrides[a.id] = previous.get(a.id)!;
         }
         e.club.inputRule = command.inputRule;
       }
       if (command.assignmentId !== undefined) {
         const a = e.assignments.find((a) => a.id === command.assignmentId);
-        if (!a || e.club.finalized.includes(a.round)) throw new DomainError('桌次不存在或已結算');
+        if (!a || clubAssignmentFinalized(e, a)) throw new DomainError('桌次不存在或已結算');
         if (command.inputPair !== null && command.inputPair !== a.ns && command.inputPair !== a.ew)
           throw new DomainError('輸入方必須是該桌搭檔');
         e.club.inputOverrides ??= {};
@@ -113,6 +114,7 @@ export function applyCollectionCommand(
       throw new DomainError(
         tableMode ? '本圈尚無可收分安排，請等待裁判' : '本圈輪空或尚未安排，無需提交',
       );
+    if (clubAssignmentFinalized(e, a)) throw new DomainError('本桌已結算，不開放裝置輸入', 409);
     const { inputPair, confirmPair } = clubRoles(e, a);
     const confirmation = clubConfirmationKey(e, a);
     if (clubAccepted(e, a)) throw new DomainError('本桌已確認，本圈輸入已鎖定', 403);
@@ -154,7 +156,8 @@ export function applyCollectionCommand(
       e.status !== 'live' ||
       command.round !== e.currentRound ||
       club.finalized.includes(command.round) ||
-      !a
+      !a ||
+      clubAssignmentFinalized(e, a)
     )
       throw new DomainError('此桌無法取消剩餘牌並確認');
     if (clubAccepted(e, a)) throw new DomainError('本桌已認可');
@@ -186,9 +189,10 @@ export function applyCollectionCommand(
     };
     detail = `第 ${command.round} 圈桌次 ${a.id}：取消 ${cancelled} 副未輸入牌並由裁判確認；保留已有成績`;
   } else if (command.action === 'club-finalize') {
+    const nextRound = nextScheduledRound(e, command.round);
     if (command.advance) {
       if (command.round !== e.currentRound) throw new DomainError('補結算不得移動目前圈次。');
-      const problem = roundStartProblem(e, command.round + 1);
+      const problem = roundStartProblem(e, nextRound);
       if (problem) throw new DomainError(problem);
       if (unsettledRoundsBefore(e, command.round).length)
         throw new DomainError('尚有更早圈次未結算，請先補結算。');
@@ -207,8 +211,9 @@ export function applyCollectionCommand(
     if (!assignments.length) throw new DomainError('此圈尚未安排賽程');
     if (e.swiss && !swissRoundComplete(e, command.round))
       throw new DomainError('Swiss 本圈尚未完整公布，不能結算');
+    const exempt = knockoutExemptAssignments(e);
     for (const a of assignments) {
-      if (knockoutExemptAssignments(e).has(a.id)) continue;
+      if (exempt.has(a.id) || clubAssignmentFinalized(e, a)) continue;
       const accepted = clubAccepted(e, a);
       if (!accepted && !command.force) throw new DomainError('尚有桌次未收齊成績或對方未確認');
       for (const board of a.boards) {
@@ -240,18 +245,19 @@ export function applyCollectionCommand(
         };
     }
     club.finalized.push(command.round);
+    club.publishedAssignments = club.publishedAssignments?.filter((id) => !assignments.some((a) => a.id === id));
     const isCurrentRound = command.round === e.currentRound;
     if (isCurrentRound) e.roundPhase = 'break';
     if (
       isCurrentRound &&
       (command.advance ?? command.force) &&
-      !unsettledRoundsBefore(e, command.round + 1).length &&
+      !unsettledRoundsBefore(e, nextRound).length &&
       command.round < e.rounds &&
-      e.assignments.some((a) => a.round === command.round + 1) &&
-      (!e.swiss || swissRoundComplete(e, command.round + 1)) &&
-      knockoutRoundReady(e, command.round + 1)
+      e.assignments.some((a) => a.round === nextRound) &&
+      (!e.swiss || swissRoundComplete(e, nextRound)) &&
+      knockoutRoundReady(e, nextRound)
     ) {
-      e.currentRound = command.round + 1;
+      e.currentRound = nextRound;
       e.roundPhase = 'playing';
     }
     detail =

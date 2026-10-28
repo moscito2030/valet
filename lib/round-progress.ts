@@ -25,7 +25,7 @@ export function allRoundsComplete(
         tables.every(
           (a) => exempt.has(a.id) || (a.boards.length > 0 && a.boards.every((b) => !!event.results[resultKey(a.id, b)])),
         ) &&
-        (!event.club?.enabled || tables.every((a) => exempt.has(a.id)) || event.club.finalized.includes(round))
+        (!event.club?.enabled || tables.every((a) => exempt.has(a.id) || event.club!.publishedAssignments?.includes(a.id)) || event.club.finalized.includes(round))
       );
     })
   );

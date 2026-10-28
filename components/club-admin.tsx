@@ -1,4 +1,5 @@
 'use client';
+import { nextScheduledRound } from '@/lib/round-workflow';
 import { Modal } from './event-dialogs';
 import { TableScoreReview } from './table-score-review';
 import { roundLabel } from '@/lib/team-movement';
@@ -100,10 +101,10 @@ export function ClubAdmin({
       : event.assignments.filter((a) => a.round === forceRound && !clubAccepted(event, a));
   const advance =
     forceRound === round &&
-    !roundStartProblem(event, round + 1) &&
+    !roundStartProblem(event, nextScheduledRound(event, round)) &&
     !unsettledRoundsBefore(event, round).length;
   const forceLabel = advance
-    ? `結算並開始第 ${roundLabel(event, round + 1)} 圈`
+    ? `結算並開始第 ${roundLabel(event, nextScheduledRound(event, round))} 圈`
     : forceRound === event.rounds
       ? '確認結算並進入覆核'
       : '結算並發布成績';
@@ -178,7 +179,7 @@ export function ClubAdmin({
           </table>
           <p>
             {advance
-              ? `成功後開啟第 ${roundLabel(event, round + 1)} 圈收分。`
+              ? `成功後開啟第 ${roundLabel(event, nextScheduledRound(event, round))} 圈收分。`
               : forceRound === event.rounds
                 ? '這是最後一圈。結算後將進入成績覆核，無法退回前一圈或重新開放收分；仍可由裁判更正成績。'
                 : forceRound === round
