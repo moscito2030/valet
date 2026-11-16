@@ -114,7 +114,7 @@ Valet 使用 Next.js、React 與 TypeScript，可部署至 Vercel，搭配 Neon 
 - [雙人賽手機收分流程](docs/club-mode.md)
 - [賽程編排與 Deal Source 支援範圍](docs/movement-and-dealer.md)
 
-雙人賽每個賽段最多 38 對、19 圈；隊制賽最多 32 隊、31 圈，兩者每圈最多 16 副，賽段總牌數依編排計算，不另設固定上限。雙人賽預設合併排名；Double Winner Mitchell 固定 NS／EW 方向、各組獨立排名，同牌仍依各桌原始分計算比較分。各賽段分別計分，不跨段累積。Swiss 自動配對、跨組 Neuberg 調整及離線送分尚未提供。Deal Source 支援常用發牌條件，未涵蓋完整 Dealer 語言，不支援的語法會明確提示。
+名單最多 80 人。每位賽員的賽程以圈數乘每圈牌數計算，最多 1024 副，超過 512 副時介面會提醒；每圈最多 16 副。雙人賽預設合併排名；Double Winner Mitchell 固定 NS／EW 方向、各組獨立排名，同牌仍依各桌原始分計算比較分。各賽段分別計分，不跨段累積。Swiss 可逐圈配對。Deal Source 支援常用發牌條件，未涵蓋完整 Dealer 語言，不支援的語法會明確提示。
 
 開發檢查：
 
