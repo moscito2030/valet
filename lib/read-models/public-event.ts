@@ -1,7 +1,7 @@
 import { boardsStillInPlay } from '../board-in-play';
 import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
-import { publicBoards } from '../public-event';
+import { presentBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
 import { allRoundsComplete, roundProgress } from '../round-progress';
 import { project } from '../scoring';
@@ -118,12 +118,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     ),
   );
   const safe = { ...data, results };
-  // Deals use the same in-play set as results: a published flag cannot reveal a board someone is still scheduled to play.
-  const boards = publicBoards(event).map((b) => {
-    if (!waiting.has(b.number)) return b;
-    const { deal, ...rest } = { ...b, deal: undefined };
-    return { ...rest, published: false };
-  });
+  const boards = presentBoards(event);
   // Reuse only when the stored projection sees exactly the same results as the audience.
   // Any hidden result forces a fresh public projection; no cross-request/private cache is used.
   const allResultsVisible = Object.keys(results).length === Object.keys(data.results).length;

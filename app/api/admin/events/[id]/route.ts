@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { isAdmin, isDirector } from '@/lib/auth';
 import { deleteEvent } from '@/lib/store';
 import { getAccessibleEvent as getEvent } from '@/lib/event-access';
+import { boardsForRole } from '@/lib/public-event';
 import { DomainError } from '@/lib/domain-error';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return NextResponse.json(
       {
         ...data,
+        boards: boardsForRole(stored.event, director),
         ...(director ? { audit } : {}),
         projection: stored.projection,
         canDirect: director,
