@@ -15,6 +15,3 @@ export function presentBoards(event: BridgeEvent) {
     return { ...rest, published: false };
   });
 }
-export function boardsForRole(event: BridgeEvent, director: boolean) {
-  return director ? event.boards : presentBoards(event);
-}
