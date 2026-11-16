@@ -107,7 +107,7 @@ export function createNeonRepository(query: Sql): EventRepository {
     if (!rows.length) {
       const current = await getEvent(id);
       if (current.requests.includes(command.requestId)) return current;
-      throw new DomainError('另一個操作已更新成績，請重新載入。', 409);
+      throw new DomainError('另一個操作已更新成績，請重新載入。', 409, 'stage-revision');
     }
     return next;
   }
