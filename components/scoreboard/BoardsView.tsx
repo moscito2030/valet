@@ -2,7 +2,7 @@ import { DiscussionProvider } from '../board-discussion-context';
 import { PairScoreValue } from '../score-value';
 import { BoardDanmaku } from '../board-danmaku';
 import { BoardDiscussion } from '../board-discussion';
-import { displayedBoardNumber, boardRounds as getBoardRounds } from '@/lib/board-navigation';
+import { displayedBoardNumber, neighboringBoard, boardRounds as getBoardRounds } from '@/lib/board-navigation';
 import { directionalDatum } from '@/lib/datum';
 
 import type { Assignment, Board, PublicEvent, Result } from '@/lib/model';
@@ -207,8 +207,11 @@ export function BoardsView({
         <button
           className="icon-button"
           aria-label="上一副"
-          disabled={selectedBoard.number <= 1}
-          onClick={() => browseBoard(selectedBoard.number - 1)}
+          disabled={neighboringBoard(event.boards.map((board) => board.number), selectedBoard.number, -1) === undefined}
+          onClick={() => {
+            const previous = neighboringBoard(event.boards.map((board) => board.number), selectedBoard.number, -1);
+            if (previous !== undefined) browseBoard(previous);
+          }}
         >
           <ArrowLeft size={18} />
         </button>
@@ -244,8 +247,11 @@ export function BoardsView({
         <button
           className="icon-button"
           aria-label="下一副"
-          disabled={selectedBoard.number >= event.boards.length}
-          onClick={() => browseBoard(selectedBoard.number + 1)}
+          disabled={neighboringBoard(event.boards.map((board) => board.number), selectedBoard.number, 1) === undefined}
+          onClick={() => {
+            const next = neighboringBoard(event.boards.map((board) => board.number), selectedBoard.number, 1);
+            if (next !== undefined) browseBoard(next);
+          }}
         >
           <ArrowRight size={18} />
         </button>
