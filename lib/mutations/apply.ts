@@ -23,7 +23,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'knockout-adjust', 'knockout-overtime', 'knockout-forfeit',
       'club-play', 'club-finalize', 'club-complete-table'].includes(command.action) ||
     (command.action === 'settings' && (command.status !== 'finished' ||
-      command.teamMethod !== undefined || command.bam !== undefined))
+      command.teamMethod !== undefined || command.bam !== undefined ||
+      command.pairMethod !== undefined || command.trim !== undefined || command.neuberg !== undefined))
   )) throw new DomainError('賽段已結束，成績已定案，不可更正或重新開放賽事。');
   const e = structuredClone(stored.event),
     at = new Date().toISOString();

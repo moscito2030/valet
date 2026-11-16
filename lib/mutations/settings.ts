@@ -107,6 +107,17 @@ export function applySettingsCommand(
       if (method === 'bam') e.bam = command.bam ?? e.bam ?? { win: 2, draw: 1, loss: 0 };
       else delete e.bam;
     }
+    if (command.pairMethod !== undefined || command.trim !== undefined || command.neuberg !== undefined) {
+      if (e.kind !== 'pairs') throw new DomainError('雙人計分僅適用雙人賽');
+      if (Object.keys(e.results).length || e.status === 'finished')
+        throw new DomainError('已有成績，不能變更計分規則');
+      const method = command.pairMethod ?? e.pairMethod ?? 'mp';
+      if (method !== 'mp' && (command.neuberg ?? false)) throw new DomainError('Neuberg 僅適用 MP');
+      e.pairMethod = method;
+      e.neuberg = method === 'mp' ? (command.neuberg ?? e.neuberg ?? false) : false;
+      e.trim = method === 'mp' ? 'none' : (command.trim ?? e.trim ?? 'none');
+      detail = `雙人計分改為 ${method}`;
+    }
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;
     if (command.winAward !== undefined) e.winAward = command.winAward;
     if (command.awardDescription !== undefined) e.awardDescription = command.awardDescription;
