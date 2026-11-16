@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { createEvent } from '../lib/domain/event-factory';
 import { canMutate } from '../lib/mutation-permissions';
 import { applyMutation } from '../lib/mutations/apply';
-import { mutationSchema, type Mutation } from '../lib/model';
+import { mutationSchema, type Mutation, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
 
 test('pair scoring and trim can change until a result exists', () => {
@@ -17,7 +17,7 @@ test('pair scoring and trim can change until a result exists', () => {
     rounds: 1,
     boardsPerRound: 1,
   });
-  let stored = { event, projection: project(event), requests: [] };
+  let stored: StoredEvent = { event, projection: project(event), requests: [] };
   const command = (extra: object) =>
     mutationSchema.parse({
       action: 'settings',

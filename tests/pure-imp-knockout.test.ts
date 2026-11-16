@@ -340,7 +340,7 @@ test('local repository round-trip preserves overtime and decisions, audit and op
     assert.equal(duplicate.event.revision, saved.event.revision);
     await assert.rejects(
       repo.mutateEvent(e.id, { ...command, requestId: randomUUID() }),
-      /其他操作更新/,
+      /賽段版本已更新/,
     );
   } finally {
     await rm(directory, { recursive: true, force: true });
