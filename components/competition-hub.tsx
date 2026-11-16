@@ -152,7 +152,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
         e.preventDefault(); if (busy || !copyStage) return;
         const form = new FormData(e.currentTarget); setBusy(true); setCopyError('');
         try {
-          await request<{id:string}>(`/api/admin/events/${encodeURIComponent(copyStage.id)}/duplicate`, { name: String(form.get('copyName')), revision: copyStage.revision });
+          await request<{id:string}>(`/api/admin/events/${encodeURIComponent(copyStage.id)}/duplicate`, { name: String(form.get('copyName')), revision: copyStage.revision, includeResults: form.get('includeResults') === 'on' });
           setCopyStage(null); setCopying(false); setNotice('已複製賽段。'); await load();
         } catch (error) { setCopyError((error as Error).message); }
         finally { setBusy(false); }
@@ -162,7 +162,8 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           {competition.stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select></label>
         <label className="field">副本名稱<input key={copyStage?.id ?? 'none'} name="copyName" required maxLength={80} disabled={busy || !copyStage} defaultValue={copyStage ? `${copyStage.name.slice(0,75)}（副本）` : ''} /></label>
-        <p className="footnote">完整複製設定、名單、賽程、牌型、成績、判罰與發布進度至同一賽事。副本使用新網址，收分連結須重新簽發；後續修改互不影響。操作紀錄從本次複製開始。</p>
+        <label className="checkbox-label"><input type="checkbox" name="includeResults" disabled={busy || !copyStage} />一併複製成績與結算</label>
+        <p className="footnote">複製名單、賽程與牌型。收分連結須重新簽發。勾選後才連同成績、判罰與結算狀態複製。</p>
         {copyError && <p className="error-text" role="alert">{copyError}</p>}
         <button className="button primary" disabled={busy || !copyStage}>{busy ? '複製中…' : '複製賽段'}</button>
       </form>
