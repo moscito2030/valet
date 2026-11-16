@@ -1,3 +1,4 @@
+import { makeBoard } from './domain/board-factory';
 import { csvCell, decodeCsvCell } from './csv-cell';
 import { isInterleaved, validateInterleaved } from './team-movement';
 import {
@@ -220,7 +221,30 @@ function parseTeamMovement(text: string, e: BridgeEvent): Assignment[] {
     ];
   });
 }
-export function parsePbn(text: string): Board[] {
+const vulnerabilityNames: Record<string, Vulnerability> = {
+  none: 'None',
+  love: 'None',
+  '-': 'None',
+  ns: 'NS',
+  'n-s': 'NS',
+  'n/s': 'NS',
+  ew: 'EW',
+  'e-w': 'EW',
+  'e/w': 'EW',
+  all: 'All',
+  both: 'All',
+};
+const dealerNames: Record<string, Seat> = {
+  n: 'N',
+  e: 'E',
+  s: 'S',
+  w: 'W',
+  north: 'N',
+  east: 'E',
+  south: 'S',
+  west: 'W',
+};
+export function parsePbn(text: string, warnings: string[] = []): Board[] {
   const records = text
     .replace(/\r/g, '')
     .split(/(?=\[Board\s+")/)
@@ -231,17 +255,18 @@ export function parsePbn(text: string): Board[] {
     const tag = (name: string) => record.match(new RegExp(`\\[${name}\\s+"([^"]*)"\\]`))?.[1];
     const number = Number(tag('Board')),
       group = tag('BridgeboardGroup'),
-      dealer = tag('Dealer') as Seat,
-      vulnerability = tag('Vulnerable') as Vulnerability;
-    if (
-      !Number.isInteger(number) ||
-      number < 1 ||
-      numbers.has(number) ||
-      !seats.includes(dealer) ||
-      !['None', 'NS', 'EW', 'All'].includes(vulnerability)
-    )
-      throw new Error('PBN 牌號、發牌者或身價錯誤／重複');
+      dealer = dealerNames[(tag('Dealer') ?? '').trim().toLowerCase()],
+      vulnerability = vulnerabilityNames[(tag('Vulnerable') ?? '').trim().toLowerCase()];
+    if (!Number.isInteger(number) || number < 1 || !dealer || !vulnerability)
+      throw new Error('PBN 牌號、發牌者或身價錯誤');
+    if (numbers.has(number)) {
+      warnings.push(`牌 ${number} 重複，已採用第一筆牌型`);
+      return null;
+    }
     numbers.add(number);
+    const standard = makeBoard(number);
+    if (dealer !== standard.dealer || vulnerability !== standard.vulnerability)
+      warnings.push(`牌 ${number} 的發牌者或身價與牌號慣例不同`);
     if (group !== undefined && !/^[A-Za-z0-9_-]{1,40}$/.test(group))
       throw new Error(`牌 ${number} 的 BridgeboardGroup 須為 1–40 個英數字、底線或連字號`);
     const raw = tag('Deal')?.match(/^([NESW]):(.+)$/);
@@ -272,7 +297,7 @@ export function parsePbn(text: string): Board[] {
       vulnerability,
       deal,
     };
-  });
+  }).filter((board): board is Board => board !== null);
 }
 export function exportPbn(e: Pick<BridgeEvent, 'boards'>) {
   return e.boards

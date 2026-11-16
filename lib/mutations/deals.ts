@@ -24,11 +24,13 @@ export function applyDealsCommand(
     if (!e.knockout && Object.keys(e.results).length)
       throw new DomainError('已有成績時不可更換牌型與身價。請在收分前匯入。');
     let boards: Board[];
+    const warnings: string[] = [];
     try {
-      boards = parsePbn(command.pbn);
+      boards = parsePbn(command.pbn, warnings);
     } catch (error) {
       throw new DomainError((error as Error).message);
     }
+    if (warnings.length) detail = warnings.join('；');
     if (e.knockout) {
       if (boards.some((b) => !e.boards.some((old) => old.number === b.number)))
         throw new DomainError('PBN 包含尚未安排的牌號，請先追加加賽');
@@ -40,7 +42,7 @@ export function applyDealsCommand(
           published: old.published ?? e.publishBoards,
           ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) } : old;
       });
-      context.detail = `匯入未打牌號：${boards.map((b) => b.number).join('、')}；保留已收分牌局`;
+      context.detail = [`匯入未打牌號：${boards.map((b) => b.number).join('、')}；保留已收分牌局`, warnings.join('；')].filter(Boolean).join('；');
       return;
     }
     if (
