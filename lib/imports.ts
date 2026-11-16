@@ -221,6 +221,7 @@ function parseTeamMovement(text: string, e: BridgeEvent): Assignment[] {
     ];
   });
 }
+// PBN Vulnerable values, matched case-insensitively. Export always writes None, NS, EW, or All.
 const vulnerabilityNames: Record<string, Vulnerability> = {
   none: 'None',
   love: 'None',
