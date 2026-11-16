@@ -1,5 +1,6 @@
 import { ArrangementPanel } from './ArrangementPanel';
 import { PairNames } from '../pair-names';
+import { PairScoringSettings } from '../pair-scoring-settings';
 import { TeamScoringSettings } from '../team-scoring-settings';
 import { awardPlacesFor, hasDirectionalAwards } from '@/lib/awards';
 import { boardGroups, boardRange } from '@/lib/board-groups';
@@ -34,6 +35,7 @@ export function PublicationPanel({
     <>
       {section !== 'boards' && <>
       <TeamScoringSettings event={event} busy={busy} save={save} />
+      <PairScoringSettings event={event} busy={busy} save={save} />
       {event.canDirect && <form className="import-export-section" onSubmit={(e) => {
         e.preventDefault();
         const form = new FormData(e.currentTarget);

@@ -30,12 +30,7 @@ for (const kind of ['pairs', 'teams'] as const) test(`${kind}: mixed cancelled C
   assert.throws(() => mutationSchema.parse({ action: 'results', revision: 1, requestId: randomUUID(), reason: '不得繞過', results: parseResultsCsv(csv) }));
   assert.throws(() => applyMutation({ ...stored, event: { ...event, status: 'finished' } }, command(csv)), /重新開放/);
   for (const status of ['average', 'Average', ' AVERAGE ']) {
-    const legacy = applyMutation(stored, command(header + `${id},1,,,,,,,${status}`));
-    assert.equal(legacy.event.results[`${id}:1`].status, 'cancelled');
-    assert.equal(legacy.event.results[`${id}:1`].nsScore, 0);
-    assert.equal(legacy.event.audit.at(-1)?.changes?.[0].after?.status, 'cancelled');
-    assert.ok(!exportResultsCsv(legacy.event).includes('average'));
-    if (kind === 'pairs') assert.equal(legacy.projection.pairScores[`${id}:1`].ns, null);
+    assert.throws(() => parseResultsCsv(header + `${id},1,,,,,,,${status}`), /cancelled/);
   }
   const legacyResult = { ...imported.event.results[`${id}:1`], status: 'average' as const };
   const exported = exportResultsCsv({ ...event, results: { [`${id}:1`]: legacyResult } });

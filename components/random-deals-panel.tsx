@@ -1,9 +1,26 @@
 'use client';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Info, X } from 'lucide-react';
 import type { Board } from '@/lib/model';
 import { generateDealerBoards } from '@/lib/dealer-source';
-import { exportPbn } from '@/lib/imports';
+import { exportPbn, parsePbn } from '@/lib/imports';
+import { DealExplorer } from './deal-explorer';
+
+export function GeneratedDealPreview({ boards }: { boards: Board[] }) {
+  const [index, setIndex] = useState(0);
+  const board = boards[Math.min(index, Math.max(boards.length - 1, 0))];
+  if (!board) return null;
+  return (
+    <>
+      <div className="button-row">
+        <button type="button" className="button subtle" disabled={index <= 0} onClick={() => setIndex((value) => value - 1)}>上一副</button>
+        <strong>牌號 {board.number}</strong>
+        <button type="button" className="button subtle" disabled={index >= boards.length - 1} onClick={() => setIndex((value) => value + 1)}>下一副</button>
+      </div>
+      <DealExplorer board={board} />
+    </>
+  );
+}
 
 export function RandomDealsPanel({ boards, locked, busy, save }: {
   boards: Omit<Board, 'deal'>[]; locked: boolean; busy: boolean;
@@ -18,6 +35,10 @@ export function RandomDealsPanel({ boards, locked, busy, save }: {
   const sourceId = useId();
   const helpId = useId();
   const previewId = useId();
+  const previewBoards = useMemo(() => {
+    if (!pbn) return [];
+    try { return parsePbn(pbn); } catch { return []; }
+  }, [pbn]);
   useEffect(() => () => controller.current?.abort(), []);
   return <section className="import-export-section">
     <h4>產生隨機牌局 PBN</h4>
@@ -56,10 +77,10 @@ export function RandomDealsPanel({ boards, locked, busy, save }: {
     </div>
     {message && <p role="status">{message}</p>}
     {pbn && <>
-      <button type="button" className="button subtle" popoverTarget={previewId}>預覽牌局 PBN</button>
-      <div id={previewId} popover="auto" className="scoring-help" role="dialog" aria-label="預覽牌局 PBN" style={{ width: 'min(640px, calc(100vw - 40px))', maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto' }}>
-        <div className="scoring-help-heading"><strong>預覽牌局 PBN</strong><button type="button" className="scoring-info-button" aria-label="關閉牌局預覽" popoverTarget={previewId} popoverTargetAction="hide"><X size={16} /></button></div>
-        <pre className="import-preview" style={{ overflowWrap: 'anywhere' }}>{pbn}</pre>
+      <button type="button" className="button subtle" popoverTarget={previewId}>預覽牌型</button>
+      <div id={previewId} popover="auto" className="scoring-help" role="dialog" aria-label="預覽牌型" style={{ width: 'min(720px, calc(100vw - 40px))', maxHeight: 'calc(100dvh - 40px)', overflowY: 'auto' }}>
+        <div className="scoring-help-heading"><strong>預覽牌型</strong><button type="button" className="scoring-info-button" aria-label="關閉牌型預覽" popoverTarget={previewId} popoverTargetAction="hide"><X size={16} /></button></div>
+        <GeneratedDealPreview key={pbn} boards={previewBoards} />
       </div>
       <p className="footnote">套用會替換本賽段的全部牌型；僅限尚未收分時操作。</p>
       {count !== boards.length && <p className="footnote">目前只產生 {count} 副，套用本賽段需包含全部 {boards.length} 副。</p>}

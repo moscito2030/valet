@@ -75,7 +75,7 @@ export default function ClubPage() {
     try {
       const response = await fetch(`/api/club/${encodeURIComponent(context.current.id)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${context.current.token}` },
-        body: JSON.stringify({ requestId: crypto.randomUUID(), round: confirm ? data.round : draftRound, confirm, ...(!confirm ? { result: draft } : { reviewVersion: data.mode === 'table' ? reviewing : data.reviewVersion }) }),
+        body: JSON.stringify({ requestId: crypto.randomUUID(), round: confirm ? data.round : draftRound, confirm, ...(!confirm ? { result: draft, baseUpdatedAt: data.boards.find((b) => b.number === draft?.board)?.result?.updatedAt ?? '' } : { reviewVersion: data.mode === 'table' ? reviewing : data.reviewVersion }) }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error);

@@ -4,7 +4,7 @@ import { authConfigured, isAdmin, isDirector, issueSession, loginRole } from '@/
 import { storageMode } from '@/lib/store';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 import { DomainError } from '@/lib/domain-error';
-import { limitLogin } from '@/lib/login-limit';
+import { clearLoginFailures, recordLoginFailure } from '@/lib/login-limit';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
@@ -25,7 +25,6 @@ export async function POST(request: Request) {
   try {
     checkOrigin(request);
     if (!authConfigured()) throw new DomainError('請先設定 ADMIN_PASSWORD 與 SESSION_SECRET', 503);
-    await limitLogin(request);
     const body = z.object({ password: z.string().max(200) }).strict().parse(await readJson(request));
     const role =
       typeof body.password === 'string' && body.password.length <= 200
@@ -33,8 +32,10 @@ export async function POST(request: Request) {
         : null;
     if (typeof body.password !== 'string' || body.password.length > 200 || !role) {
       await new Promise((r) => setTimeout(r, 800));
+      await recordLoginFailure(request);
       throw new DomainError('密碼不正確', 401);
     }
+    await clearLoginFailures(request);
     const res = NextResponse.json(
       { ok: true, director: role === 'director' },
       { headers: { 'Cache-Control': 'no-store' } },

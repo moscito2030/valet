@@ -47,6 +47,9 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
     (command.status === 'finished' ||
       command.teamMethod !== undefined ||
       command.bam !== undefined ||
+      command.pairMethod !== undefined ||
+      command.trim !== undefined ||
+      command.neuberg !== undefined ||
       command.name !== undefined ||
       command.prefix !== undefined ||
       command.maxBoardNumber !== undefined ||

@@ -450,8 +450,12 @@ export function MovementPanel({
               : event.kind === 'pairs' && event.participants.length % 2
                 ? '每圈有一對輪空。'
                 : ''}
-            不共牌需準備 {plan.copies} 套完整牌，每套 {plan.boardCount} 副，共{' '}
-            {plan.copies * plan.boardCount} 副實體牌。
+            {plan.setCopies.every((set) => set.copies === plan.copies)
+              ? `不共牌需準備 ${plan.copies} 套完整牌，每套 ${plan.boardCount} 副，共 ${plan.physicalBoards} 副實體牌。`
+              : `不共牌需準備 ${plan.physicalBoards} 副：${plan.setCopies
+                  .filter((set) => set.copies > 1)
+                  .map((set) => `第 ${set.group} 組 ${set.copies} 份`)
+                  .join('、')}${plan.setCopies.some((set) => set.copies === 1) ? '，其餘各 1 份' : ''}。`}
             {plan.shared ? '各套相同牌號的牌型須一致；也可安排共牌。' : ''}
           </p>
           {plan.boardCount !== event.boards.length && (

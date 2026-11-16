@@ -13,7 +13,7 @@ import { RoundsView } from '../components/scoreboard/RoundsView';
 import { StandingsView } from '../components/scoreboard/StandingsView';
 import { audienceEvent } from '../lib/club-view';
 import { applyMutation, createEvent } from '../lib/events';
-import { mutationSchema, type StoredEvent } from '../lib/model';
+import { mutationSchema, resultKey, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
 
 const noop = () => {};
@@ -342,7 +342,11 @@ test('round VP dialog uses actual match board count and handles pending and BAM 
 test('ongoing team matches show provisional VP without changing official standings', async () => {
   const { seedEvents } = await import('../lib/domain/demo-events');
   const stored = seedEvents()[0];
-  const event = audienceEvent(stored.event, stored.projection);
+  // Leave one board unscored at every table so the match is unfinished without publishing a deal someone has not played.
+  const pending = stored.event.assignments.find((a) => a.round === 2)!.boards[0];
+  for (const assignment of stored.event.assignments)
+    if (assignment.boards.includes(pending)) delete stored.event.results[resultKey(assignment.id, pending)];
+  const event = audienceEvent(stored.event, project(stored.event));
   const match = event.projection.matches.find((m) => m.completed > 0 && m.completed < m.total)!;
   const before = JSON.stringify(event.projection);
   const html = renderToStaticMarkup(createElement(MatchVpScale, {event, match}));

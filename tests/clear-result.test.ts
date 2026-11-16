@@ -40,7 +40,7 @@ for (const kind of ['pairs', 'teams'] as const) for (const mode of ['pair', 'tab
     assert.throws(()=>run({action:'clear-result',assignmentId:a.id,board}),/重新開放賽事/);
     state.event.status='live';
     assert.throws(()=>run({action:'clear-result',assignmentId:a.id,board:9999}),/不符合賽程/);
-    assert.throws(()=>applyMutation(state,{...command,requestId:randomUUID()}),/其他操作更新/);
+    assert.throws(()=>applyMutation(state,{...command,requestId:randomUUID()}),/賽段版本已更新/);
     if (kind === 'teams') {
       run({action:'split-contract',assignmentId:a.id,board,contracts:{ns:rows[0],ew:rows[0]}});
       assert.throws(()=>run({action:'clear-result',assignmentId:a.id,board}),/撤銷不平衡合約/);

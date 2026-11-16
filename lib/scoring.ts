@@ -86,13 +86,16 @@ export function impPairScore(
       datum: undefined,
     };
   const mean = sample.reduce((n, x) => n + x, 0) / sample.length;
-  const datum = Math.sign(mean) * Math.round(Math.abs(mean) / 10) * 10;
+  const datum = roundedDatum(mean);
   return { value: imps(score - datum), datum };
 }
 const thresholds = [
   20, 50, 90, 130, 170, 220, 270, 320, 370, 430, 500, 600, 750, 900, 1100, 1300, 1500, 1750, 2000,
   2250, 2500, 3000, 3500, 4000,
 ];
+export function roundedDatum(mean: number) {
+  return Math.sign(mean) * Math.round(Math.abs(mean) / 10) * 10;
+}
 export function imps(difference: number) {
   return Math.sign(difference) * thresholds.filter((t) => Math.abs(difference) >= t).length;
 }

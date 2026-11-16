@@ -318,6 +318,39 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
   return options;
 }
 
+export function boardCopyPlan(
+  assignments: { round: number; boards: number[] }[],
+  boardsPerRound: number,
+) {
+  const perBoard = new Map<number, number>();
+  const seen = new Map<string, number>();
+  for (const assignment of assignments)
+    for (const board of assignment.boards) {
+      const key = `${assignment.round}:${board}`;
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+    }
+  for (const [key, count] of seen) {
+    const board = Number(key.slice(key.lastIndexOf(':') + 1));
+    perBoard.set(board, Math.max(perBoard.get(board) ?? 0, count));
+  }
+  const width = Math.max(1, boardsPerRound);
+  const groups = new Map<number, { boards: number; copies: number }>();
+  for (const [board, count] of perBoard) {
+    const group = Math.floor((board - 1) / width) + 1;
+    const row = groups.get(group) ?? { boards: 0, copies: 0 };
+    row.boards += 1;
+    row.copies = Math.max(row.copies, count);
+    groups.set(group, row);
+  }
+  const sets = [...groups.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([group, row]) => ({ group, boards: row.boards, copies: row.copies }));
+  return {
+    sets,
+    physical: sets.reduce((sum, set) => sum + set.boards * set.copies, 0),
+    copies: Math.max(1, ...perBoard.values(), 1),
+  };
+}
 export function movementBoardError(boardsPerRound: number): string | null {
   if (!Number.isInteger(boardsPerRound) || boardsPerRound < 1 || boardsPerRound > 16)
     return '每圈牌數須為 1–16 的整數。';
@@ -486,13 +519,7 @@ export function buildMovement(
       );
     }
   }
-  const simultaneous = new Map<string, number>();
-  for (const assignment of assignments)
-    for (const board of assignment.boards) {
-      const key = `${assignment.round}:${board}`;
-      simultaneous.set(key, (simultaneous.get(key) ?? 0) + 1);
-    }
-  const copies = Math.max(1, ...simultaneous.values());
+  const copyPlan = boardCopyPlan(assignments, event.boardsPerRound);
   if (settings.barometer) option.note += ' 各圈改用全場共牌。';
   if (phantom) option.note += ` 編排位置 ${phantom} 輪空，其餘依搭檔對照入座。`;
   if (settings.groupOrder) option.note += ` 牌組對照：${settings.groupOrder.join('、')}。`;
@@ -502,8 +529,10 @@ export function buildMovement(
     assignments,
     byes: teamByes({ ...event, assignments }),
     boardCount: groupCount * event.boardsPerRound,
-    shared: copies > 1,
-    copies,
+    shared: copyPlan.copies > 1,
+    copies: copyPlan.copies,
+    setCopies: copyPlan.sets,
+    physicalBoards: copyPlan.physical,
     hasPhantom,
     capacity,
   };

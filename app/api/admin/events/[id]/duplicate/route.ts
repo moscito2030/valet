@@ -8,7 +8,7 @@ import { getCompetition, insertStage } from '@/lib/store';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
-const schema = z.object({ name: z.string().trim().min(1).max(80), revision: z.number().int().positive() }).strict();
+const schema = z.object({ name: z.string().trim().min(1).max(80), revision: z.number().int().positive(), includeResults: z.boolean().optional() }).strict();
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin(request);
@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { event } = await getAccessibleEvent((await params).id);
     if (event.revision !== input.revision) throw new DomainError('賽段已更新，請重新載入後再複製', 409);
     const parent = await getCompetition(event.parentEventId ?? event.id);
-    const saved = await insertStage(parent.competition.id, duplicateStage(event, input.name), parent.competition.revision);
+    const saved = await insertStage(parent.competition.id, duplicateStage(event, input.name, input.includeResults === true), parent.competition.revision);
     return NextResponse.json({ id: saved.event.id }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
   } catch (error) { return errorResponse(error); }
 }

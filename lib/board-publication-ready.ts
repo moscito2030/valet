@@ -1,5 +1,5 @@
+import { boardsStillInPlay } from './board-in-play';
 import { boardGroups } from './board-groups';
-import { clubAccepted } from './club-confirmation';
 import type { Board, BridgeEvent } from './model';
 import { roundStartProblem } from './round-workflow';
 
@@ -34,6 +34,7 @@ export function readyBoardGroups(event: PublicationEvent) {
         event.participants.length - (event.participants.length % 2),
     )
   ) return [];
+  const waiting = boardsStillInPlay(event);
   return boardGroups(event.boards, event.boardsPerRound).filter(
     (group) =>
       group.some((board) => !(board.published ?? event.publishBoards)) &&
@@ -41,16 +42,7 @@ export function readyBoardGroups(event: PublicationEvent) {
         if (!board.deal || Object.values(board.deal).some((hand) => hand.length !== 13))
           return false;
         const uses = event.assignments.filter((a) => a.boards.includes(board.number));
-        return (
-          uses.length > 0 &&
-          uses.every(
-            (a) =>
-              a.round <= (event.currentRound ?? 0) &&
-              !!event.results[`${a.id}:${board.number}`] &&
-              (!event.club?.enabled ||
-                (event.club.finalized.includes(a.round) && clubAccepted(event, a))),
-          )
-        );
+        return uses.length > 0 && !waiting.has(board.number);
       }),
   );
 }

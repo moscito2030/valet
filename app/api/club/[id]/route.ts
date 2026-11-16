@@ -7,8 +7,16 @@ import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 import { DomainError } from '@/lib/domain-error';
 import { resultSchema } from '@/lib/model';
 import { clubView } from '@/lib/club-view';
+import { isStageRevisionConflict, resultUpdatedAt, staleClubResult } from '@/lib/club-submit';
 export const dynamic = 'force-dynamic';
-const bodySchema = z.object({ requestId: z.string().uuid(), round: z.number().int().min(1), confirm: z.boolean(), reviewVersion: z.string().max(32000).optional(), result: resultSchema.optional() }).strict();
+const bodySchema = z.object({
+  requestId: z.string().uuid(),
+  round: z.number().int().min(1),
+  confirm: z.boolean(),
+  reviewVersion: z.string().max(32000).optional(),
+  baseUpdatedAt: z.string().max(40).optional(),
+  result: resultSchema.optional(),
+}).strict();
 function hash(request: Request) {
   const token = request.headers.get('authorization')?.replace(/^Bearer /, '') ?? '';
   if (!/^[a-f0-9]{64}$/.test(token)) throw new DomainError('請使用裁判提供的專屬連結', 401);
@@ -29,14 +37,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const tokenHash = hash(request);
     const body = bodySchema.parse(await readJson(request));
     const id = (await params).id;
-    // Re-read on revision conflicts. The domain rechecks token, round and lock atomically on each attempt.
+    // Retry only when the stage revision moved and this score cell is unchanged.
+    // Settled tables, closed rounds, and a cell edited since the phone loaded it are not retryable.
+    let seen: string | undefined;
     for (let attempt = 0; attempt < 5; attempt++) {
       const { event } = await getEvent(id);
+      const current = resultUpdatedAt(event, body.result);
+      const base = body.baseUpdatedAt ?? (seen === undefined ? undefined : seen);
+      if (staleClubResult(current, base))
+        throw new DomainError('本桌成績已更新，請重新檢查後再提交', 409);
+      if (body.result) seen ??= current;
       try {
-        await mutateEvent(id, { ...body, action: 'club-play', tokenHash, revision: event.revision, reason: body.confirm ? '搭檔確認本圈' : '搭檔輸入／更正' });
+        const { baseUpdatedAt: _base, ...command } = body;
+        await mutateEvent(id, { ...command, action: 'club-play', tokenHash, revision: event.revision, reason: body.confirm ? '搭檔確認本圈' : '搭檔輸入／更正' });
         return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
       } catch (e) {
-        if (!(e instanceof DomainError) || e.status !== 409 || attempt === 4) throw e;
+        if (!isStageRevisionConflict(e) || attempt === 4) throw e;
+        await new Promise((resolve) => setTimeout(resolve, 15 + Math.floor(Math.random() * 35)));
       }
     }
     throw new DomainError('請重試', 409);

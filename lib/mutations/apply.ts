@@ -13,7 +13,7 @@ import { clubRoundReady } from '../round-workflow';
 export function applyMutation(stored: StoredEvent, command: Mutation): StoredEvent {
   if (stored.requests.includes(command.requestId)) return stored;
   if (command.revision !== stored.event.revision)
-    throw new DomainError('成績已被其他操作更新，請重新載入後再提交。', 409);
+    throw new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision');
   // Final scores are immutable, including alternate import/reset/schedule paths.
   if (stored.event.status === 'finished' && (
     ['results', 'results-import', 'clear-result', 'clear-results', 'ruling',
@@ -23,7 +23,8 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
       'knockout-adjust', 'knockout-overtime', 'knockout-forfeit',
       'club-play', 'club-finalize', 'club-complete-table'].includes(command.action) ||
     (command.action === 'settings' && (command.status !== 'finished' ||
-      command.teamMethod !== undefined || command.bam !== undefined))
+      command.teamMethod !== undefined || command.bam !== undefined ||
+      command.pairMethod !== undefined || command.trim !== undefined || command.neuberg !== undefined))
   )) throw new DomainError('賽段已結束，成績已定案，不可更正或重新開放賽事。');
   const e = structuredClone(stored.event),
     at = new Date().toISOString();
