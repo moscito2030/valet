@@ -13,7 +13,7 @@ import { clubRoundReady } from '../round-workflow';
 export function applyMutation(stored: StoredEvent, command: Mutation): StoredEvent {
   if (stored.requests.includes(command.requestId)) return stored;
   if (command.revision !== stored.event.revision)
-    throw new DomainError('成績已被其他操作更新，請重新載入後再提交。', 409, 'stage-revision');
+    throw new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision');
   // Final scores are immutable, including alternate import/reset/schedule paths.
   if (stored.event.status === 'finished' && (
     ['results', 'results-import', 'clear-result', 'clear-results', 'ruling',

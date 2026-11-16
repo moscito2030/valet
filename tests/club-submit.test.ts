@@ -67,5 +67,5 @@ test('a stale section revision is retryable and a settled-table rejection is not
   assert.throws(() => applyMutation(stored, command), isStageRevisionConflict);
   const settled = new DomainError('本桌已結算，不開放裝置輸入', 409);
   assert.equal(isStageRevisionConflict(settled), false);
-  assert.equal(isStageRevisionConflict(new DomainError('成績已被其他操作更新，請重新載入後再提交。', 409)), false);
+  assert.equal(isStageRevisionConflict(new DomainError('賽段版本已更新，請重新載入後再提交。', 409)), false);
 });
