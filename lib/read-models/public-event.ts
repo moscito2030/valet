@@ -1,9 +1,34 @@
 import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
+import { resultKey } from '../model';
 import { publicBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
 import { allRoundsComplete, roundProgress } from '../round-progress';
 import { project } from '../scoring';
+
+// A board number stays private until every scheduled table has finished it.
+// Phone scoring finishes a table when its round is settled, the table is published,
+// or a knockout walkover exempts it. Director scoring finishes a table when a result exists.
+function boardsStillInPlay(event: BridgeEvent) {
+  const exempt = knockoutExemptAssignments(event);
+  const waiting = new Set<number>();
+  if (event.club?.enabled) {
+    const finalized = new Set(event.club.finalized ?? []);
+    const published = new Set(event.club.publishedAssignments ?? []);
+    for (const assignment of event.assignments) {
+      if (finalized.has(assignment.round) || published.has(assignment.id) || exempt.has(assignment.id))
+        continue;
+      for (const board of assignment.boards) waiting.add(board);
+    }
+    return waiting;
+  }
+  for (const assignment of event.assignments) {
+    if (exempt.has(assignment.id)) continue;
+    for (const board of assignment.boards)
+      if (!event.results[resultKey(assignment.id, board)]) waiting.add(board);
+  }
+  return waiting;
+}
 export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   const { club } = event;
   const data = {
@@ -110,20 +135,16 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   const visible = club?.enabled
     ? new Set(event.assignments.filter((a) => finalized.has(a.round) || published.has(a.id) || exempt.has(a.id)).map((a) => a.id))
     : null;
-  const results = visible
-    ? Object.fromEntries(
-        Object.entries(data.results).filter(([, r]) => visible.has(r.assignmentId)),
-      )
-    : data.results;
+  const waiting = boardsStillInPlay(event);
+  const results = Object.fromEntries(
+    Object.entries(data.results).filter(
+      ([, r]) => !waiting.has(r.board) && (!visible || visible.has(r.assignmentId)),
+    ),
+  );
   const safe = { ...data, results };
   // A board can recur in later rounds: keep its deal private until every scheduled use is settled.
-  const unsettledBoards = new Set(
-    club?.enabled
-      ? event.assignments.filter((a) => !finalized.has(a.round) && !published.has(a.id) && !exempt.has(a.id)).flatMap((a) => a.boards)
-      : [],
-  );
   const boards = publicBoards(event).map((b) => {
-    if (unsettledBoards.has(b.number)) {
+    if (club?.enabled && waiting.has(b.number)) {
       const { deal, ...rest } = { ...b, deal: undefined };
       return { ...rest, published: false };
     }
@@ -131,8 +152,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   });
   // Reuse only when the stored projection sees exactly the same results as the audience.
   // Any hidden result forces a fresh public projection; no cross-request/private cache is used.
-  const allResultsVisible =
-    !visible || Object.keys(results).length === Object.keys(data.results).length;
+  const allResultsVisible = Object.keys(results).length === Object.keys(data.results).length;
   return {
     ...safe,
     boards,

@@ -127,7 +127,7 @@ test('club round controls skip only empty KO rounds created by overtime, never u
   assert.throws(() => apply(e, { action: 'round-control', round: 6, phase: 'playing' }), /依序/);
 });
 
-test('reopened forfeited downstream can collect again while other settled branch stays public and locked', () => {
+test('reopened forfeited downstream can collect again, hides a shared board during the replay, and keeps the other table locked', () => {
   let e = createEvent({
     name: '八隊覆核',
     kind: 'teams',
@@ -199,7 +199,7 @@ test('reopened forfeited downstream can collect again while other settled branch
   assert.equal(audienceEvent(e).results[resultKey(a.id, a.boards[0])], undefined);
   assert.deepEqual(
     Object.entries(audienceEvent(e).results).filter(([, r]) => otherIds.includes(r.assignmentId)),
-    otherResults,
+    [],
   );
   // A retained public table stays device-locked even when a director correction
   // invalidates its old peer confirmation after reopening the decision.
@@ -232,7 +232,7 @@ test('reopened forfeited downstream can collect again while other settled branch
     () => apply(e, { action: 'clear-result', assignmentId: other.id, board: other.boards[0] }),
     /本圈已結算/,
   );
-  assert.equal(audienceEvent(e).results[resultKey(other.id, other.boards[0])].tricks, 8);
+  assert.equal(audienceEvent(e).results[resultKey(other.id, other.boards[0])], undefined);
 });
 
 test('auto-decided withdrawal or bye nodes with no tables do not block the next playable round', () => {

@@ -389,7 +389,7 @@ test('forfeit exemptions match the exact node, never another node with a shared 
   assert.equal(project(e).expected, 4);
 });
 
-test('club settlement skips forfeited assignments without cancelling unplayed boards or hiding confirmed played scores', () => {
+test('club settlement skips forfeited assignments without cancelling unplayed boards, and withholds their scores while another table still has the board', () => {
   let e = fixture();
   e.club = { enabled: true, mode: 'table', tokens: {}, confirmations: {}, finalized: [] };
   e.currentRound = 1;
@@ -397,7 +397,7 @@ test('club settlement skips forfeited assignments without cancelling unplayed bo
   const source = e.assignments.find((a) => a.matchId === 'ko-s1m1-r1')!;
   delete e.results[resultKey(source.id, source.boards[0])];
   e = apply(e, { action: 'knockout-forfeit', nodeId: 's1m1', loser: 't1', withdraw: false });
-  assert.equal(Object.keys(audienceEvent(e).results).length, 3);
+  assert.equal(Object.keys(audienceEvent(e).results).length, 0);
   fill(e, 's1m2');
   const count = Object.keys(e.results).length;
   e = apply(e, { action: 'club-finalize', round: 1, force: true });
