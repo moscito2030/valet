@@ -1,34 +1,10 @@
+import { boardsStillInPlay } from '../board-in-play';
 import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
-import { resultKey } from '../model';
 import { publicBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
 import { allRoundsComplete, roundProgress } from '../round-progress';
 import { project } from '../scoring';
-
-// A board number stays private until every scheduled table has finished it.
-// Phone scoring finishes a table when its round is settled, the table is published,
-// or a knockout walkover exempts it. Director scoring finishes a table when a result exists.
-function boardsStillInPlay(event: BridgeEvent) {
-  const exempt = knockoutExemptAssignments(event);
-  const waiting = new Set<number>();
-  if (event.club?.enabled) {
-    const finalized = new Set(event.club.finalized ?? []);
-    const published = new Set(event.club.publishedAssignments ?? []);
-    for (const assignment of event.assignments) {
-      if (finalized.has(assignment.round) || published.has(assignment.id) || exempt.has(assignment.id))
-        continue;
-      for (const board of assignment.boards) waiting.add(board);
-    }
-    return waiting;
-  }
-  for (const assignment of event.assignments) {
-    if (exempt.has(assignment.id)) continue;
-    for (const board of assignment.boards)
-      if (!event.results[resultKey(assignment.id, board)]) waiting.add(board);
-  }
-  return waiting;
-}
 export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   const { club } = event;
   const data = {
@@ -142,13 +118,11 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     ),
   );
   const safe = { ...data, results };
-  // A board can recur in later rounds: keep its deal private until every scheduled use is settled.
+  // Deals use the same in-play set as results: a published flag cannot reveal a board someone is still scheduled to play.
   const boards = publicBoards(event).map((b) => {
-    if (club?.enabled && waiting.has(b.number)) {
-      const { deal, ...rest } = { ...b, deal: undefined };
-      return { ...rest, published: false };
-    }
-    return b;
+    if (!waiting.has(b.number)) return b;
+    const { deal, ...rest } = { ...b, deal: undefined };
+    return { ...rest, published: false };
   });
   // Reuse only when the stored projection sees exactly the same results as the audience.
   // Any hidden result forces a fresh public projection; no cross-request/private cache is used.
