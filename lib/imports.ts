@@ -49,9 +49,10 @@ export function parseCsv(text: string): Record<string, string>[] {
 export function parseResultsCsv(text: string): (ResultInput & { status?: 'cancelled' })[] {
   return parseCsv(text).map((r, i) => {
     if (r.splitNS || r.splitEW) throw new Error(`第 ${i + 2} 列：不平衡合約請由裁判重新套用，不能用一般收分匯入`);
-    // Accept legacy CSV terminology but persist only the canonical cancellation status.
-    const rawStatus = r.status?.toLowerCase();
-    const status = rawStatus === 'average' ? 'cancelled' : rawStatus;
+    const rawStatus = r.status?.trim().toLowerCase();
+    if (rawStatus === 'average')
+      throw new Error(`第 ${i + 2} 列：status 不接受 average。取消不補平均，請改填 cancelled`);
+    const status = rawStatus;
     if (status && status !== 'played' && status !== 'cancelled')
       throw new Error(`第 ${i + 2} 列：status 僅接受 played 或 cancelled`);
     if (status === 'cancelled' && ['level', 'strain', 'doubled', 'declarer', 'tricks'].every(key => !r[key]))
