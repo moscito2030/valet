@@ -13,6 +13,11 @@ test('copies count peak simultaneous board use, excluding phantom tables', () =>
   assert.equal(buildMovement({ ...event, rounds: 5 }, 'mitchell').copies, 1);
   assert.equal(buildMovement({ ...event, participants: event.participants.slice(0, 11) }, 'barometer').copies, 5);
   assert.equal(buildMovement({ ...event, participants: event.participants.slice(0, 6), rounds: 5 }, 'howell-3-5').copies, 3);
+  const howell = buildMovement(createEvent({ name: 'Howell copies', kind: 'pairs', names: ['A', 'B', 'C', 'D', 'E', 'F'], date: '2026-11-16', venue: '', rounds: 5, boardsPerRound: 3 }), 'howell-3-5');
+  assert.equal(howell.copies, 3);
+  assert.equal(howell.physicalBoards, 21);
+  assert.deepEqual(howell.setCopies.filter((set) => set.copies > 1), [{ group: 5, boards: 3, copies: 3 }]);
+  assert.ok(howell.setCopies.filter((set) => set.group < 5).every((set) => set.copies === 1));
 });
 
 test('every offered movement has complete rounds and no repeated boards for any pair', () => {
