@@ -8,7 +8,9 @@ import type { ResultInput } from '@/lib/model';
 import { collectionScoreSide, collectionScoreLabel } from '@/lib/collection-score';
 import { boardRange } from '@/lib/board-groups';
 import { contractScore } from '@/lib/scoring';
+import { ContractEntry } from '@/components/contract-entry';
 import { MiniContractFields } from '@/components/mini-contract-fields';
+import { applyHcp, applyMiniContract, asResult, emptyScoreForm, miniFieldsValue, parsedResult, scoreFormFromResult, storedContract, type ScoreFormState } from '@/lib/contract-choice';
 import { createClubAutoFollow } from '@/lib/followed-participant';
 import { participantResultsLink } from '@/lib/scoreboard-link';
 
@@ -16,7 +18,7 @@ const describeContract = (r: ResultInput) => r.level === 0 ? 'Pass' : `${r.level
 
 export default function ClubPage() {
   const [data, setData] = useState<ClubView | null>(null);
-  const [draft, setDraft] = useState<ResultInput | null>(null);
+  const [draft, setDraft] = useState<ScoreFormState | null>(null);
   const [draftRound, setDraftRound] = useState(0);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -42,7 +44,7 @@ export default function ClubPage() {
       preview.current = true;
       void import('@/lib/mini-club-preview').then(({miniClubPreview}) => {
         const view = miniClubPreview(new URLSearchParams(location.search).get('mode') === 'pair'); setData(view); setDraftRound(view.round);
-        const first = view.boards[0].result!; setDraft({...first, miniBridge:true});
+        const first = view.boards[0].result!; setDraft({ ...scoreFormFromResult(first), miniBridge: true });
       });
       return;
     }
@@ -58,24 +60,25 @@ export default function ClubPage() {
     if (!data?.assignment || (data.role !== 'input' && data.role !== 'shared') || data.locked) return;
     setReviewing('');
     const r = data.boards.find(b => b.number === number)?.result;
-    setDraft(r ? { assignmentId: r.assignmentId, board: r.board, level: r.level, strain: r.strain, doubled: r.doubled, declarer: r.declarer, tricks: r.tricks, lead: r.lead, hcp: r.hcp, miniBridge: data.gameMode === 'minibridge' } : {
-      assignmentId: data.assignment.id, board: number, level: 1, strain: 'C', doubled: 1, declarer: 'N', tricks: 7, lead: '', miniBridge: data.gameMode === 'minibridge',
-    });
+    const miniBridge = data.gameMode === 'minibridge';
+    setDraft(r ? { ...scoreFormFromResult(r), miniBridge } : emptyScoreForm(data.assignment.id, number, miniBridge));
     setDraftRound(data.round);
     setNotice('');
   }
   async function submit(confirm: boolean) {
     if (!data || submitting.current) return;
+    const result = draft ? parsedResult(draft) : null;
+    if (!confirm && !result) return;
     if (preview.current) {
       if (confirm) { setData({...data, accepted:true, locked:true}); setNotice('預覽：本圈已確認，未寫入賽事。'); }
-      else if (draft) { setData({...data, boards:data.boards.map(b => b.number === draft.board ? {...b,result:{...draft,nsScore:contractScore(draft,'None',true),updatedAt:new Date().toISOString()}} : b)}); setDraft(null); }
+      else if (result) { setData({...data, boards:data.boards.map(b => b.number === result.board ? {...b,result:{...result,nsScore:contractScore(result,'None',data.gameMode === 'minibridge'),updatedAt:new Date().toISOString()}} : b)}); setDraft(null); }
       return;
     }
     submitting.current = true; setBusy(true); setError(''); setNotice('');
     try {
       const response = await fetch(`/api/club/${encodeURIComponent(context.current.id)}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${context.current.token}` },
-        body: JSON.stringify({ requestId: crypto.randomUUID(), round: confirm ? data.round : draftRound, confirm, ...(!confirm ? { result: draft, baseUpdatedAt: data.boards.find((b) => b.number === draft?.board)?.result?.updatedAt ?? '' } : { reviewVersion: data.mode === 'table' ? reviewing : data.reviewVersion }) }),
+        body: JSON.stringify({ requestId: crypto.randomUUID(), round: confirm ? data.round : draftRound, confirm, ...(!confirm ? { result, baseUpdatedAt: data.boards.find((b) => b.number === draft?.board)?.result?.updatedAt ?? '' } : { reviewVersion: data.mode === 'table' ? reviewing : data.reviewVersion }) }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error);
@@ -89,6 +92,9 @@ export default function ClubPage() {
   const active = !!data && data.status === 'live' && !data.locked && !data.finalized && data.phase !== 'break' && data.round > 0;
   const editable = active && (data?.role === 'input' || data?.role === 'shared') && !reviewing;
   const board = data?.boards.find(b => b.number === draft?.board);
+  const fields = draft ? storedContract(draft.choice, { passDefaults: draft.passDefaults, miniBridge: draft.miniBridge }) : null;
+  const scored = draft && fields ? asResult(fields, draft) : null;
+  const savable = draft ? parsedResult(draft) : null;
   const scoreSide = data ? collectionScoreSide(data, !!reviewing) : 'NS';
   const inputIsEW = !!data?.assignment && data.roles?.inputPair === data.assignment.ew;
   const missing = data?.boards.filter(b => !b.result).length ?? 0;
@@ -104,7 +110,7 @@ export default function ClubPage() {
       <span className="club-heading-separator" aria-hidden="true">·</span>
       <nav className="club-heading-tools" aria-label="收分參考工具">
         <a href="/manual/players.html">收分操作手冊</a>
-        {data?.gameMode === 'minibridge' && <><span aria-hidden="true">·</span><MiniScoreReference value={draft} inline /></>}
+        {data?.gameMode === 'minibridge' && <><span aria-hidden="true">·</span><MiniScoreReference value={scored} inline /></>}
       </nav>
       </div>
     </header>
@@ -150,20 +156,11 @@ export default function ClubPage() {
       </section>
       {draft && editable && <form id="club-score-editor" className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
         <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? '迷你橋牌 · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
-        <div className="form-grid">
-          {data.gameMode === 'minibridge' ? <><HcpFields value={draft} onChange={setDraft} dealer={board?.dealer ?? 'N'} expected={board?.hcp} /><MiniContractFields value={draft} onChange={setDraft} /></> : <>
-          <label className="field">線位<select value={draft.level} onChange={e => { const level = Number(e.target.value); setDraft({ ...draft, level, tricks: level ? level + 6 : 0, doubled: 1 }); }}>{Array.from({ length: 8 }, (_, n) => <option key={n} value={n}>{n || 'Pass'}</option>)}</select></label>
-          <label className="field">合約花色<select disabled={!draft.level} value={draft.strain} onChange={e => setDraft({ ...draft, strain: e.target.value as ResultInput['strain'] })}>{['C','D','H','S','NT'].map((s,i) => <option key={s} value={s}>{['♣','♦','♥','♠','NT'][i]}</option>)}</select></label>
-          </>}
-          <label className="field">莊家<select disabled={!draft.level} value={draft.declarer} onChange={e => setDraft({ ...draft, declarer: e.target.value as ResultInput['declarer'] })}>{['N','E','S','W'].map(s => <option key={s}>{s}</option>)}</select></label>
-          {data.gameMode !== 'minibridge' && <>
-          <label className="field">賭倍<select disabled={!draft.level} value={draft.doubled} onChange={e => setDraft({ ...draft, doubled: Number(e.target.value) as 1|2|4 })}><option value={1}>無</option><option value={2}>x</option><option value={4}>xx</option></select></label>
-          </>}
-          <label className="field">實得墩數<select disabled={!draft.level} value={draft.tricks} onChange={e => setDraft({ ...draft, tricks: Number(e.target.value) })}>{Array.from({ length: 14 }, (_, n) => <option key={n} value={n}>{n}{draft.level ? `（${n - draft.level - 6 >= 0 ? '+' : ''}${n - draft.level - 6}）` : ''}</option>)}</select></label>
-          <label className="field">首引（選填，如 S2）<input maxLength={4} value={draft.lead} onChange={e => setDraft({ ...draft, lead: e.target.value.toUpperCase() })} /></label>
-        </div>
-        <div className="score-preview club-score-preview"><span>合約與得分</span><strong>{describeContract(draft)}</strong><div className="score-preview-value">{inputIsEW ? 'EW' : 'NS'} 原始分 <b>{board ? (inputIsEW ? -1 : 1) * contractScore(draft, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && <DeclarerWarning value={draft} actualHcp={board?.hcp} dealer={board?.dealer ?? 'N'} />}</div>
-        <div className="button-row"><button className="button primary" disabled={busy}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
+        {data.gameMode === 'minibridge' && <div className="form-grid"><HcpFields value={miniFieldsValue(draft)} onChange={value => setDraft(applyHcp(draft, value))} dealer={board?.dealer ?? 'N'} expected={board?.hcp} /><MiniContractFields value={miniFieldsValue(draft)} onChange={value => setDraft(applyMiniContract(draft, value))} /></div>}
+        <ContractEntry key={draft.board} value={draft.choice} onChange={choice => setDraft({ ...draft, choice })} showLevel={data.gameMode !== 'minibridge'} showStrain={data.gameMode !== 'minibridge'} showDoubled={data.gameMode !== 'minibridge'} />
+        <label className="field">首引（選填，如 S2）<input maxLength={4} value={draft.choice.lead} autoCapitalize="characters" autoCorrect="off" spellCheck={false} onChange={e => setDraft({ ...draft, choice: { ...draft.choice, lead: e.target.value.toUpperCase() } })} /></label>
+        <div className="score-preview club-score-preview" aria-live="polite"><span>合約與得分</span><strong>{scored ? describeContract(scored) : '—'}</strong><div className="score-preview-value">{inputIsEW ? 'EW' : 'NS'} 原始分 <b>{scored && board ? (inputIsEW ? -1 : 1) * contractScore(scored, board.vulnerability, data.gameMode === 'minibridge') : '—'}</b></div>{data.gameMode === 'minibridge' && scored && <DeclarerWarning value={scored} actualHcp={board?.hcp} dealer={board?.dealer ?? 'N'} />}</div>
+        <div className="button-row"><button className="button primary" disabled={busy || !savable}>儲存這副成績</button><button type="button" className="button subtle" onClick={() => setDraft(null)}>關閉</button></div>
       </form>}
       {data.assignment && data.role === 'shared' && active && !reviewing && <section className="panel club-section"><h3>交給對方確認</h3><p>請交給 <PairDisplayName name={roleName(data.roles?.confirmPair)} /> 核對。此步驟是共用裝置上的交接，不是獨立登入驗證。</p><button className="button primary" disabled={busy || missing > 0 || !!draft} onClick={() => setReviewing(data.reviewVersion)}>全部輸入完成，交給對方核對</button></section>}
       {data.assignment && (data.role === 'confirm' || data.role === 'shared' && !!reviewing) && <section className="panel club-section"><h3>本圈確認</h3><p>請核對上方全部成績。確認後本桌成績獲認可，雙方均無法再修改。</p>

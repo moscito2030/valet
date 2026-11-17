@@ -10,6 +10,7 @@
 - 操作：`--action-primary`、`--action-primary-hover`、`--action-secondary`、`--text-on-action`、`--focus-ring`。
 - 側欄：`--sidebar-*`。
 - 比賽語意：`--team-home`、`--team-away`、`--score-positive`、`--score-negative`、`--suit-red`。
+- 收分花色：`--entry-suit-red`、`--entry-suit-black`。傷眼睛的收分紅心／方塊用沉穩紅，不沿用手牌的純紅。
 - 開關圓點使用 `--switch-thumb`，不要因為目前都是白色就使用卡片背景變數。
 
 舊名稱 `--paper`、`--ink`、`--muted`、`--line`、`--accent`、`--forest`、`--white`、`--soft` 保留為相容別名。新增樣式優先使用上述用途名稱。

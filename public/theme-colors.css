@@ -17,6 +17,8 @@
   --team-home: #315e86;
   --team-away: #984850;
   --suit-red: #a3484c;
+  --entry-suit-red: var(--suit-red);
+  --entry-suit-black: var(--text-primary);
   --switch-off: #b6bfb8;
   --switch-thumb: #fff;
   --sidebar-text: #e9eee8;
@@ -69,6 +71,8 @@
   --team-home: #275d9c;
   --team-away: #b33645;
   --suit-red: #ff0000;
+  --entry-suit-red: #a3484c;
+  --entry-suit-black: var(--text-primary);
   --suit-S: #000000;
   --suit-H: #ff0000;
   --suit-D: #ff0000;

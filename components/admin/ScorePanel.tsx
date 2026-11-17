@@ -1,7 +1,16 @@
 import { MiniScoreReference } from '@/components/mini-score-reference';
-import type { ResultInput, Seat } from '@/lib/model';
-import { dealHcp } from '@/lib/recorded-hcp';
+import { ContractEntry } from '@/components/contract-entry';
+import {
+  applyHcp,
+  applyMiniContract,
+  asResult,
+  miniFieldsValue,
+  parsedResult,
+  storedContract,
+  type ScoreFormState,
+} from '@/lib/contract-choice';
 import { resultKey } from '@/lib/model';
+import { dealHcp } from '@/lib/recorded-hcp';
 import { participantNumber } from '@/lib/participant-number';
 import { contractScore } from '@/lib/scoring';
 import { roundLabel } from '@/lib/team-movement';
@@ -13,9 +22,7 @@ import {
   displayContract,
   number,
   resultText,
-  seatNames,
   signed,
-  suitSymbols,
   vulNames,
 } from '../scoreboard-shared';
 import { SplitContractEditor } from '../split-contract-editor';
@@ -25,51 +32,13 @@ type Props = {
   board: number;
   busy: boolean;
   event: AdminEvent;
-  input: {
-    assignmentId: string;
-    board: number;
-    level: number;
-    strain: 'C' | 'D' | 'H' | 'S' | 'NT';
-    doubled: 2 | 1 | 4;
-    declarer: 'S' | 'N' | 'E' | 'W';
-    tricks: number;
-    lead: string;
-    miniBridge?: boolean | undefined;
-    hcp?:
-      | {
-          N?: number | undefined;
-          E?: number | undefined;
-          S?: number | undefined;
-          W?: number | undefined;
-        }
-      | undefined;
-  };
+  input: ScoreFormState;
   reason: string;
   round: number;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
   setAssignment: React.Dispatch<React.SetStateAction<string>>;
   setBoard: React.Dispatch<React.SetStateAction<number>>;
-  setInput: React.Dispatch<
-    React.SetStateAction<{
-      assignmentId: string;
-      board: number;
-      level: number;
-      strain: 'C' | 'D' | 'H' | 'S' | 'NT';
-      doubled: 2 | 1 | 4;
-      declarer: 'S' | 'N' | 'E' | 'W';
-      tricks: number;
-      lead: string;
-      miniBridge?: boolean | undefined;
-      hcp?:
-        | {
-            N?: number | undefined;
-            E?: number | undefined;
-            S?: number | undefined;
-            W?: number | undefined;
-          }
-        | undefined;
-    }>
-  >;
+  setInput: React.Dispatch<React.SetStateAction<ScoreFormState>>;
   setReason: React.Dispatch<React.SetStateAction<string>>;
   setRound: React.Dispatch<React.SetStateAction<number>>;
 };
@@ -91,17 +60,21 @@ export function ScorePanel({
   const selected = event.assignments.find((a) => a.id === assignment),
     existing = event.results[resultKey(assignment, board)];
   const name = (id: string) => event.participants.find((p) => p.id === id)?.name ?? id;
+  const mini = event.gameMode === 'minibridge';
+  const form = { ...input, assignmentId: assignment, board, miniBridge: mini };
+  const fields = storedContract(form.choice, { passDefaults: form.passDefaults, miniBridge: mini });
+  const scored = fields && assignment ? asResult(fields, form) : null;
+  const savable = assignment ? parsedResult(form) : null;
+  const vulnerability = event.boards.find((b) => b.number === board)?.vulnerability ?? 'None';
 
   return (
     <>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          if (input.level < 0) return;
-          await save({
-            action: 'results',
-            results: [{ ...input, assignmentId: assignment, board }],
-          });
+          const result = parsedResult({ ...input, assignmentId: assignment, board, miniBridge: event.gameMode === 'minibridge' });
+          if (!result) return;
+          await save({ action: 'results', results: [result] });
         }}
       >
         <div className="form-grid">
@@ -224,120 +197,45 @@ export function ScorePanel({
               ))}
             </select>
           </label>
-          {event.gameMode === 'minibridge' ? (
-            <>
-              <HcpFields
-                value={input}
-                onChange={setInput}
-                dealer={event.boards.find((b) => b.number === board)?.dealer ?? 'N'}
-              />
-              <MiniContractFields value={input} onChange={setInput} />
-            </>
-          ) : (
-            <>
-              <label className="field">
-                線位
-                <select
-                  required
-                  value={input.level < 0 ? '' : input.level}
-                  onChange={(e) => {
-                    const level = Number(e.target.value);
-                    setInput({ ...input, level, tricks: level ? level + 6 : 0, doubled: 1 });
-                  }}
-                >
-                  <option value="" disabled>請選擇合約線位</option>
-                  {Array.from({ length: 8 }, (_, i) => (
-                    <option value={i} key={i}>
-                      {i || 'Pass out'}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                合約花色
-                <select
-                  disabled={input.level <= 0}
-                  value={input.strain}
-                  onChange={(e) =>
-                    setInput({ ...input, strain: e.target.value as ResultInput['strain'] })
-                  }
-                >
-                  {['C', 'D', 'H', 'S', 'NT'].map((s) => (
-                    <option value={s} key={s}>
-                      {suitSymbols[s]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                加倍
-                <select
-                  disabled={!input.level}
-                  value={input.doubled}
-                  onChange={(e) =>
-                    setInput({ ...input, doubled: Number(e.target.value) as 1 | 2 | 4 })
-                  }
-                >
-                  <option value={1}>未加倍</option>
-                  <option value={2}>X</option>
-                  <option value={4}>XX</option>
-                </select>
-              </label>
-            </>
-          )}
-          <label className="field">
-            莊家
-            <select
-              disabled={!input.level}
-              value={input.declarer}
-              onChange={(e) => setInput({ ...input, declarer: e.target.value as Seat })}
-            >
-              {(['N', 'E', 'S', 'W'] as Seat[]).map((s) => (
-                <option key={s} value={s}>
-                  {seatNames[s]} {s}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            實得墩數
-            <input
-              type="number"
-              min={0}
-              max={13}
-              required
-              disabled={!input.level}
-              value={input.tricks}
-              onChange={(e) => setInput({ ...input, tricks: Number(e.target.value) })}
-            />
-          </label>
-          <label className="field">
-            首攻（選填）
-            <input
-              maxLength={4}
-              value={input.lead}
-              placeholder="例如 SA"
-              onChange={(e) => setInput({ ...input, lead: e.target.value.toUpperCase() })}
-            />
-          </label>
-          <div className="score-preview">
-            {event.gameMode === 'minibridge' && <DeclarerWarning value={input} actualHcp={dealHcp(event.boards.find(b => b.number === board)?.deal)} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} />}
-            <span>NS 原始分</span>
-            <strong>
-              {input.level < 0 ? '—' : signed(
-                contractScore(
-                  input,
-                  event.boards.find((b) => b.number === board)?.vulnerability ?? 'None',
-                  event.gameMode === 'minibridge',
-                ),
-              )}
-            </strong>
-            <small>
-              {vulNames[event.boards.find((b) => b.number === board)?.vulnerability ?? 'None']}
-            </small>
-          </div>
         </div>
-        {event.gameMode === 'minibridge' && <MiniScoreReference value={input} />}
+        {mini && (
+          <>
+            <HcpFields
+              value={miniFieldsValue(form)}
+              onChange={(value) => setInput(applyHcp(form, value))}
+              dealer={event.boards.find((b) => b.number === board)?.dealer ?? 'N'}
+            />
+            <MiniContractFields value={miniFieldsValue(form)} onChange={(value) => setInput(applyMiniContract(form, value))} />
+          </>
+        )}
+        <ContractEntry
+          key={`${assignment}:${board}:${existing?.updatedAt ?? 'new'}`}
+          value={input.choice}
+          doubledLabel="加倍"
+          showLevel={!mini}
+          showStrain={!mini}
+          showDoubled={!mini}
+          onChange={(choice) => setInput({ ...input, choice })}
+        />
+        <label className="field">
+          首攻（選填）
+          <input
+            maxLength={4}
+            value={input.choice.lead}
+            placeholder="例如 SA"
+            onChange={(e) => {
+              const lead = e.target.value.toUpperCase();
+              setInput({ ...input, choice: { ...input.choice, lead } });
+            }}
+          />
+        </label>
+        <div className="score-preview" aria-live="polite">
+          {mini && scored && <DeclarerWarning value={scored} actualHcp={dealHcp(event.boards.find(b => b.number === board)?.deal)} dealer={event.boards.find(b => b.number === board)?.dealer ?? 'N'} />}
+          <span>NS 原始分</span>
+          <strong>{scored ? signed(contractScore(scored, vulnerability, mini)) : '—'}</strong>
+          <small>{vulNames[vulnerability]}</small>
+        </div>
+        {mini && <MiniScoreReference value={scored} />}
         <label className="field">
           {existing ? '更正原因（選填）' : '紀錄說明（選填）'}
           <input maxLength={200} value={reason} onChange={(e) => setReason(e.target.value)} />
@@ -352,7 +250,7 @@ export function ScorePanel({
           <button
             className="button subtle"
             disabled={
-              busy || input.level < 0 ||
+              busy || !savable ||
               event.status === 'finished' ||
               !!existing?.split ||
               existing?.status === 'cancelled'
