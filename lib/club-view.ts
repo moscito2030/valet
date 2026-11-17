@@ -125,3 +125,10 @@ export function clubView(event: BridgeEvent, pair: string) {
   };
 }
 export type ClubView = ReturnType<typeof clubView>;
+
+export function guideCardNote(round: number, phase?: 'playing' | 'break') {
+  if (round < 1) return '比賽尚未開始，請就座並確認對手與牌號是否正確';
+  return phase === 'break'
+    ? '本圈已結束，請移動並確認對手與牌號是否正確'
+    : '本圈尚未結束，請等待裁判指示移動';
+}

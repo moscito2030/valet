@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEvent, applyMutation, makeBoard } from '../lib/events';
 import { project } from '../lib/scoring';
-import { audienceEvent, clubView } from '../lib/club-view';
+import { audienceEvent, clubView, guideCardNote } from '../lib/club-view';
 import { clubRoles } from '../lib/club-confirmation';
 import type { Mutation, StoredEvent } from '../lib/model';
 function setup(count = 4) {
@@ -217,6 +217,26 @@ test('guide card appears for both sides after acceptance and follows actual next
     assert.equal('deal' in guide,false);
     assert.equal('results' in guide,false);
   }
+});
+
+test('guide card note stays pre-start until a round has actually ended', () => {
+  assert.equal(guideCardNote(0, 'break'), '比賽尚未開始，請就座並確認對手與牌號是否正確');
+  assert.equal(guideCardNote(0, 'playing'), '比賽尚未開始，請就座並確認對手與牌號是否正確');
+  assert.equal(guideCardNote(0), '比賽尚未開始，請就座並確認對手與牌號是否正確');
+  assert.equal(guideCardNote(1, 'break'), '本圈已結束，請移動並確認對手與牌號是否正確');
+  assert.equal(guideCardNote(2, 'playing'), '本圈尚未結束，請等待裁判指示移動');
+  const s = setup(5), e = s.state.event;
+  e.currentRound = 0;
+  e.roundPhase = 'break';
+  const seated = e.assignments.find((a) => a.round === 1)!;
+  const view = clubView(e, seated.ns);
+  assert.equal(view.round, 0);
+  assert.equal(view.phase, 'break');
+  assert.equal(view.guide?.kind, 'table');
+  assert.equal(guideCardNote(view.round, view.phase), '比賽尚未開始，請就座並確認對手與牌號是否正確');
+  e.currentRound = 1;
+  const duringBreak = clubView(e, seated.ns);
+  assert.equal(guideCardNote(duringBreak.round, duringBreak.phase), '本圈已結束，請移動並確認對手與牌號是否正確');
 });
 
 test('guide handles breaks, first round, bye, last round and absent schedule', () => {
