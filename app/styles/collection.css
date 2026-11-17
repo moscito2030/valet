@@ -206,7 +206,7 @@
 .contract-range { color: var(--text-primary); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; white-space: nowrap; }
 .contract-held { color: var(--text-primary); }
 .contract-level-set { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.contract-chip-row, .contract-trick-values { display: grid; gap: 6px; }
+.contract-chip-row { display: grid; gap: 6px; }
 .contract-chip-row.levels { grid-template-columns: repeat(7, minmax(44px, 1fr)); gap: 4px; }
 .contract-chip-row.suits { grid-template-columns: repeat(5, minmax(44px, 1fr)); }
 .contract-chip-row.suits .contract-chip { font-size: 22px; }
@@ -279,11 +279,21 @@
 }
 .contract-trick-row {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 3px;
   min-width: 0;
+  container: trick-row / inline-size;
 }
-.contract-trick-values { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }
+.contract-trick-row[data-pager-start="true"] { grid-template-columns: 44px minmax(0, 1fr); }
+.contract-trick-row[data-pager-end="true"] { grid-template-columns: minmax(0, 1fr) 44px; }
+.contract-trick-row[data-pager-start="true"][data-pager-end="true"] { grid-template-columns: 44px minmax(0, 1fr) 44px; }
+.contract-trick-values { display: flex; justify-content: center; gap: 3px; min-width: 0; }
+.contract-trick-row[data-pager-start="true"][data-pager-end="false"] .contract-trick-values { justify-content: flex-start; }
+.contract-trick-row[data-pager-start="false"][data-pager-end="true"] .contract-trick-values { justify-content: flex-end; }
+.contract-trick-values > .contract-chip {
+  flex: 0 0 calc((100cqw - 2 * 44px - 6 * 3px) / 5);
+  width: calc((100cqw - 2 * 44px - 6 * 3px) / 5);
+}
 .contract-pager { width: 44px; min-width: 44px; padding: 0; color: var(--text-primary); font-size: 22px; }
 #club-score-editor.panel { overflow: visible; }
 #club-score-editor .button-row .button { min-height: 48px; padding: 12px 16px; font-size: 16px; }

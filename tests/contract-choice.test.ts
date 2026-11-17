@@ -92,4 +92,13 @@ test('trick pages stay centred on contract and stop at 0 and 13 tricks', () => {
   assert.deepEqual(trickRange(4, 0, 13), { window: '−2…+2', held: '+3' });
   assert.deepEqual(trickRange(4, 1, 13), { window: '+3', held: null });
   assert.deepEqual(trickRange(null, 0, null), { window: '', held: null });
+  assert.deepEqual(trickRange(7, 0, null), { window: '−2…=', held: null });
+  assert.deepEqual(possibleDeltas(7, -3), [-13]);
+  assert.deepEqual(trickRange(7, -3, 0), { window: '−13', held: null });
+  assert.equal(canShiftTricks(7, -3, -1), false);
+  assert.deepEqual(possibleDeltas(1, 0), [-2, -1, 0, 1, 2]);
+  assert.deepEqual(trickRange(1, 0, null), { window: '−2…+2', held: null });
+  assert.deepEqual(possibleDeltas(1, 1), [3, 4, 5, 6]);
+  assert.deepEqual(trickRange(1, 1, null), { window: '+3…+6', held: null });
+  assert.deepEqual(trickRange(1, 1, 7), { window: '+3…+6', held: '=' });
 });
