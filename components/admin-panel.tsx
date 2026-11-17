@@ -1,5 +1,6 @@
 'use client';
-import type { BridgeEvent, ResultInput } from '@/lib/model';
+import type { BridgeEvent } from '@/lib/model';
+import { emptyScoreForm, scoreFormFromResult, type ScoreFormState } from '@/lib/contract-choice';
 import { resultKey } from '@/lib/model';
 import { useCallback, useEffect, useState } from 'react';
 import { AuditPanel } from './admin/AuditPanel';
@@ -28,16 +29,7 @@ export function AdminPanel({
     [board, setBoard] = useState(1),
     [round, setRound] = useState(1),
     [reason, setReason] = useState('');
-  const [input, setInput] = useState<ResultInput>({
-    assignmentId: '',
-    board: 1,
-    level: -1,
-    strain: 'NT',
-    declarer: 'N',
-    doubled: 1,
-    tricks: 0,
-    lead: '',
-  });
+  const [input, setInput] = useState<ScoreFormState>(emptyScoreForm('', 1));
   const [importType, setImportType] = useState('results'),
     [importReason, setImportReason] = useState(''),
     [text, setText] = useState(''),
@@ -68,29 +60,8 @@ export function AdminPanel({
     const r = event?.results[resultKey(assignment, board)];
     setInput(
       r && r.status !== 'cancelled' && r.status !== 'average'
-        ? {
-            assignmentId: r.assignmentId,
-            board: r.board,
-            level: r.level,
-            miniBridge: r.miniBridge,
-            hcp: r.hcp,
-            strain: r.strain,
-            declarer: r.declarer,
-            doubled: r.doubled,
-            tricks: r.tricks,
-            lead: r.lead,
-          }
-        : {
-            assignmentId: assignment,
-            board,
-            level: -1,
-            miniBridge: event?.gameMode === 'minibridge',
-            strain: 'NT',
-            declarer: 'N',
-            doubled: 1,
-            tricks: 0,
-            lead: '',
-          },
+        ? { ...scoreFormFromResult(r), miniBridge: event?.gameMode === 'minibridge' }
+        : emptyScoreForm(assignment, board, event?.gameMode === 'minibridge'),
     );
     setReason('');
   }, [assignment, board, event?.revision]);
