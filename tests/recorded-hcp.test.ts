@@ -33,6 +33,8 @@ test('HCP persists per result, roundtrips CSV, invalidates confirmation and stay
   assert.notEqual(clubReviewVersion(e,a),version);
   assert.deepEqual(audienceEvent(e).results,{});
   e.club.finalized=[1];
+  assert.deepEqual(audienceEvent(e).results,{});
+  for (const board of e.boards) board.published = true;
   assert.deepEqual(Object.values(audienceEvent(e).results)[0].hcp,r.hcp);
   assert.throws(()=>parseResultsCsv('assignmentId,board,level,strain,doubled,declarer,tricks,hcpN,hcpE,hcpS,hcpW\na,1,1,NT,1,N,7,1,1,1,1'));
 });

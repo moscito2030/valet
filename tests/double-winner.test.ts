@@ -76,6 +76,7 @@ test('3 and 4 table MiniBridge club matches finalize and rank CrossIMP independe
         expected.set(a.ew, expected.get(a.ew)! - cross);
       }
     }
+    for (const board of state.event.boards) board.published = true;
     const publicEvent = audienceEvent(state.event);
     assert.ok(publicEvent.participants.every(p => p.group));
     for (const group of ['NS', 'EW']) {

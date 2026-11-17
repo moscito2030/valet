@@ -179,6 +179,8 @@ test('publication panel keeps director-only identity and deletion controls out o
   assert.match(render(true, 'information'), /儲存賽段資訊/);
   assert.doesNotMatch(render(true, 'information'), /依牌組公開牌型|永久刪除賽段/);
   assert.match(render(true, 'boards'), /依牌組公開牌型/);
+  assert.match(render(true, 'boards'), /各桌成績/);
+  assert.doesNotMatch(render(true, 'boards'), /排名已隨結算/);
   assert.match(render(true, 'boards'), /永久刪除賽段/);
   assert.doesNotMatch(render(true, 'boards'), /儲存賽段資訊|儲存給獎與賽程說明|結束賽事/);
   assert.doesNotMatch(render(false, 'boards'), /依牌組公開牌型|永久刪除賽段/);
@@ -236,6 +238,7 @@ test('finish-review button submits a valid audited command without a score corre
     };
   }
   raw.status = 'review';
+  for (const board of raw.boards) board.published = true;
   const state: StoredEvent = { event: raw, projection: project(raw), requests: [] };
   let updated = state;
   const panel = RoundControlPanel({
@@ -297,6 +300,7 @@ test('team perspective swaps to opponent and back without changing round', async
 test('contract Butler display is opt-in and does not remove raw scores or summaries', async () => {
   const raw = fixture();
   for (const a of raw.assignments) for (const b of a.boards) raw.results[`${a.id}:${b}`] = {assignmentId:a.id,board:b,level:3,strain:'NT',declarer:'N',doubled:1,tricks:9,lead:'',nsScore:400,updatedAt:raw.updatedAt};
+  for (const board of raw.boards) board.published = true;
   const event = audienceEvent(raw, project(raw));
   const props = {event,person:event.participants[0].id,playerRound:1,playerSort:'round' as const,setBoard:noop,setPerson:noop,setPlayerRound:noop,setPlayerSort:noop,setRound:noop,setSelectedResult:noop,setTab:noop,setTravellerSide:noop};
   const off = renderToStaticMarkup(createElement(PlayersView, props));

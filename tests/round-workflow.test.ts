@@ -116,10 +116,18 @@ test('director confirms last table once, publishes cancelled outcomes, pauses, a
     );
     assert.deepEqual(s.state.event.club!.tokens, tokens);
     assert.throws(() => s.start(round), /已結算|覆核/);
-    assert.equal(Object.keys(audienceEvent(s.state.event).results).length, round * 4);
+    const settled = audienceEvent(s.state.event);
+    assert.equal(Object.keys(settled.results).length, 0);
+    assert.ok(settled.projection.standings.every((row) => row.played === 0));
   }
   assert.equal(s.state.event.status, 'review');
   assert.equal(clubView(s.state.event, s.state.event.participants[0].id).finalized, true);
+  for (const board of [1, 3, 5])
+    s.apply({ action: 'board-publication', board, published: true });
+  const released = audienceEvent(s.state.event);
+  assert.equal(Object.keys(released.results).length, 12);
+  assert.ok(Object.values(released.results).some((result) => result.status === 'cancelled'));
+  assert.ok(released.projection.standings.some((row) => row.played > 0));
 });
 
 test('force settle and advance is atomic; an unready next round leaves all state untouched', () => {
