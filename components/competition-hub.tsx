@@ -10,7 +10,7 @@ import { EventCalendar } from './event-calendar';
 import { ArrowLeft, ArrowRight, CalendarDays, Copy, Eye, EyeOff, MapPin, Plus, Trophy, Users } from 'lucide-react';
 import { CreateCompetitionDialog, CreateDialog, Modal } from './event-dialogs';
 import { dateRangeLabel, includesDate } from '@/lib/date-range';
-import type { Competition } from '@/lib/competitions';
+import { competitionStatusLabel, type Competition } from '@/lib/competitions';
 
 async function request<T>(url: string, body?: object, method = 'POST'): Promise<T> {
   const r = await fetch(url, body ? { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
@@ -138,7 +138,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
             <span className={`event-icon ${c.stages[0]?.kind ?? ''}`} aria-hidden="true"><Users size={23} /></span>
             <div className="competition-card-copy"><h2>{[c.prefix, c.name].filter(Boolean).join(' ')}</h2><p><span>{`${c.stages.length} 個賽段`}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
-            <span className="competition-status">{c.archived ? '已封存 · 僅裁判可見' : !c.stages.length ? '尚未安排賽段' : c.stages.every(s => s.status === 'finished') ? '已結束' : c.stages.every(s => s.status === 'finished' || s.status === 'review') ? '成績覆核中' : c.stages.every(s => !s.rounds) ? '待設定賽程' : '進行中'}</span>
+            <span className="competition-status">{c.statusLabel ?? competitionStatusLabel(c, c.stages)}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}
