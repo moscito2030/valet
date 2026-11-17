@@ -3,7 +3,7 @@ import { ScoreValue } from '../score-value';
 import { KnockoutView } from '../knockout-view';
 import { WinAwards } from './WinAwards';
 import { awardPlacesFor } from '@/lib/awards';
-import type { PublicEvent } from '@/lib/model';
+import type { PublicEvent, Standing } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { Search, Star, Trophy } from 'lucide-react';
 import { number, Tab } from '../scoreboard-shared';
@@ -168,7 +168,7 @@ export function StandingsView({
                   </td>
                   <td>
                     <span className="mono">
-                      {s.played} <span className="muted">/ {s.total}</span>
+                      {receivedCount(event, s)} <span className="muted">/ {s.total}</span>
                     </span>
                   </td>
                   <td className="big-score">
@@ -238,4 +238,11 @@ export function StandingsView({
       </div>
     </section>
   );
+}
+
+// Receipt count from stored results, including an unconfirmed club entry.
+// Missing on an older payload, so published `played` remains the fallback.
+function receivedCount(event: PublicEvent, standing: Pick<Standing, 'id' | 'played'>) {
+  if (!event.receivedByParticipant) return standing.played;
+  return event.receivedByParticipant[standing.id] ?? 0;
 }

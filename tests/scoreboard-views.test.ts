@@ -388,6 +388,43 @@ test('round table shows a club submission before east-west confirmation publishe
   const html = renderToStaticMarkup(createElement(RoundsView, props));
   assert.equal(html.match(/1 \/ 2/g)?.length, 1);
   assert.equal(html.match(/0 \/ 2/g)?.length, 1);
+  assert.equal(event.receivedByParticipant?.[table.ns], 1);
+  assert.equal(event.receivedByParticipant?.[table.ew], 1);
+  assert.ok(event.projection.standings.every((row) => row.played === 0 && row.score === 0 && row.secondary === 0));
+  const standings = renderToStaticMarkup(createElement(StandingsView, {
+    event,
+    query: '',
+    id: event.id,
+    follow: '',
+    setPerson: noop,
+    setQuery: noop,
+    setTab: noop,
+    toggleFollow: noop,
+  }));
+  assert.equal(standings.match(/mono">1 <span class="muted">\/ 2<\/span>/g)?.length, 2);
+  assert.equal(standings.match(/mono">0 <span class="muted">\/ 2<\/span>/g)?.length, 2);
+  assert.equal(standings.includes('DK'), false);
+  const publishedCount = {
+    ...event,
+    receivedByParticipant: undefined,
+    projection: {
+      ...event.projection,
+      standings: event.projection.standings.map((row) =>
+        row.id === table.ns || row.id === table.ew ? { ...row, played: 1 } : row,
+      ),
+    },
+  };
+  const standingsFallback = renderToStaticMarkup(createElement(StandingsView, {
+    event: publishedCount,
+    query: '',
+    id: event.id,
+    follow: '',
+    setPerson: noop,
+    setQuery: noop,
+    setTab: noop,
+    toggleFollow: noop,
+  }));
+  assert.equal(standingsFallback.match(/mono">1 <span class="muted">\/ 2<\/span>/g)?.length, 2);
   const cached = { ...event, enteredBoards: undefined, results: state.event.results };
   const fallback = renderToStaticMarkup(createElement(RoundsView, { ...props, event: cached }));
   assert.equal(fallback.match(/1 \/ 2/g)?.length, 1);

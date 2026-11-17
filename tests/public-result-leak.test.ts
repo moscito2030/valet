@@ -96,6 +96,8 @@ test('director scoring hides a board until every scheduled table has a result', 
   const hidden = audienceEvent(event, stored);
   assert.equal(hidden.results[resultKey(users[0].id, replayed)], undefined);
   assert.equal(hidden.enteredBoards[users[0].id], 1);
+  assert.equal(hidden.receivedByParticipant[users[0].ns], 1);
+  assert.equal(hidden.receivedByParticipant[users[0].ew], 1);
   assert.equal(JSON.stringify(hidden).includes('"lead":"HK"'), false);
   assert.ok(hidden.projection.standings.every((row) => row.played === 0));
   assert.notDeepEqual(hidden.projection.standings, stored.standings);

@@ -128,7 +128,16 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     // Receipt counts use every stored result. Club scores stay out of `results`
     // until the round is settled, so the rounds table cannot count those rows.
     enteredBoards: enteredBoardCounts(event),
+    // Same stored results, summed the way standings count 完成. Only the numbers
+    // are public; the projection below still scores the filtered results.
+    receivedByParticipant: receivedByParticipant(event),
     collectionProgress: roundProgress(event),
     projection: allResultsVisible && projection && !event.knockout ? projection : project({ ...event, results }),
   };
+}
+
+function receivedByParticipant(event: BridgeEvent) {
+  const counts: Record<string, number> = {};
+  for (const row of project(event).standings) if (row.played) counts[row.id] = row.played;
+  return counts;
 }

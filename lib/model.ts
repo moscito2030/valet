@@ -729,6 +729,9 @@ export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards'> & {
   // Boards with a stored result, keyed by assignment. Includes unconfirmed club
   // entries. Values are counts only; contracts stay in `results`.
   enteredBoards?: Record<string, number>;
+  // Those stored boards totaled per participant, using the standings 完成 rule.
+  // Counts only. Ranking and scores stay on the published projection.
+  receivedByParticipant?: Record<string, number>;
   collectionProgress?: ReturnType<typeof import('./round-progress').roundProgress>;
   boards: Omit<Board, 'deal'>[] | Board[];
   projection: Projection;
