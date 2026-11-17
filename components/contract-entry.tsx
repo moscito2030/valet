@@ -75,31 +75,36 @@ function ChipRow({
   const labelId = useId();
   const selectedIndex = options.findIndex((option) => option.id === selected && !option.disabled);
   const firstEnabled = options.findIndex((option) => !disabled && !option.disabled);
+  const separatePass = className === 'levels';
+  const pass = separatePass ? options.find((option) => option.id === '0') : undefined;
+  const rowOptions = pass ? options.filter((option) => option.id !== '0') : options;
+  function chip(option: (typeof options)[number], index: number) {
+    const optionDisabled = !!disabled || !!option.disabled;
+    const checked = option.id === selected && !option.disabled;
+    const tabIndex = optionDisabled ? -1 : selectedIndex >= 0 ? (index === selectedIndex ? 0 : -1) : index === firstEnabled ? 0 : -1;
+    return (
+      <button
+        key={option.id}
+        type="button"
+        role="radio"
+        className={option.id === '0' ? 'contract-chip contract-pass' : 'contract-chip'}
+        aria-checked={checked}
+        aria-label={option.label}
+        disabled={optionDisabled}
+        tabIndex={tabIndex}
+        data-suit={option.suit}
+        onClick={() => onSelect(option.id)}
+      >
+        <span aria-hidden="true">{option.text}</span>
+      </button>
+    );
+  }
   return (
     <div className={`contract-group${disabled ? ' is-inactive' : ''}`}>
       <div className="contract-group-label" id={labelId}>{label}</div>
-      <div role="radiogroup" aria-labelledby={labelId} className={`contract-chip-row ${className}`} onKeyDown={moveRadio}>
-        {options.map((option, index) => {
-          const optionDisabled = !!disabled || !!option.disabled;
-          const checked = option.id === selected && !option.disabled;
-          const tabIndex = optionDisabled ? -1 : selectedIndex >= 0 ? (index === selectedIndex ? 0 : -1) : index === firstEnabled ? 0 : -1;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              className="contract-chip"
-              aria-checked={checked}
-              aria-label={option.label}
-              disabled={optionDisabled}
-              tabIndex={tabIndex}
-              data-suit={option.suit}
-              onClick={() => onSelect(option.id)}
-            >
-              <span aria-hidden="true">{option.text}</span>
-            </button>
-          );
-        })}
+      <div role="radiogroup" aria-labelledby={labelId} className={separatePass ? 'contract-level-set' : `contract-chip-row ${className}`} onKeyDown={moveRadio}>
+        {pass && chip(pass, options.findIndex((option) => option.id === pass.id))}
+        {separatePass ? <div className="contract-chip-row levels">{rowOptions.map((option) => chip(option, options.findIndex((item) => item.id === option.id)))}</div> : rowOptions.map((option, index) => chip(option, index))}
       </div>
     </div>
   );
