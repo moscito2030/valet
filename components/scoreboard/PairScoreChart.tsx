@@ -40,7 +40,20 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const y = (v: number) => 20 + (top - v) / (top - bottom) * 180;
   const left = 42, right = width - 64;
   const step = (right - left) / Math.max(1, points.length);
-  const labelEvery = Math.max(1, Math.ceil(28 / step));
+  const roundGroups: { round: number; start: number; end: number }[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const current = roundGroups.at(-1);
+    if (current && current.round === points[i].round) current.end = i;
+    else roundGroups.push({ round: points[i].round, start: i, end: i });
+  }
+  const roundCenter = (group: { start: number; end: number }) => left + step * ((group.start + group.end) / 2 + .5);
+  const roundLabels: { round: number; x: number }[] = [];
+  for (const group of roundGroups) {
+    const x = roundCenter(group);
+    if (!roundLabels.length || x - roundLabels.at(-1)!.x >= 16) roundLabels.push({ round: group.round, x });
+  }
+  const activeIndex = active ? points.indexOf(active) : -1;
+  const activeGroup = roundGroups.find(group => activeIndex >= group.start && activeIndex <= group.end);
   const volumes = points.map(p => boardButlerVolume(event, p.board));
   const volumeMax = Math.max(10, Math.ceil(Math.max(0, ...volumes.map(v => v.value ?? 0)) / 10) * 10);
   const volumeY = (value: number) => 205 - value / volumeMax * 80;
@@ -76,6 +89,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
             <text x={left - 8} y={volumeY(tick) + 4} textAnchor="end" className="pair-chart-label">{tick}</text>
           </g>)}
           <line x1={left} x2={left} y1="14" y2="205" className="pair-chart-axis" />
+          {roundGroups.slice(1).map(group => <line key={group.start} x1={left + step * group.start} x2={left + step * group.start} y1="14" y2="205" className="pair-chart-round" />)}
           {volumes.map((volume, i) => volume.value !== null && <rect key={points[i].board} x={left + step * (i + .15)} y={volumeY(volume.value)} width={step * .7} height={205 - volumeY(volume.value)} className={`pair-chart-volume${highlighted === points[i].board ? ' highlighted' : ''}`} />)}
           {points.map((p, i) => {
             const x = left + step * (i + .5);
@@ -95,19 +109,19 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
                   width={step} height={Math.max(2, Math.abs(y(p.open) - y(p.close)))}
                   className={`pair-chart-body${p.provisional ? ' provisional' : ''}`} />
               </> : <text x={x} y={y(p.open)} textAnchor="middle" className="pair-chart-label">·</text>}
-              {i % labelEvery === 0 && <text x={x} y="224" textAnchor="middle" className="pair-chart-label">{p.board}</text>}
             </g>;
           })}
-          {highlighted !== null && active && activeX !== null && <g className={`pair-chart-crosshair ${tone}`} aria-hidden="true">
+          {roundLabels.map(group => <text key={group.x} x={group.x} y="224" textAnchor="middle" className="pair-chart-label pair-chart-round-label">{group.round}</text>)}
+          {highlighted !== null && active && activeX !== null && activeGroup && <g className={`pair-chart-crosshair ${tone}`} aria-hidden="true">
             <line x1={activeX} x2={activeX} y1="14" y2="205" />
             {active.close !== null && <>
               <line x1={left} x2={right} y1={y(active.close)} y2={y(active.close)} />
               <circle cx={activeX} cy={y(active.close)} r="3" />
             </>}
-            <rect x={Math.max(left, Math.min(right - 30, activeX - 15))} y="210" width="30" height="21" rx="4" />
-            <text x={Math.max(left + 15, Math.min(right - 15, activeX))} y="224" textAnchor="middle">{active.board}</text>
+            <rect x={Math.max(left, Math.min(right - 30, roundCenter(activeGroup) - 15))} y="210" width="30" height="21" rx="4" />
+            <text x={Math.max(left + 15, Math.min(right - 15, roundCenter(activeGroup)))} y="224" textAnchor="middle">{active.round}</text>
           </g>}
-          <text x={right + 12} y="224" className="pair-chart-label">牌號</text>
+          <text x={right + 12} y="224" className="pair-chart-label">圈數</text>
         </svg>
       </div>
       <div className="pair-chart-footer">
