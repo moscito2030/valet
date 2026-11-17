@@ -47,7 +47,6 @@ export function SplitContractEditor({
             <ContractEntry
               value={form.choice}
               disabled={disabled}
-              doubledLabel="加倍"
               showLevel={!miniBridge}
               showStrain={!miniBridge}
               showDoubled={!miniBridge}

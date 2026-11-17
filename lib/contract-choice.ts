@@ -116,7 +116,6 @@ export function storedContract(
     choice.level < 1 ||
     choice.level > 7 ||
     !choice.strain ||
-    !choice.doubled ||
     !choice.declarer ||
     choice.tricks == null ||
     choice.tricks < 0 ||
@@ -126,7 +125,7 @@ export function storedContract(
   return {
     level: choice.level,
     strain: choice.strain,
-    doubled: choice.doubled,
+    doubled: choice.doubled ?? 1,
     declarer: choice.declarer,
     tricks: choice.tricks,
     lead: choice.lead,

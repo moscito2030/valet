@@ -211,7 +211,9 @@
 .contract-chip-row.suits { grid-template-columns: repeat(5, minmax(44px, 1fr)); }
 .contract-chip-row.suits .contract-chip { font-size: 22px; }
 .contract-chip-row.seats { grid-template-columns: repeat(4, minmax(44px, 1fr)); }
-.contract-chip-row.doubles { grid-template-columns: repeat(3, minmax(44px, 1fr)); }
+.contract-chip-row.doubles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.contract-chip-row.doubles .contract-chip { padding: 0 8px; }
+.contract-chip-row.doubles .contract-chip > span { height: auto; white-space: nowrap; transform: none; }
 .contract-chip {
   display: grid;
   place-items: center;
@@ -258,7 +260,8 @@
 .contract-chip[data-suit="S"],
 .contract-chip[data-suit="C"],
 .contract-chip[data-suit="NT"] { color: var(--entry-suit-black); }
-.contract-chip[aria-checked="true"] {
+.contract-chip[aria-checked="true"],
+.contract-chip[aria-pressed="true"] {
   border-color: var(--action-primary);
   background: color-mix(in srgb, var(--action-primary) 14%, var(--surface-bg));
   color: var(--action-primary);
@@ -272,8 +275,9 @@
 .contract-chip[aria-checked="true"][data-suit="NT"] { color: var(--entry-suit-black); }
 .contract-chip:focus-visible { outline-offset: 2px; }
 @media (hover: hover) {
-  .contract-chip:hover:not(:disabled):not([aria-checked="true"]) { background: var(--surface-control-hover); }
-  .contract-chip[aria-checked="true"]:hover:not(:disabled) {
+  .contract-chip:hover:not(:disabled):not([aria-checked="true"]):not([aria-pressed="true"]) { background: var(--surface-control-hover); }
+  .contract-chip[aria-checked="true"]:hover:not(:disabled),
+  .contract-chip[aria-pressed="true"]:hover:not(:disabled) {
     background: color-mix(in srgb, var(--action-primary) 20%, var(--surface-bg));
   }
 }

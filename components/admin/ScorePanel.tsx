@@ -211,7 +211,6 @@ export function ScorePanel({
         <ContractEntry
           key={`${assignment}:${board}:${existing?.updatedAt ?? 'new'}`}
           value={input.choice}
-          doubledLabel="加倍"
           showLevel={!mini}
           showStrain={!mini}
           showDoubled={!mini}
