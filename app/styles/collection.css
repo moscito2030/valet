@@ -258,18 +258,24 @@
 .contract-chip[data-suit="S"],
 .contract-chip[data-suit="C"],
 .contract-chip[data-suit="NT"] { color: var(--entry-suit-black); }
-.contract-chip[aria-checked="true"],
-.contract-chip[aria-checked="true"][data-suit] {
+.contract-chip[aria-checked="true"] {
   border-color: var(--action-primary);
-  background: var(--action-primary);
-  color: var(--text-on-action);
+  background: color-mix(in srgb, var(--action-primary) 14%, var(--surface-bg));
+  color: var(--action-primary);
   box-shadow: none;
   font-weight: 600;
 }
+.contract-chip[aria-checked="true"][data-suit="H"],
+.contract-chip[aria-checked="true"][data-suit="D"] { color: var(--entry-suit-red); }
+.contract-chip[aria-checked="true"][data-suit="S"],
+.contract-chip[aria-checked="true"][data-suit="C"],
+.contract-chip[aria-checked="true"][data-suit="NT"] { color: var(--entry-suit-black); }
 .contract-chip:focus-visible { outline-offset: 2px; }
 @media (hover: hover) {
   .contract-chip:hover:not(:disabled):not([aria-checked="true"]) { background: var(--surface-control-hover); }
-  .contract-chip[aria-checked="true"]:hover:not(:disabled) { background: var(--action-primary-hover); border-color: var(--action-primary-hover); }
+  .contract-chip[aria-checked="true"]:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--action-primary) 20%, var(--surface-bg));
+  }
 }
 .contract-trick-row {
   display: grid;
@@ -283,16 +289,18 @@
 #club-score-editor .button-row .button { min-height: 48px; padding: 12px 16px; font-size: 16px; }
 #club-score-editor .button-row .button.primary { flex: 1; }
 #club-score-editor .button.primary:not(:disabled) {
-  background: var(--action-primary);
+  background: color-mix(in srgb, var(--action-primary) 14%, var(--surface-bg));
   border-color: var(--action-primary);
-  color: var(--text-on-action);
+  color: var(--action-primary);
   opacity: 1;
   font-weight: 600;
   transition: none;
 }
-#club-score-editor .button.primary:not(:disabled):hover { background: var(--action-primary-hover); border-color: var(--action-primary-hover); }
+#club-score-editor .button.primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--action-primary) 20%, var(--surface-bg));
+}
 #club-score-editor .button.primary:disabled {
-  background: var(--surface-soft);
+  background: var(--surface-bg);
   border-color: var(--border-control);
   color: var(--text-muted);
   opacity: 1;
