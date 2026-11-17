@@ -15,12 +15,18 @@ export async function restoreLegacy(sql: Sql, options: { dryRun: boolean }) {
   const threads = await sql`SELECT key, revision, closed FROM bridge_discussion_threads ORDER BY key`;
   const comments = await sql`SELECT thread_key, ordinal, document FROM bridge_discussion_comments ORDER BY thread_key, ordinal`;
   if (options.dryRun) return format(stages.length, competitions.length, threads.length, true);
+  const keepIds = [
+    ...stages.map((stage) => stage.stored.event.id),
+    ...competitions.map((competition) => competitionKey(competition.competition.id)),
+  ];
+  const threadKeys = threads.map((thread) => String(thread.key));
   const cap = captureSql();
   for (const stage of stages)
     cap.sql`INSERT INTO bridge_events (id, revision, document, updated_at)
       VALUES (${stage.stored.event.id}, ${stage.stored.event.revision}, ${JSON.stringify(stage.stored)}::jsonb, now())
       ON CONFLICT (id) DO UPDATE SET revision = EXCLUDED.revision, document = EXCLUDED.document, updated_at = now()`;
   for (const competition of competitions) queueCompetitionDocument(cap.sql, competition);
+  cap.sql`DELETE FROM bridge_events WHERE id NOT IN (SELECT value FROM jsonb_array_elements_text(${JSON.stringify(keepIds)}::jsonb))`;
   for (const thread of threads) {
     const threadComments = comments
       .filter((row) => row.thread_key === thread.key)
@@ -33,6 +39,9 @@ export async function restoreLegacy(sql: Sql, options: { dryRun: boolean }) {
       VALUES (${thread.key}, ${thread.revision}, ${JSON.stringify(document)}::jsonb)
       ON CONFLICT (id) DO UPDATE SET revision = EXCLUDED.revision, document = EXCLUDED.document`;
   }
+  cap.sql`DELETE FROM bridge_discussions
+    WHERE id LIKE 'board:%'
+      AND id NOT IN (SELECT value FROM jsonb_array_elements_text(${JSON.stringify(threadKeys.length ? threadKeys : ['__none__'])}::jsonb))`;
   cap.sql`UPDATE bridge_storage_switch
     SET mode = 'legacy', legacy_watermark = NULL, verified_at = NULL, note = 'restored from normalized rows'
     WHERE id = 1 AND mode = 'normalized'`;

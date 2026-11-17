@@ -56,6 +56,7 @@ export function commitDocumentMutation(
   stored: StoredEvent,
   command: Mutation,
   writes?: ResultWrites,
+  durableRequests = false,
 ): { stored: StoredEvent; writes: ResultWrites } {
   const known = seedResultWrites(stored.event, writes);
   if (stored.requests.includes(command.requestId)) return { stored, writes: known };
@@ -71,10 +72,11 @@ export function commitDocumentMutation(
     const next = applyMutation(
       stored,
       command.revision === revision ? command : { ...command, revision },
+      durableRequests,
     );
     return { stored: next, writes: trackResultWrites(stored, next, known) };
   }
-  const next = applyMutation(stored, command);
+  const next = applyMutation(stored, command, durableRequests);
   return { stored: next, writes: trackResultWrites(stored, next, known) };
 }
 

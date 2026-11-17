@@ -22,7 +22,8 @@ const splitMessage =
 
 export async function storageGate(sql: Sql): Promise<StorageGate> {
   try {
-    const rows = await sql`SELECT mode, legacy_watermark FROM bridge_storage_switch WHERE id = 1`;
+    const rows =
+    await sql`SELECT mode, legacy_watermark::text AS legacy_watermark FROM bridge_storage_switch WHERE id = 1`;
     if (!rows.length || rows[0].mode !== 'normalized') return { mode: rows.length ? 'legacy' : 'missing' };
     await assertLegacyFrozen(sql, rows[0].legacy_watermark);
     return { mode: 'normalized' };
@@ -47,20 +48,20 @@ export async function competitionRedirect(sql: Sql, id: string) {
 }
 
 export async function lockStorage(sql: Sql): Promise<'legacy' | 'normalized'> {
-  const rows = await sql`SELECT mode, legacy_watermark FROM bridge_storage_switch WHERE id = 1 FOR UPDATE`;
+  const rows = await sql`SELECT mode, legacy_watermark::text AS legacy_watermark FROM bridge_storage_switch WHERE id = 1 FOR UPDATE`;
   if (rows[0]?.mode !== 'normalized') return 'legacy';
   await assertLegacyFrozen(sql, rows[0].legacy_watermark);
   return 'normalized';
 }
 
 async function assertLegacyFrozen(sql: Sql, watermark: unknown) {
-  if (watermark == null)
+  if (typeof watermark !== 'string' || !watermark)
     throw new DomainError(
       '正規化儲存已標記啟用，但沒有舊表水位。為避免新舊資料分裂，已停止讀寫。',
       503,
       'storage-split',
     );
-  const rows =
+  const newer =
     await sql`SELECT 1 FROM bridge_events WHERE updated_at > ${watermark}::timestamptz LIMIT 1`;
-  if (rows.length) throw new DomainError(splitMessage, 503, 'storage-split');
+  if (newer.length) throw new DomainError(splitMessage, 503, 'storage-split');
 }

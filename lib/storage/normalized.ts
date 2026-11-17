@@ -228,7 +228,7 @@ export function createNormalizedRepository(query: Sql): EventRepository {
       const loaded = await loadStage(sql(), id);
       if (!loaded) throw new DomainError('找不到賽事', 404);
       if (loaded.stored.requests.includes(command.requestId)) return loaded.stored;
-      const next = commitDocumentMutation(loaded.stored, command, loaded.writes);
+      const next = commitDocumentMutation(loaded.stored, command, loaded.writes, true);
       try {
         await saveStage(sql(), next.stored, next.writes, priorOf(loaded));
         return next.stored;
@@ -256,7 +256,7 @@ export function createNormalizedRepository(query: Sql): EventRepository {
       const current = await family(sql(), id);
       const data = documentsOf(current.stages, current.competitions);
       const previous = findCompetition(data, id);
-      const next = updateCompetition(previous, input);
+      const next = updateCompetition(previous, input, true);
       if (next === previous) return next;
       const conflict = await writeOnce(sql(), (cap) =>
         queueSaved(cap, current.stages, saveCompetitionRecord(data, next), {

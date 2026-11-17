@@ -36,13 +36,14 @@ function isCompetition(document: StoredDocument): document is StoredCompetition 
   return !isStage(document);
 }
 
-function displayedVenue(event: BridgeEvent, documents: StoredDocument[]) {
-  if (event.venueOverride !== undefined) return event.venueOverride;
-  if (!event.parentEventId) return event.venue;
-  const parent = documents
-    .filter(isCompetition)
-    .find((item) => item.competition.id === event.parentEventId);
-  return parent ? parent.competition.venue : event.venue;
+function rootRecordVenue(event: BridgeEvent, documents: StoredDocument[]) {
+  if (event.parentEventId) return undefined;
+  try {
+    const venue = findCompetition(documents, event.id).competition.venue;
+    return venue || event.venue;
+  } catch {
+    return event.venue;
+  }
 }
 
 export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
@@ -58,10 +59,8 @@ export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
     .filter((stage) => stageMerge.stages.some((spec) => spec.id === stage.event.id))
     .every((stage) => {
       const spec = stageMerge.stages.find((item) => item.id === stage.event.id)!;
-      const venue =
-        stage.event.id === stageMerge.retiredId
-          ? stage.event.venueOverride === displayedVenue(stage.event, documents)
-          : true;
+      const carried = rootRecordVenue(stage.event, documents);
+      const venue = carried === undefined || stage.event.venue === carried;
       return (
         stage.event.parentEventId === stageMerge.competitionId &&
         stage.event.stageName === spec.name &&
@@ -77,17 +76,37 @@ export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
   )
     return { documents, redirect, changed: false };
   const at = new Date().toISOString();
+  const retired = competitions.find((item) => item.competition.id === stageMerge.retiredId);
   const nextCompetition = structuredClone(competition);
   nextCompetition.competition.prefix = stageMerge.prefix;
   nextCompetition.competition.name = stageMerge.name;
   nextCompetition.competition.hasStages = true;
   nextCompetition.competition.revision += 1;
   nextCompetition.competition.updatedAt = at;
+  if (retired) {
+    const seen = new Set(nextCompetition.requests);
+    nextCompetition.competition.audit = [...nextCompetition.competition.audit, ...retired.competition.audit];
+    nextCompetition.requests = [
+      ...nextCompetition.requests,
+      ...retired.requests.filter((id) => !seen.has(id)),
+    ];
+  }
+  nextCompetition.competition.audit.push({
+    at,
+    action: '合併賽段',
+    reason: '合併賽段',
+    revision: nextCompetition.competition.revision,
+    detail: stageMerge.stages.map((item) => item.id).join(','),
+  });
   const nextStages = stages.map((stage) => {
     const spec = stageMerge.stages.find((item) => item.id === stage.event.id);
     if (!spec) return stage;
     const event = structuredClone(stage.event);
-    if (event.id === stageMerge.retiredId) event.venueOverride = displayedVenue(stage.event, documents);
+    const carried = rootRecordVenue(stage.event, documents);
+    if (carried !== undefined) {
+      event.venue = carried;
+      event.venueOverride = carried;
+    }
     event.parentEventId = stageMerge.competitionId;
     event.stageName = spec.name;
     event.stageOrder = spec.stageOrder;
@@ -166,7 +185,7 @@ export function mergeReport(plan: StageMergePlan, dryRun: boolean) {
     `competition: ${stageMerge.competitionId}`,
     ...stageMerge.stages.map((spec) => {
       const stage = stages.find((item) => item.event.id === spec.id);
-      return `stage: ${spec.id} name=${spec.name} order=${spec.stageOrder} archived=${stage?.event.stageArchived ? 'yes' : 'no'} boards=${stage?.event.boards.length ?? 0}`;
+      return `stage: ${spec.id} name=${spec.name} order=${spec.stageOrder} venue=${stage?.event.venue ?? ''} archived=${stage?.event.stageArchived ? 'yes' : 'no'} boards=${stage?.event.boards.length ?? 0}`;
     }),
     `redirect: ${plan.redirect.from} -> ${plan.redirect.to}`,
     'preserved: deals, results, participants, penalties, audit, standings',

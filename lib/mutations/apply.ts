@@ -10,7 +10,11 @@ import type { MutationContext } from './context';
 import { dispatchMutation } from './dispatch';
 import { clubRoundReady } from '../round-workflow';
 
-export function applyMutation(stored: StoredEvent, command: Mutation): StoredEvent {
+export function applyMutation(
+  stored: StoredEvent,
+  command: Mutation,
+  durableRequests = false,
+): StoredEvent {
   if (stored.requests.includes(command.requestId)) return stored;
   if (command.revision !== stored.event.revision)
     throw new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision');
@@ -153,7 +157,9 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   });
   return {
     event: e,
-    requests: [...stored.requests, command.requestId],
+    requests: durableRequests
+      ? [...stored.requests, command.requestId]
+      : [...stored.requests, command.requestId].slice(-500),
     projection: project(e),
   };
 }

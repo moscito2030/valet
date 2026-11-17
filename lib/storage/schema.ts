@@ -27,6 +27,7 @@ export const normalizedSchemaStatements = [
   `CREATE TABLE IF NOT EXISTS bridge_competition_requests (
     competition_id text NOT NULL,
     request_id text NOT NULL,
+    ordinal integer NOT NULL DEFAULT 0,
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (competition_id, request_id)
   )`,
@@ -83,9 +84,12 @@ export const normalizedSchemaStatements = [
   `CREATE TABLE IF NOT EXISTS bridge_requests (
     event_id text NOT NULL,
     request_id text NOT NULL,
+    ordinal integer NOT NULL DEFAULT 0,
     created_at timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (event_id, request_id)
   )`,
+  `ALTER TABLE bridge_requests ADD COLUMN IF NOT EXISTS ordinal integer NOT NULL DEFAULT 0`,
+  `ALTER TABLE bridge_competition_requests ADD COLUMN IF NOT EXISTS ordinal integer NOT NULL DEFAULT 0`,
   `CREATE TABLE IF NOT EXISTS bridge_competition_redirects (
     from_id text PRIMARY KEY,
     to_id text NOT NULL

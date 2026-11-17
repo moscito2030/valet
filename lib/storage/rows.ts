@@ -95,13 +95,13 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       SELECT ${event.id}, seq, document
       FROM jsonb_to_recordset(${JSON.stringify(event.audit.map((document, seq) => ({ seq, document })))}::jsonb)
         AS x(seq int, document jsonb)`;
-  const requestIds = JSON.stringify(stored.requests);
+  const requestRows = JSON.stringify(stored.requests.map((request_id, ordinal) => ({ request_id, ordinal })));
   sql`DELETE FROM bridge_requests WHERE event_id = ${event.id}
-    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(${requestIds}::jsonb) AS ids(value) WHERE ids.value = bridge_requests.request_id)`;
+    AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(${requestRows}::jsonb) AS ids(request_id text, ordinal int) WHERE ids.request_id = bridge_requests.request_id)`;
   if (stored.requests.length)
-    sql`INSERT INTO bridge_requests (event_id, request_id)
-      SELECT ${event.id}, value FROM jsonb_array_elements_text(${requestIds}::jsonb)
-      ON CONFLICT DO NOTHING`;
+    sql`INSERT INTO bridge_requests (event_id, request_id, ordinal)
+      SELECT ${event.id}, request_id, ordinal FROM jsonb_to_recordset(${requestRows}::jsonb) AS x(request_id text, ordinal int)
+      ON CONFLICT (event_id, request_id) DO UPDATE SET ordinal = EXCLUDED.ordinal`;
 }
 
 function queueResults(sql: Sql, event: BridgeEvent, writes: ResultWrites, prior?: StagePrior) {
@@ -173,14 +173,15 @@ export async function loadStages(sql: Sql): Promise<LoadedStage[]> {
 
 async function hydrateStages(sql: Sql, stages: StageRow[]): Promise<LoadedStage[]> {
   if (!stages.length) return [];
+  const ids = JSON.stringify(stages.map((stage) => String(stage.id)));
   const [participants, assignments, boards, results, penalties, audits, requests] = await Promise.all([
-    sql`SELECT event_id, ordinal, document FROM bridge_participants ORDER BY event_id, ordinal`,
-    sql`SELECT event_id, ordinal, document FROM bridge_assignments ORDER BY event_id, ordinal`,
-    sql`SELECT event_id, ordinal, document_json FROM bridge_boards ORDER BY event_id, ordinal`,
-    sql`SELECT event_id, assignment_id, board, revision, written_at_event_revision, document FROM bridge_results ORDER BY event_id, assignment_id, board`,
-    sql`SELECT event_id, participant_id, amount FROM bridge_penalties ORDER BY event_id, participant_id`,
-    sql`SELECT event_id, seq, document FROM bridge_audit ORDER BY event_id, seq`,
-    sql`SELECT event_id, request_id FROM bridge_requests ORDER BY event_id, created_at, request_id`,
+    sql`SELECT event_id, ordinal, document FROM bridge_participants WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`,
+    sql`SELECT event_id, ordinal, document FROM bridge_assignments WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`,
+    sql`SELECT event_id, ordinal, document_json FROM bridge_boards WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`,
+    sql`SELECT event_id, assignment_id, board, revision, written_at_event_revision, document FROM bridge_results WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, assignment_id, board`,
+    sql`SELECT event_id, participant_id, amount FROM bridge_penalties WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, participant_id`,
+    sql`SELECT event_id, seq, document FROM bridge_audit WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, seq`,
+    sql`SELECT event_id, request_id FROM bridge_requests WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal, request_id`,
   ]);
   const group = <T extends { event_id: unknown }>(rows: T[]) => {
     const map = new Map<string, T[]>();
@@ -281,13 +282,13 @@ export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRe
       SELECT ${stored.competition.id}, seq, document
       FROM jsonb_to_recordset(${JSON.stringify(audit.map((entry, seq) => ({ seq, document: entry })))}::jsonb)
         AS x(seq int, document jsonb)`;
-  const requestIds = JSON.stringify(stored.requests);
+  const requestRows = JSON.stringify(stored.requests.map((request_id, ordinal) => ({ request_id, ordinal })));
   sql`DELETE FROM bridge_competition_requests WHERE competition_id = ${stored.competition.id}
-    AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(${requestIds}::jsonb) AS ids(value) WHERE ids.value = bridge_competition_requests.request_id)`;
+    AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(${requestRows}::jsonb) AS ids(request_id text, ordinal int) WHERE ids.request_id = bridge_competition_requests.request_id)`;
   if (stored.requests.length)
-    sql`INSERT INTO bridge_competition_requests (competition_id, request_id)
-      SELECT ${stored.competition.id}, value FROM jsonb_array_elements_text(${requestIds}::jsonb)
-      ON CONFLICT DO NOTHING`;
+    sql`INSERT INTO bridge_competition_requests (competition_id, request_id, ordinal)
+      SELECT ${stored.competition.id}, request_id, ordinal FROM jsonb_to_recordset(${requestRows}::jsonb) AS x(request_id text, ordinal int)
+      ON CONFLICT (competition_id, request_id) DO UPDATE SET ordinal = EXCLUDED.ordinal`;
 }
 
 export async function saveCompetition(sql: Sql, stored: StoredCompetition, expectedRevision?: number) {
@@ -299,9 +300,10 @@ export async function saveCompetition(sql: Sql, stored: StoredCompetition, expec
 export async function loadCompetitions(sql: Sql): Promise<StoredCompetition[]> {
   const rows = await sql`SELECT id, revision, document FROM bridge_competitions ORDER BY id`;
   if (!rows.length) return [];
+  const ids = JSON.stringify(rows.map((row) => String(row.id)));
   const [audits, requests] = await Promise.all([
-    sql`SELECT competition_id, seq, document FROM bridge_competition_audit ORDER BY competition_id, seq`,
-    sql`SELECT competition_id, request_id FROM bridge_competition_requests ORDER BY competition_id, created_at, request_id`,
+    sql`SELECT competition_id, seq, document FROM bridge_competition_audit WHERE competition_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY competition_id, seq`,
+    sql`SELECT competition_id, request_id FROM bridge_competition_requests WHERE competition_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY competition_id, ordinal, request_id`,
   ]);
   return rows.map((row) => {
     const id = String(row.id);

@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createCompetition, isStage, type StoredCompetition } from '../lib/competition-record';
+import { createCompetition, competitionKey, isStage, type StoredCompetition } from '../lib/competition-record';
 import { DomainError } from '../lib/domain-error';
 import { makeBoard } from '../lib/domain/board-factory';
 import { createEvent } from '../lib/domain/event-factory';
@@ -14,17 +14,18 @@ import { applyMutation } from '../lib/mutations/apply';
 import { project } from '../lib/scoring';
 import { competitionCatalog } from '../lib/competitions';
 import { eventIndex } from '../lib/event-index';
-import { seedResultWrites } from '../lib/storage/cell-write';
+import { canonical, seedResultWrites } from '../lib/storage/cell-write';
 import { createLocalRepository } from '../lib/storage/local';
 import {
   formatMigrationReport,
   migrateLegacyDocuments,
   readLegacyDocuments,
 } from '../lib/storage/migrate-data';
-import { assertMergePreserved, planStageMerge, stageMerge } from '../lib/storage/merge-stages';
+import { assertMergePreserved, commitStageMerge, mergeReport, planStageMerge, stageMerge } from '../lib/storage/merge-stages';
 import { createNeonRepository } from '../lib/storage/neon';
 import { createNormalizedRepository } from '../lib/storage/normalized';
 import { loadStage, saveStage } from '../lib/storage/rows';
+import { restoreLegacy } from '../lib/storage/restore-legacy';
 import { verifyStage } from '../lib/storage/verify-stage';
 import { createTestDb } from './helpers/sql';
 
@@ -89,6 +90,7 @@ test('request ids stay durable past 500', async () => {
         revision: current.event.revision,
         requestId,
       }),
+      true,
     );
   }
   assert.equal(current.requests.length, 501);
@@ -102,6 +104,7 @@ test('request ids stay durable past 500', async () => {
       revision: current.event.revision,
       requestId: ids[0],
     }),
+    true,
   );
   assert.equal(replayed.event.revision, current.event.revision);
   const db = await normalizedRepo();
@@ -397,7 +400,7 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
   final.stageName = '正賽';
   const november = withDeals(
     createEvent(
-      { name: '11月社內賽', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-11-17', venue: '社辦', rounds: 5, boardsPerRound: 3 },
+      { name: '11月社內賽', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-11-17', venue: '704室', rounds: 5, boardsPerRound: 3 },
       stageMerge.retiredId,
     ),
   );
@@ -407,7 +410,9 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
     novemberStored,
     score(november.assignments[0].id, november.assignments[0].boards[0], 9, 1),
   );
-  const retired = createCompetition({ name: '11月社內賽', prefix: '', venue: '社辦' }, stageMerge.retiredId);
+  const retired = createCompetition({ name: '11月社內賽', prefix: '', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
+  retired.competition.audit.push({ at: '2026-11-01T00:00:00.000Z', action: '舊紀錄', reason: '舊紀錄', revision: 1 });
+  retired.requests.push(randomUUID());
   const documents = [stored(rehearsal), stored(final), novemberStored, competition, retired];
   const deals = Object.fromEntries(
     documents.filter((document) => 'event' in document).map((document) => [
@@ -432,7 +437,9 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
   assert.ok(mergedNovember && 'event' in mergedNovember);
   assert.equal(mergedNovember.event.parentEventId, stageMerge.competitionId);
   assert.equal(mergedNovember.event.stageName, '11月社內賽');
-  assert.equal(mergedNovember.event.venueOverride, '社辦');
+  assert.equal(mergedNovember.event.venue, '臺灣大學 二活705');
+  assert.equal(mergedNovember.event.venueOverride, '臺灣大學 二活705');
+  assert.match(mergeReport(plan, true), /venue=臺灣大學 二活705/);
   assert.equal(mergedNovember.event.audit.length, novemberStored.event.audit.length);
   const rehearsalAfter = plan.documents.find((document) => 'event' in document && document.event.id === stageMerge.stages[0].id);
   assert.ok(rehearsalAfter && 'event' in rehearsalAfter);
@@ -448,5 +455,104 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
   );
   assert.equal(root?.prefix, stageMerge.prefix);
   assert.equal(root?.name, stageMerge.name);
+  const mergedCompetition = plan.documents.find((document): document is StoredCompetition => !isStage(document) && document.competition.id === stageMerge.competitionId);
+  assert.ok(mergedCompetition);
+  assert.ok(mergedCompetition.competition.audit.some((entry) => entry.action === '合併賽段'));
+  assert.ok(mergedCompetition.competition.audit.some((entry) => entry.action === '舊紀錄'));
+  assert.ok(mergedCompetition.requests.includes(retired.requests[0]));
   assert.equal(planStageMerge(plan.documents).changed, false);
+});
+
+test('legacy mutations keep only the last 500 request ids', () => {
+  const event = createEvent({
+    name: '上限',
+    kind: 'teams',
+    date: '2026-10-18',
+    venue: '廳',
+    names: ['甲', '乙', '丙', '丁'],
+    rounds: 1,
+    boardsPerRound: 1,
+  });
+  const ids = Array.from({ length: 500 }, () => randomUUID());
+  const next = applyMutation(
+    { event, requests: ids, projection: project(event) },
+    mutationSchema.parse({
+      action: 'penalty',
+      participantId: event.participants[0].id,
+      amount: 1,
+      reason: '契約驗證',
+      revision: event.revision,
+      requestId: randomUUID(),
+    }),
+  );
+  assert.equal(next.requests.length, 500);
+  assert.equal(next.requests.includes(ids[0]), false);
+});
+
+test('microsecond legacy timestamps still flip the storage switch', async () => {
+  const db = await createTestDb();
+  try {
+    const event = withDeals(
+      createEvent({
+        name: '微秒',
+        kind: 'pairs',
+        names: ['甲', '乙', '丙', '丁'],
+        date: '2026-11-17',
+        venue: '廳',
+        rounds: 1,
+        boardsPerRound: 1,
+      }),
+    );
+    const stamp = '2026-11-17 13:46:19.193888+00';
+    await db.sql`INSERT INTO bridge_events (id, revision, document, updated_at)
+      VALUES (${event.id}, 1, ${JSON.stringify(stored(event))}::jsonb, ${stamp}::timestamptz)`;
+    const report = await migrateLegacyDocuments(db.sql, { dryRun: false });
+    assert.equal(report.flip, 'normalized');
+    const saved = await db.sql`SELECT legacy_watermark::text AS watermark FROM bridge_storage_switch WHERE id = 1`;
+    assert.match(String(saved[0].watermark), /193888/);
+  } finally {
+    await db.close();
+  }
+});
+
+test('restore after merge removes the retired competition row', async () => {
+  const db = await createTestDb();
+  try {
+    const competition = createCompetition({ name: '老少盃', prefix: '舊', venue: '舊館' }, stageMerge.competitionId);
+    const rehearsal = withDeals(createEvent({
+      name: '預演', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-10-20', venue: '舊館', rounds: 1, boardsPerRound: 1,
+    }, stageMerge.stages[0].id));
+    rehearsal.parentEventId = stageMerge.competitionId;
+    rehearsal.stageArchived = true;
+    rehearsal.stageName = '預演';
+    const final = withDeals(createEvent({
+      name: '正賽', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-10-20', venue: '舊館', rounds: 1, boardsPerRound: 1,
+    }, stageMerge.stages[1].id));
+    final.parentEventId = stageMerge.competitionId;
+    final.stageName = '正賽';
+    const november = withDeals(createEvent({
+      name: '11月社內賽', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-11-17', venue: '704室', rounds: 1, boardsPerRound: 1,
+    }, stageMerge.retiredId));
+    const deals = canonical(november.boards.map((board) => board.deal));
+    const retired = createCompetition({ name: '11月社內賽', prefix: '', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
+    for (const document of [stored(rehearsal), stored(final), stored(november), competition, retired]) {
+      const id = 'event' in document ? document.event.id : competitionKey(document.competition.id);
+      const revision = 'event' in document ? document.event.revision : document.competition.revision;
+      await db.sql`INSERT INTO bridge_events (id, revision, document) VALUES (${id}, ${revision}, ${JSON.stringify(document)}::jsonb)`;
+    }
+    await db.sql`INSERT INTO bridge_discussions (id, revision, document) VALUES ('limit:ip:test', 1, ${JSON.stringify({ minute: 1 })}::jsonb)`;
+    assert.equal((await migrateLegacyDocuments(db.sql, { dryRun: false })).flip, 'normalized');
+    await commitStageMerge(db.sql);
+    await restoreLegacy(db.sql, { dryRun: false });
+    const ghost = await db.sql`SELECT id FROM bridge_events WHERE id = ${competitionKey(stageMerge.retiredId)}`;
+    assert.equal(ghost.length, 0);
+    const kept = await db.sql`SELECT document FROM bridge_events WHERE id = ${stageMerge.retiredId}`;
+    const event = (kept[0].document as StoredEvent).event;
+    assert.equal(event.venue, '臺灣大學 二活705');
+    assert.equal(canonical(event.boards.map((board) => board.deal)), deals);
+    const limit = await db.sql`SELECT id FROM bridge_discussions WHERE id = 'limit:ip:test'`;
+    assert.equal(limit.length, 1);
+  } finally {
+    await db.close();
+  }
 });
