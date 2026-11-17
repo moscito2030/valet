@@ -210,7 +210,7 @@ export const createSchema = z
         message: '排名方式僅用於先建立雙人賽名單，賽程請於建立後設定',
       });
     if (v.rankingMode === 'double' && v.names.length > 0 && (v.names.length < 6 || v.names.length % 2))
-      ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS／EW 各 3–40 組完整搭檔' });
+      ctx.addIssue({ code: 'custom', message: 'Double Winner 需 NS/EW 各 3–40 組完整搭檔' });
     if (v.endDate && v.endDate < v.date)
       ctx.addIssue({ code: 'custom', path: ['endDate'], message: '結束日期不可早於開始日期' });
     if (v.kind === 'teams' && (v.names.length > 32 || v.movementPlan))
@@ -225,7 +225,7 @@ export const createSchema = z
         v.names.length % 2 ||
         (v.movementPlan === 'double-mitchell-relay' && v.names.length % 4))
     )
-      ctx.addIssue({ code: 'custom', message: '雙冠軍需 3–40 桌完整搭檔，共牌／中繼僅適用偶數桌' });
+      ctx.addIssue({ code: 'custom', message: '雙冠軍需 3–40 桌完整搭檔，共牌/中繼僅適用偶數桌' });
     if (new Set(v.names).size !== v.names.length)
       ctx.addIssue({ code: 'custom', message: '名稱不可重複' });
     if (v.names.length === 0 && (v.rounds || v.movementPlan)) ctx.addIssue({code:'custom', message:'請先設定名單，再安排賽程'});
@@ -578,7 +578,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
         .trim()
         .max(200)
         .optional()
-        .transform((value) => value || '取消／恢復成績'),
+        .transform((value) => value || '取消/恢復成績'),
       assignmentId: z.string().min(1).max(100),
       board: z.number().int().min(1),
       cancelled: z.boolean(),
@@ -605,7 +605,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
         .trim()
         .max(200)
         .optional()
-        .transform((value) => value || '輸入／更正成績'),
+        .transform((value) => value || '輸入/更正成績'),
       results: z.array(resultSchema).min(1).max(2000),
     })
     .strict(),

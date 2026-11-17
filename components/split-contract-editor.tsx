@@ -60,7 +60,7 @@ export function SplitContractEditor({
         );
       })}
       <label className="field">
-        判罰／撤銷原因
+        判罰/撤銷原因
         <input value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
       </label>
       <div className="button-row">

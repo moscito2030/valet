@@ -467,7 +467,7 @@ export default function Scoreboard() {
                           {event.gameMode === 'minibridge' && '迷你橋牌 · 無身價 · '}
                           {event.kind === 'teams'
                             ? teamScoringLabel(event)
-                            : `${methodNames[pairMethod]} · ${event.participants.every((p) => p.group) ? 'NS／EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
+                            : `${methodNames[pairMethod]} · ${event.participants.every((p) => p.group) ? 'NS/EW 分組排名' : '合併排名'} · ${event.trim === 'one' ? '各去一筆' : event.trim === 'ten-percent' ? '各去 10%' : '不去頭尾'}`}
                         </span>
                       </div>
                     </div>
@@ -500,7 +500,7 @@ export default function Scoreboard() {
                         (competitionComplete
                           ? ` · ${event.status === 'finished' ? '賽段已結束' : '成績覆核中'}`
                           : progressRound
-                            ? ` · 第 ${roundLabel(event, progressRound)}/${roundLabel(event, event.rounds)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
+                            ? ` · 第 ${roundLabel(event, progressRound)} / ${roundLabel(event, event.rounds)} 圈${roundOnBreak ? ' · 圈間休息' : ''}`
                             : event.rounds
                               ? ' · 尚未開始'
                               : ' · 待設定賽程')}
@@ -519,7 +519,7 @@ export default function Scoreboard() {
                     <Stat
                       label="目前圈數"
                       value={roundLabel(event, progressRound)}
-                      suffix={`/ ${roundLabel(event, event.rounds)} 圈`}
+                      suffix={` / ${roundLabel(event, event.rounds)} 圈`}
                       detail={
                         competitionComplete
                           ? (event.status === 'finished' ? '賽段已結束' : '成績覆核中')
@@ -545,7 +545,7 @@ export default function Scoreboard() {
                     <Stat
                       label={competitionComplete ? '有效成績 / 已收成績' : '本圈已收成績'}
                       value={competitionComplete ? validResults : (currentProgress?.received ?? 0)}
-                      suffix={`/ ${competitionComplete ? receivedResults.length : (currentProgress?.expected ?? 0)} 筆`}
+                      suffix={` / ${competitionComplete ? receivedResults.length : (currentProgress?.expected ?? 0)} 筆`}
                       progress={
                         competitionComplete
                           ? undefined
@@ -749,7 +749,7 @@ export default function Scoreboard() {
                   )}
                   <footer className="page-footer">
                     <span>
-                      <AppVersion /> <span>／</span> 由臺灣大學橋藝社自主研發
+                      <AppVersion /> <span>/</span> 由臺灣大學橋藝社自主研發
                     </span>
                     <span>
                       {event.kind === 'teams' ? teamScoringLabel(event) : methodNames[pairMethod]}　♠ ♥ ♦ ♣
@@ -762,7 +762,7 @@ export default function Scoreboard() {
         </main>
       </div>
       {showLogin && (
-        <Modal title="裁判／賽務登入" onClose={() => setShowLogin(false)}>
+        <Modal title="裁判/賽務登入" onClose={() => setShowLogin(false)}>
           <p className="muted">
             賽務可更正、取消及判罰；裁判另可建立、刪除、匯入匯出賽事及查看操作紀錄。
           </p>
@@ -774,7 +774,7 @@ export default function Scoreboard() {
           )}
           <form onSubmit={login}>
             <label className="field">
-              裁判／賽務密碼
+              裁判/賽務密碼
               <span className="password-input">
                 <input
                   autoFocus

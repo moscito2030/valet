@@ -62,7 +62,7 @@ export function applyKnockoutCommand(
     e.roundTimes = {};
     e.movementImported = true;
     e.movementDescription =
-      '隊制淘汰賽：各對局依對戰表指定圈數與牌數；勝方／敗方由裁判確認後公布後續安排。';
+      '隊制淘汰賽：各對局依對戰表指定圈數與牌數；勝方/敗方由裁判確認後公布後續安排。';
     if (e.club) {
       e.club.confirmations = {};
       e.club.finalized = [];
@@ -307,7 +307,7 @@ export function applyKnockoutCommand(
     reason: command.reason,
     method: score.tied ? 'director' : 'score',
   };
-  context.detail = `${n.name}：${winner} 晉級／勝方，${score.a}：${score.b}`;
+  context.detail = `${n.name}：${winner} 晉級/勝方，${score.a}：${score.b}`;
 }
 
 function ensureBoards(e: BridgeEvent, numbers: number[]) {

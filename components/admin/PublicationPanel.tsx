@@ -204,7 +204,7 @@ export function PublicationPanel({
             </label>
           ))}
         </div>
-        <p className="footnote">勝場獎與總排名無關。例：勝／和／負設為 2／1／0，或 2／0／0。</p>
+        <p className="footnote">勝場獎與總排名無關。例：勝/和/負設為 2/1/0，或 2/0/0。</p>
         <label className="field">
           給獎內容
           <textarea

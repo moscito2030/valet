@@ -166,12 +166,12 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
             size +
             ' 隊，共 ' +
             cycles +
-            ' 個循環。各循環可重新分組；循環內固定南北／東西搭檔，依預覽移動。正反方向兩桌收齊後完成比較，' +
+            ' 個循環。各循環可重新分組；循環內固定南北/東西搭檔，依預覽移動。正反方向兩桌收齊後完成比較，' +
             (event.teamMethod === 'bam'
-              ? '每牌依勝／和／負直接累計 VP；全賽每隊 '
+              ? '每牌依勝/和/負直接累計 VP；全賽每隊 '
               : '每場按每圈牌數換算 20–0 VP；全賽每隊 ') +
             event.rounds +
-            ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開／閉為比較方向，非固定房間。',
+            ' 場。不同循環使用新牌組，各組同牌號需準備複製牌。開/閉為比較方向，非固定房間。',
         });
         if (size === 5) {
           const symmetric = options[options.length - 1];
@@ -222,7 +222,7 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
       id: `howell-${template.id}`,
       label: rounds === tables * 2 - 1 ? '完整 Howell' : '部分 Howell',
       groups: Math.max(...template.rows.flat().map((cell) => cell[2])),
-      note: '搭檔依編排表輪換桌次與南北／東西方向；請依預覽的各圈桌次、方向與牌號移動。',
+      note: '搭檔依編排表輪換桌次與南北/東西方向；請依預覽的各圈桌次、方向與牌號移動。',
       source: template.source,
     });
   }
@@ -291,7 +291,7 @@ export function movementOptions(event: Input, external?: AcblMovement): Movement
       label:
         movement.name === 'uploaded.MOV'
           ? family
-          : `${family} · ${movement.name}${movement.rounds !== rounds ? `（取前 ${rounds}／${movement.rounds} 圈）` : ''}`,
+          : `${family} · ${movement.name}${movement.rounds !== rounds ? `（取前 ${rounds} / ${movement.rounds} 圈）` : ''}`,
       groups: movement.groups,
       sessionNote:
         event.participants.length === movement.pairCount
@@ -444,7 +444,7 @@ export function buildMovement(
     option.note +=
       switchRound === 0
         ? ' 全程不交換方位。'
-        : ` 從第 ${switchRound} 圈起交換所有桌的南北／東西方向，之後維持交換；移動路線與牌組不變。`;
+        : ` 從第 ${switchRound} 圈起交換所有桌的南北/東西方向，之後維持交換；移動路線與牌組不變。`;
   const assignments: Assignment[] = [];
   function add(round: number, table: number, nsIndex: number, ewIndex: number, group: number) {
     let ns = slots[nsIndex - 1],

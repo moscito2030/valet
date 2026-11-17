@@ -19,7 +19,7 @@ async function request<T>(url: string, body?: object, method = 'POST'): Promise<
   return data;
 }
 const competitionDateLabel = (c: Competition) => c.date ? dateRangeLabel(c) : '日期未定';
-const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? '迷你橋牌 · ' : '') + (s.kind === 'teams' ? (s.teamMethod === 'bam' ? '隊制賽 · Board-A-Match' : s.teamFormat === 'knockout' ? '隊制賽 · 純 IMP 淘汰賽' : '隊制賽 · IMP / VP') : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
+const format = (s: Competition['stages'][number]) => (s.gameMode === 'minibridge' ? '迷你橋牌 · ' : '') + (s.kind === 'teams' ? (s.teamMethod === 'bam' ? '隊制賽 · Board-A-Match' : s.teamFormat === 'knockout' ? '隊制賽 · 純 IMP 淘汰賽' : '隊制賽 · IMP/VP') : `雙人賽 · ${s.pairMethod === 'mp' ? 'MP' : s.pairMethod === 'butler' ? 'ButlerIMP' : 'CrossIMP'}`);
 
 export default function CompetitionHub({ competitionId }: { competitionId?: string }) {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -91,7 +91,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
       <main>
         {notice && <div className="alert success" role="status">{notice}</div>}
         {error && <div className="alert error" role="alert">{error}<button onClick={() => { setError(''); void load().catch(e => setError(e.message)); }}>重新載入</button></div>}
-        {login && !session.admin && <Modal title="裁判／賽務登入" onClose={() => { setLogin(false); setLoginError(''); setShowPassword(false); }}><form onSubmit={async e => {
+        {login && !session.admin && <Modal title="裁判/賽務登入" onClose={() => { setLogin(false); setLoginError(''); setShowPassword(false); }}><form onSubmit={async e => {
           e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setLoginError('');
           try { await request('/api/session', { password: String(form.get('password')) }); await load(); setLogin(false); setShowPassword(false); }
           catch (e) { setLoginError((e as Error).message); } finally { setBusy(false); }
@@ -143,7 +143,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
           {!!competitions.length && !matches.length && <div className="empty">沒有符合的賽事。</div>}
         </>}
-        <footer className="page-footer"><div><AppVersion /> <span>／</span> 由臺灣大學橋藝社自主研發</div></footer>
+        <footer className="page-footer"><div><AppVersion /> <span>/</span> 由臺灣大學橋藝社自主研發</div></footer>
       </main>
     </div>
     {creating && <CreateCompetitionDialog onClose={() => setCreating(false)} onCreated={async id => { location.assign(`/?competition=${encodeURIComponent(id)}`); }} />}

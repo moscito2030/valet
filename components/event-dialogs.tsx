@@ -130,7 +130,7 @@ export function CreateDialog({
             <option value="minibridge">迷你橋牌</option>
           </select>
         </label>
-        {gameMode === 'minibridge' && <p>五種花色 × 一線／成局，共 10 種合約；無身價、不加倍。</p>}
+        {gameMode === 'minibridge' && <p>五種花色 × 一線/成局，共 10 種合約；無身價、不加倍。</p>}
         {competition && (
           <p>
             {competition.name} · {competition.venue || '未填地點'}
@@ -272,7 +272,7 @@ export function CreateDialog({
         {kind === 'pairs' && <label className="field">排名方式
           <select value={rankingMode} onChange={e => setRankingMode(e.target.value as 'single' | 'double')}>
             <option value="single">Single Winner（合併排名）</option>
-            <option value="double">Double Winner（NS／EW 分別排名）</option>
+            <option value="double">Double Winner（NS/EW 分別排名）</option>
           </select>
           <span className="footnote">建立後再至裁判「賽程與牌局管理 → 指定賽程編排」選擇具體編排、圈數與每圈牌數。</span>
         </label>}

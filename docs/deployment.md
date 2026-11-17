@@ -28,10 +28,10 @@ npm run typecheck
 npm run build
 ```
 
-測試涵蓋合約分、IMP 邊界、VP、開閉兩室方向、MP 同分／缺分／更正、輪空、CSV/PBN、重送與版本衝突。
+測試涵蓋合約分、IMP 邊界、VP、開閉兩室方向、MP 同分/缺分/更正、輪空、CSV/PBN、重送與版本衝突。
 
 - 正式 DB 備份以 PostgreSQL `pg_dump --format=custom --file=Valet.dump` 執行，連線資訊透過 PG 環境變數提供，將檔案存至部署之外的儲存空間。
-- 還原先建立獨立測試 DB，使用 `pg_restore --no-owner --dbname=<測試資料庫名稱> Valet.dump`（主機／帳密由 PG 環境變數設定），核對場次、revision、成績及稽核筆數後才考慮正式切換。不要對正式資料庫直接試還原。
+- 還原先建立獨立測試 DB，使用 `pg_restore --no-owner --dbname=<測試資料庫名稱> Valet.dump`（主機/帳密由 PG 環境變數設定），核對場次、revision、成績及稽核筆數後才考慮正式切換。不要對正式資料庫直接試還原。
 - 後台 JSON 匯出方便攜出及檢查，目前沒有網頁 JSON 還原按鈕，不能取代 DB 備份。
 - Vercel 程式回退不會回退 DB；新增 schema 應向後相容。
 
@@ -41,6 +41,6 @@ WBF VP 來源：https://www.worldbridge.org/wp-content/uploads/2019/06/VP-Scale-
 
 變更 ADMIN_PASSWORD 會撤銷現有賽務登入；變更 DIRECTOR_PASSWORD 會撤銷裁判登入；輪換 SESSION_SECRET 會撤銷全部登入。升級此版後，舊登入憑證也需重新登入。使用 Vercel 環境變數更新時須重新部署才會生效。
 
-賽務可收分、更正、取消／恢復成績、扣分與維護入座名單。裁判另可匯入資料、調整賽程、公開牌型、管理隊伍名單、設定不平衡合約、建立與刪除賽事。俱樂部專屬連結只能操作自己的當圈桌次。角色規則集中於 lib/mutation-permissions.ts。
+賽務可收分、更正、取消/恢復成績、扣分與維護入座名單。裁判另可匯入資料、調整賽程、公開牌型、管理隊伍名單、設定不平衡合約、建立與刪除賽事。俱樂部專屬連結只能操作自己的當圈桌次。角色規則集中於 lib/mutation-permissions.ts。
 
 部署前執行 npm run check:secrets、npm audit、npm test 與 npm run build。模式掃描只能識別已列出的秘密格式，不能保證歷史或主機設定沒有秘密；不要將 .env、資料庫備份或真實登入憑證加入 Git。

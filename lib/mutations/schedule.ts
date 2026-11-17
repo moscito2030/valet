@@ -105,7 +105,7 @@ export function applyScheduleCommand(
   } else if (command.action === 'swiss-config') {
     assertSwissTeams(e);
     if (e.teamMethod !== 'bam' && command.byeVp > 20)
-      throw new DomainError('IMP／VP 輪空分不可超過 20');
+      throw new DomainError('IMP/VP 輪空分不可超過 20');
     if (e.status !== 'live' || Object.keys(e.results).length || e.swiss?.publications.length)
       throw new DomainError('Swiss 模式須在收分與公布對戰前設定');
     const error = playerBoardError(command.rounds, command.boardsPerRound);
@@ -149,7 +149,7 @@ export function applyScheduleCommand(
       )
         throw new Error('僅奇數隊輪空編排可設定輪空 VP');
       if (command.byeVp !== undefined && e.teamMethod !== 'bam' && command.byeVp > 20)
-        throw new DomainError('IMP／VP 輪空分不可超過 20');
+        throw new DomainError('IMP/VP 輪空分不可超過 20');
       if (command.byeVp !== undefined) e.byeVp = command.byeVp;
       const plan = buildMovement(
         e,

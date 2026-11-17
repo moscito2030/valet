@@ -29,7 +29,7 @@ export function InterleavedRound({
   return (
     <div className="interleaved-round">
       <p className="footnote">
-        交錯循環：南北／東西為各隊固定搭檔，請依桌號與牌號移動。兩桌分別在不同圈打牌，收齊後比較；VP
+        交錯循環：南北/東西為各隊固定搭檔，請依桌號與牌號移動。兩桌分別在不同圈打牌，收齊後比較；VP
         歸入兩桌之中較後的圈次。
       </p>
       <div className="table-scroll">
@@ -78,10 +78,10 @@ export function InterleavedRound({
                     <tr>
                       <th>牌號</th>
                       <th>
-                        我方南北：第 {roundLabel(event, own.round)} 圈／{own.table} 桌
+                        我方南北：第 {roundLabel(event, own.round)} 圈 / {own.table} 桌
                       </th>
                       <th>
-                        我方東西：第 {roundLabel(event, other.round)} 圈／{other.table} 桌
+                        我方東西：第 {roundLabel(event, other.round)} 圈 / {other.table} 桌
                       </th>
                       <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP'}</th>
                     </tr>

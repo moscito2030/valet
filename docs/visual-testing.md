@@ -5,10 +5,10 @@
 ## 分數格式
 
 - lib/score-format.ts：scoreParts、formatScore、pairScoreFormat 負責顯示精度、正負號、缺值與單位，不介入計分。
-- components/score-value.tsx：ScoreValue 為通用數值，PairScoreValue 處理 MP 百分率及 Butler／CrossIMP。使用數值參數，不先自行 toFixed 或拼接單位。
+- components/score-value.tsx：ScoreValue 為通用數值，PairScoreValue 處理 MP 百分率及 Butler/CrossIMP。使用數值參數，不先自行 toFixed 或拼接單位。
 - unit 指定 %、IMP、MP、VP；沒有資料不顯示單位。showUnit=false 用於明細已有單位上下文的情況。
 - decimals 預設 2，Butler 單副值及最大分差為 0。compact 預設 true；純文字用途用 formatScore。
-- 總排名、雙人賽逐副／搭檔表格、K 棒、Butler 浮動統計已採共用格式。scoreboard-shared 的 number／pairValue 是舊介面的相容入口，也轉交共用函式。
+- 總排名、雙人賽逐副/搭檔表格、K 棒、Butler 浮動統計已採共用格式。scoreboard-shared 的 number/pairValue 是舊介面的相容入口，也轉交共用函式。
 
 ## 執行
 

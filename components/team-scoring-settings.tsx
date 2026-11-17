@@ -39,7 +39,7 @@ export function TeamScoringFields({
           disabled={disabled}
           onChange={(e) => setMethod(e.target.value as 'imp' | 'bam')}
         >
-          <option value="imp">{(event.knockout || event.teamFormat === 'knockout') && event.teamMethod !== 'bam' ? '純 IMP 淘汰賽' : 'IMP／VP'}</option>
+          <option value="imp">{(event.knockout || event.teamFormat === 'knockout') && event.teamMethod !== 'bam' ? '純 IMP 淘汰賽' : 'IMP/VP'}</option>
           {allowKnockout && <option value="imp-ko">純 IMP 淘汰賽</option>}
           {event.teamFormat !== 'knockout' && <option value="bam">Board-A-Match</option>}
         </select>

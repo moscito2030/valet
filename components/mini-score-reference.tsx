@@ -24,6 +24,6 @@ export function MiniScoreReference({ value, inline = false }: { value?: ResultIn
       </tr>)}</tbody>
     </table>
     <div className="mini-score-note"><strong>未完成合約</strong><span aria-hidden="true">·</span><span>每少一墩 <span className="mini-score-penalty">−50 分</span></span></div>
-    <p className="mini-score-footnote">一線合約即使取得成局墩數，仍按一線計分。NS／EW 的正負號依莊家方向換算。</p>
+    <p className="mini-score-footnote">一線合約即使取得成局墩數，仍按一線計分。NS/EW 的正負號依莊家方向換算。</p>
   </section></>;
 }

@@ -10,7 +10,7 @@
 - 操作：`--action-primary`、`--action-primary-hover`、`--action-secondary`、`--text-on-action`、`--focus-ring`。
 - 側欄：`--sidebar-*`。
 - 比賽語意：`--team-home`、`--team-away`、`--score-positive`、`--score-negative`、`--suit-red`。
-- 收分花色：`--entry-suit-red`、`--entry-suit-black`。傷眼睛的收分紅心／方塊用沉穩紅，不沿用手牌的純紅。
+- 收分花色：`--entry-suit-red`、`--entry-suit-black`。傷眼睛的收分紅心/方塊用沉穩紅，不沿用手牌的純紅。
 - 開關圓點使用 `--switch-thumb`，不要因為目前都是白色就使用卡片背景變數。
 
 舊名稱 `--paper`、`--ink`、`--muted`、`--line`、`--accent`、`--forest`、`--white`、`--soft` 保留為相容別名。新增樣式優先使用上述用途名稱。
@@ -31,4 +31,4 @@ Nord 與 Dracula 是針對網站的調整版，參考 [Nord 官方色票](https:
 
 ## 共用呈現規則
 
-花色實心／空心由 `--suit-solid-display`、`--suit-outline-display` 與 `--suit-outline-*` 控制，主程式與外部牌桌共用同一組 CSS 類別。身價使用 `--seat-nonvul-*`／`--seat-vul-*` 區分底色、姓名文字、座位標記與標記文字，主題差異只在集中色票定義。`SuitSymbol` 統一加入文字呈現標記，並接受可存取名稱，外層不再重複宣告圖像角色。
+花色實心/空心由 `--suit-solid-display`、`--suit-outline-display` 與 `--suit-outline-*` 控制，主程式與外部牌桌共用同一組 CSS 類別。身價使用 `--seat-nonvul-*`/`--seat-vul-*` 區分底色、姓名文字、座位標記與標記文字，主題差異只在集中色票定義。`SuitSymbol` 統一加入文字呈現標記，並接受可存取名稱，外層不再重複宣告圖像角色。

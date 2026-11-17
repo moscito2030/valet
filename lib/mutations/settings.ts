@@ -86,7 +86,7 @@ export function applySettingsCommand(
     if (command.name !== undefined) e.name = command.name;
     if (command.prefix !== undefined) e.prefix = command.prefix;
     if (command.awardPlacesNS !== undefined || command.awardPlacesEW !== undefined) {
-      if (!hasDirectionalAwards(e)) throw new DomainError('NS／EW 給獎範圍僅適用 Double Winner');
+      if (!hasDirectionalAwards(e)) throw new DomainError('NS/EW 給獎範圍僅適用 Double Winner');
       if (command.awardPlacesNS !== undefined) e.awardPlacesNS = command.awardPlacesNS;
       if (command.awardPlacesEW !== undefined) e.awardPlacesEW = command.awardPlacesEW;
     }

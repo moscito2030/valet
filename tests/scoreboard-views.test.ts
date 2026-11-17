@@ -401,7 +401,7 @@ test('round VP dialog uses actual match board count and handles pending and BAM 
   assert.match(html,/成績未齊/);
   assert.doesNotMatch(html,/vp-scale-current/);
   const bam = renderToStaticMarkup(createElement(MatchVpScale,{event:{...event,teamMethod:'bam',bam:{win:3,draw:1,loss:0}},match}));
-  assert.match(bam,/3／1／0 VP/);
+  assert.match(bam,/3 \/ 1 \/ 0 VP/);
   assert.doesNotMatch(bam,/VP 換算表/);
 });
 test('ongoing team matches show provisional VP without changing official standings', async () => {

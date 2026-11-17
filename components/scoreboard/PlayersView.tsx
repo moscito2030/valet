@@ -538,7 +538,7 @@ export function PlayersView({
                     <strong>
                       第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 計分
                     </strong>
-                    <p>{event.teamMethod === 'bam' ? `每牌勝／和／負 ${event.bam?.win ?? 2}／${event.bam?.draw ?? 1}／${event.bam?.loss ?? 0} VP，直接加總` : 'WBF 20–0 · 依原訂牌數換算'}</p>
+                    <p>{event.teamMethod === 'bam' ? `每牌勝/和/負 ${event.bam?.win ?? 2} / ${event.bam?.draw ?? 1} / ${event.bam?.loss ?? 0} VP，直接加總` : 'WBF 20–0 · 依原訂牌數換算'}</p>
                     {provisionalVp && <p className="muted">暫計 VP：依目前已比對成績估算，尚未計入累積 VP 與排名。</p>}
                     <p>
                       {playerMatchVp === null

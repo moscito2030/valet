@@ -4,7 +4,7 @@ import { DomainError } from './domain-error';
 import { isAdmin } from './auth';
 export async function requireAdmin(request: Request) {
   checkOrigin(request);
-  if (!(await isAdmin())) throw new DomainError('請先登入裁判／賽務後台', 401);
+  if (!(await isAdmin())) throw new DomainError('請先登入裁判/賽務後台', 401);
 }
 export function checkOrigin(request: Request) {
   const origin = request.headers.get('origin');
@@ -57,7 +57,7 @@ export function errorResponse(error: unknown) {
     );
   console.error('Request failed:', error instanceof Error ? error.name : 'UnknownError');
   return NextResponse.json(
-    { error: '操作失敗。請檢查資料格式或伺服器／資料庫設定，原有成績仍保留。' },
+    { error: '操作失敗。請檢查資料格式或伺服器/資料庫設定，原有成績仍保留。' },
     { status: 500, headers: { 'Cache-Control': 'no-store' } },
   );
 }

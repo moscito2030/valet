@@ -17,9 +17,9 @@ export function TableScoreReview({ event, assignment: a }: { event: AdminEvent; 
       return <article className="table-score-review-board" key={board}>
         <strong>第 {board} 副</strong>
         <div><Contract result={r} />{played && <>
-          <p className="table-score-review-scores">{collectionScoreLabel(r, 'NS')} ／ {collectionScoreLabel(r, 'EW')}</p>
+          <p className="table-score-review-scores">{collectionScoreLabel(r, 'NS')} / {collectionScoreLabel(r, 'EW')}</p>
           <small>首引：{r.lead || '未記錄'}</small>
-          {r.hcp && <p className="footnote">大牌點：{(['N','E','S','W'] as const).map(s => `${s} ${r.hcp?.[s] ?? '—'}`).join(' ／ ')}</p>}
+          {r.hcp && <p className="footnote">大牌點：{(['N','E','S','W'] as const).map(s => `${s} ${r.hcp?.[s] ?? '—'}`).join(' / ')}</p>}
           {r.split && <div className="footnote">不平衡合約：<br />NS <Contract result={{...r.split.ns, updatedAt:r.updatedAt}} /><br />EW <Contract result={{...r.split.ew, updatedAt:r.updatedAt}} /></div>}
         </>}</div>
       </article>;

@@ -150,7 +150,7 @@ export function KnockoutPanel({
         </div>
       ))}
       <p className="footnote">
-        排名賽不限銅牌戰：可讓八強敗隊接到第 5–8 名賽，再將其勝方與敗方分別接到第 5／6 名及第 7／8
+        排名賽不限銅牌戰：可讓八強敗隊接到第 5–8 名賽，再將其勝方與敗方分別接到第 5/6 名及第 7/8
         名賽。請在公布對戰前安排完成，僅在最後一場填最終名次。
       </p>
       {!locked && !!nodes.length && (
@@ -165,7 +165,7 @@ export function KnockoutPanel({
               setEditing(next.id);
             }}
           >
-            新增排名賽（可接任一輪勝／敗方）
+            新增排名賽（可接任一輪勝/敗方）
           </button>
           <button
             type="button"
@@ -280,7 +280,7 @@ export function KnockoutPanel({
             公布已確定雙方的對局
           </button>
           <label className="field">
-            決勝／撤回原因
+            決勝/撤回原因
             <input
               value={reason}
               maxLength={200}

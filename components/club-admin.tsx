@@ -319,7 +319,7 @@ export function ClubAdmin({
                             </span>
                           )}
                           <span>
-                            輸入 {roles.inputPair.toUpperCase()} ／ 確認{' '}
+                            輸入 {roles.inputPair.toUpperCase()} / 確認{' '}
                             {roles.confirmPair.toUpperCase()}
                           </span>
                         </div>
@@ -456,7 +456,7 @@ export function ClubAdmin({
                           const url = new URL(base);
                           if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
                         } catch {
-                          setError('請填寫有效的 http／https 網址');
+                          setError('請填寫有效的 http/https 網址');
                           return;
                         }
                         void act({ action: 'issue-table', deviceKey: d.key });
@@ -490,7 +490,7 @@ export function ClubAdmin({
                         const url = new URL(base);
                         if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
                       } catch {
-                        setError('請填寫有效的 http／https 網址');
+                        setError('請填寫有效的 http/https 網址');
                         return;
                       }
                       void act({ action: 'issue', pair: p.id });
@@ -593,7 +593,7 @@ export function ClubAdmin({
                       <option value={a.ew}>EW · {label(a.ew)}</option>
                     </select>
                     <small>
-                      輸入：{label(roles.inputPair)} ／ 確認：{label(roles.confirmPair)}
+                      輸入：{label(roles.inputPair)} / 確認：{label(roles.confirmPair)}
                     </small>
                   </label>
                 );
