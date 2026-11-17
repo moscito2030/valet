@@ -36,7 +36,7 @@ export function applyScoresCommand(
     if (command.confirmName !== (e.stageName || e.name)) throw new DomainError('確認名稱不符');
     for (const [key, before] of Object.entries(e.results))
       changes.push({ key, before, after: null });
-    detail = `清除 ${changes.length} 筆成績；原扣分 ${JSON.stringify(e.penalties ?? {})}；原進度 ${e.currentRound ?? 0}／${e.roundPhase ?? 'playing'}／${e.status}；原結算圈次 ${JSON.stringify(e.club?.finalized ?? [])}`;
+    detail = `清除 ${changes.length} 筆成績；原扣分 ${JSON.stringify(e.penalties ?? {})}；原進度 ${e.currentRound ?? 0} / ${e.roundPhase ?? 'playing'} / ${e.status}；原結算圈次 ${JSON.stringify(e.club?.finalized ?? [])}`;
     e.results = {};
     e.penalties = {};
     e.status = 'live';
@@ -105,7 +105,7 @@ export function applyScoresCommand(
     } else delete after.split;
     e.results[key] = after;
     changes.push({ key, before, after });
-    detail = `${key}: ${command.contracts ? 'NS／EW 分別指定合約' : '撤銷不平衡合約，恢復原始紀錄'}`;
+    detail = `${key}: ${command.contracts ? 'NS/EW 分別指定合約' : '撤銷不平衡合約，恢復原始紀錄'}`;
   } else if (command.action === 'ruling') {
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     const a = e.assignments.find((a) => a.id === command.assignmentId);

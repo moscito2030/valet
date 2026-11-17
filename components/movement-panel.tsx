@@ -354,7 +354,7 @@ export function MovementPanel({
           </select>
           <small>
             可選擇不交換方位；預設為第一次超過半場的圈次。從該圈起，各桌交換
-            NS／EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。
+            NS/EW；搭檔移動與牌組輪轉仍依原編排，請以預覽方向為準。
           </small>
         </label>
       )}
@@ -474,7 +474,7 @@ export function MovementPanel({
                   <thead>
                     <tr>
                       <th>圈次</th>
-                      <th>桌號／室</th>
+                      <th>桌號/室</th>
                       <th>南北</th>
                       <th>東西</th>
                       <th>牌號</th>
@@ -487,7 +487,7 @@ export function MovementPanel({
                         <td>
                           {a.table}
                           {event.kind === 'teams' && !size
-                            ? `／${a.room === 'open' ? '開' : '閉'}`
+                            ? `/${a.room === 'open' ? '開' : '閉'}`
                             : ''}
                         </td>
                         <td>{name(a.ns)}</td>

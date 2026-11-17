@@ -58,10 +58,10 @@ export function ImportPanel({
         for (const r of rows) {
           const a = event.assignments.find((a) => a.id === r.assignmentId);
           if (!a?.boards.includes(r.board))
-            throw new Error(`桌次 ${r.assignmentId}／牌 ${r.board} 不在賽程內`);
+            throw new Error(`桌次 ${r.assignmentId} / 牌 ${r.board} 不在賽程內`);
         }
         setPreview(
-          `共 ${rows.length} 筆成績，將新增或覆寫相同桌次／牌號。前 5 筆：\n${rows
+          `共 ${rows.length} 筆成績，將新增或覆寫相同桌次/牌號。前 5 筆：\n${rows
             .slice(0, 5)
             .map(
               (r) =>
@@ -90,7 +90,7 @@ export function ImportPanel({
         const rows = parseLineups(text, event);
         const additions = lineupRosterAdditions(rows, event);
         setPreview(
-          `共 ${rows.length} 組入座名單；僅更新所列桌次。\n${rows.map((r) => `${r.assignmentId}：${(['N', 'E', 'S', 'W'] as const).map((s) => `${s} ${r.playerNames[s] || '未指定'}`).join(' ／ ')}`).join('\n')}${additions.length ? '\n將新增隊員：\n' + additions.map((a) => `${a.teamName}：${a.names.join('、')}`).join('\n') : ''}`,
+          `共 ${rows.length} 組入座名單；僅更新所列桌次。\n${rows.map((r) => `${r.assignmentId}：${(['N', 'E', 'S', 'W'] as const).map((s) => `${s} ${r.playerNames[s] || '未指定'}`).join(' / ')}`).join('\n')}${additions.length ? '\n將新增隊員：\n' + additions.map((a) => `${a.teamName}：${a.names.join('、')}`).join('\n') : ''}`,
         );
       } else if (importType === 'round-times') {
         const rows = parseRoundTimes(text, event);
@@ -293,14 +293,14 @@ export function ImportPanel({
           {importType === 'results'
             ? '可下載成績 CSV 修改後匯入；保留 assignmentId 與 board。status 可填 played 或 cancelled；取消牌不計分，合約欄可全部留空。匯入 played 會恢復該筆取消成績，請先核對預覽。'
             : importType === 'rosters'
-              ? '每隊一列，以 teamId 對應現有隊伍，teamName 僅供辨識。賽員以頓號或分號（;／；）分隔；取代所列隊伍的完整名單與隊長，留白表示清空。未列出的隊伍保持不變；仍在入座名單中的賽員不可移除。'
+              ? '每隊一列，以 teamId 對應現有隊伍，teamName 僅供辨識。賽員以頓號或分號（;/；）分隔；取代所列隊伍的完整名單與隊長，留白表示清空。未列出的隊伍保持不變；仍在入座名單中的賽員不可移除。'
               : importType === 'lineups'
                 ? '欄位：assignmentId,N,E,S,W。新姓名會自動加入該座位所屬隊伍，預覽會列出新增隊員。空白座位表示清除，未列出的桌次保持不變。'
                 : importType === 'pbn'
                   ? event.knockout ? '可匯入加賽或其他已安排的未打牌號；已收分牌號不可更換。' : '牌型僅能在尚未收分時替換。'
                   : importType === 'round-times'
                     ? '欄位：round,startAt,endAt。時間使用 HH:mm（賽段開始日期）或 YYYY-MM-DD HH:mm，皆為臺灣時間。只更新所列圈次；開始與結束皆留空可清除該圈時間。時間不會自動切換圈次。'
-                    : `可先匯出賽程再修改，逐圈匯入時每圈須包含完整賽程；已收分的圈次不可更改，已結束賽段不可更改。${event.kind === 'teams' ? '一般隊制賽填 room：open／closed，同桌兩室方向相反、牌組相同。交錯循環另填 matchId 配對跨圈兩桌，須在收分前一次匯入完整賽程。奇數隊輪空可附 byeVp，預設 12。' : ''}`}
+                    : `可先匯出賽程再修改，逐圈匯入時每圈須包含完整賽程；已收分的圈次不可更改，已結束賽段不可更改。${event.kind === 'teams' ? '一般隊制賽填 room：open/closed，同桌兩室方向相反、牌組相同。交錯循環另填 matchId 配對跨圈兩桌，須在收分前一次匯入完整賽程。奇數隊輪空可附 byeVp，預設 12。' : ''}`}
         </p>
       </section>
       <section className="import-export-section">

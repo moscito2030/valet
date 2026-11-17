@@ -488,7 +488,7 @@ export function BoardsView({
               <table>
                 <thead>
                   <tr>
-                    {sortHeading('table', '桌／圈')}
+                    {sortHeading('table', '桌/圈')}
                     <th>
                       <button
                         type="button"
@@ -585,7 +585,7 @@ export function BoardsView({
           </div>
           {event.kind === 'teams' && (
             <p className="footnote">
-              {event.teamMethod === 'bam' ? 'BAM：以目前視角比較兩室原始分，依每牌勝／和／負給予 VP。' : awayPerspective
+              {event.teamMethod === 'bam' ? 'BAM：以目前視角比較兩室原始分，依每牌勝/和/負給予 VP。' : awayPerspective
                 ? '目前為客隊視角：IMP 以左列第一支隊伍為正，閉室 NS 分減去開室 NS 分後換算。'
                 : '目前為主隊視角：IMP 以左列第一支隊伍為正，開室 NS 分減去閉室 NS 分後換算。'}
             </p>

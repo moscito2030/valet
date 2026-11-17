@@ -193,7 +193,7 @@ test('unfinished match can forfeit through UI without fabricated scores and staf
   await openKo(page, id);
   const forfeit = page
     .locator('form')
-    .filter({ has: page.getByRole('heading', { name: '棄權／退賽決勝' }) });
+    .filter({ has: page.getByRole('heading', { name: '棄權/退賽決勝' }) });
   await forfeit.getByLabel('棄權隊伍').selectOption('t1');
   await forfeit.getByLabel('原因', { exact: true }).fill('傷病無法繼續');
   await forfeit.getByRole('button', { name: '確認棄權決勝' }).click();

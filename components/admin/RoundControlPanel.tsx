@@ -54,7 +54,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
             <span>收分詳細設定</span>
           </button>
         ) : round > 0 && !reviewing && !finished && !collection ? (
-          <span className="badge">{settled ? '成績已發布' : `已收 ${progress.received}／${progress.expected} 副`}</span>
+          <span className="badge">{settled ? '成績已發布' : `已收 ${progress.received} / ${progress.expected} 副`}</span>
         ) : null}
       </div>
       <p className="round-workflow-description">

@@ -29,7 +29,7 @@ export function applyCollectionCommand(
     const mode = command.mode ?? e.club?.mode ?? 'pair';
     if (e.kind !== 'pairs' && mode !== 'table') throw new DomainError('隊制賽請使用大賽收分模式');
     if (mode === 'table' && !validDeviceSchedule(e))
-      throw new DomainError('同圈同桌有多筆安排，請先修正桌號／開閉室');
+      throw new DomainError('同圈同桌有多筆安排，請先修正桌號/開閉室');
     if (
       mode !== (e.club?.mode ?? 'pair') &&
       (Object.keys(e.results).length || e.club?.finalized.length)

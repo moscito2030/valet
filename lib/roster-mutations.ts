@@ -19,7 +19,7 @@ export function applyRosterMutation(e: BridgeEvent, command: RosterMutation) {
     const count=command.names.length, mode=command.rankingMode??e.rankingMode??(e.participants.some(p=>p.group)?'double':'single');
     if(new Set(command.names).size!==count)throw new DomainError('名稱不可重複');
     if(e.kind==='teams'&&(count===1||count>32||command.rankingMode))throw new DomainError('隊制賽需 2–32 隊，或留空稍後設定');
-    if(e.kind==='pairs'&&count>0&&(count<4||(mode==='double'&&(count<6||count%2))))throw new DomainError('雙人賽至少四對；Double Winner 須 NS／EW 各 3–40 對');
+    if(e.kind==='pairs'&&count>0&&(count<4||(mode==='double'&&(count<6||count%2))))throw new DomainError('雙人賽至少四對；Double Winner 須 NS/EW 各 3–40 對');
     if(e.participants.some(p=>!command.names.includes(p.name)&&(p.players||p.captain||e.penalties?.[p.id])))throw new DomainError('移除的隊伍已有賽員或判罰資料，請先處理原有資料');
     let next=Math.max(0,...e.participants.map(p=>Number(p.id.slice(1))||0))+1;
     e.participants=command.names.map((name,i)=>{

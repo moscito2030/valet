@@ -124,7 +124,7 @@ export function StandingsView({
                 <th className="rank-col">排名</th>
 
                 <th>{event.kind === 'teams' ? '隊伍' : '搭檔'}</th>
-                <th>完成／安排牌數</th>
+                <th>完成/安排牌數</th>
                 <th className="score-col">
                   {event.kind === 'teams' ? '累計 VP' : pairMethod === 'mp' ? '總百分比' : '總 IMP'}
                 </th>

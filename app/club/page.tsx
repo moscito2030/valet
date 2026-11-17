@@ -117,9 +117,9 @@ export default function ClubPage() {
     {error && <div className="alert error" role="alert">{error}</div>}
     {notice && <div className="alert success" role="status">{notice}</div>}
     {!data ? <p>正在讀取專屬收分卡…</p> : <>
-      {data.mode === 'table' && <p className="footnote">裝置留在本桌，換圈後自動載入本桌安排。請核對南北／東西與牌號，輸入完成後交給對方確認。</p>}
+      {data.mode === 'table' && <p className="footnote">裝置留在本桌，換圈後自動載入本桌安排。請核對南北/東西與牌號，輸入完成後交給對方確認。</p>}
       {data.tableGuide && <section className="panel club-section" aria-label="本桌下一圈安排">
-        {data.tableGuide.kind === 'table' ? <><h2>下一圈 · 第 {data.tableGuide.roundLabel} 圈</h2><p>{data.tableGuide.label} · 南北 <PairDisplayName name={data.tableGuide.ns} /> ／ 東西 <PairDisplayName name={data.tableGuide.ew} /></p><p>牌號：{boardRange(data.tableGuide.boards)}</p><p>裝置留在本桌，等待裁判開放下一圈。</p></> : data.tableGuide.kind === 'complete' ? <><h2>沒有下一圈</h2><p>請依裁判指示結束。</p></> : <><h2>等待本桌下一圈安排</h2><p>尚無可顯示的對戰，公布後會自動更新；無須將裝置帶走。</p></>}
+        {data.tableGuide.kind === 'table' ? <><h2>下一圈 · 第 {data.tableGuide.roundLabel} 圈</h2><p>{data.tableGuide.label} · 南北 <PairDisplayName name={data.tableGuide.ns} /> / 東西 <PairDisplayName name={data.tableGuide.ew} /></p><p>牌號：{boardRange(data.tableGuide.boards)}</p><p>裝置留在本桌，等待裁判開放下一圈。</p></> : data.tableGuide.kind === 'complete' ? <><h2>沒有下一圈</h2><p>請依裁判指示結束。</p></> : <><h2>等待本桌下一圈安排</h2><p>尚無可顯示的對戰，公布後會自動更新；無須將裝置帶走。</p></>}
       </section>}
       {data.guide && <section className="panel club-section" aria-label="下一圈 Guide card">
         <span className="eyebrow">GUIDE CARD</span>
@@ -146,12 +146,12 @@ export default function ClubPage() {
           </div>
           <p className="club-entry-hint">{data.status === 'finished' ? '賽段已結束，成績已定案。' : data.status === 'review' ? '成績覆核中，如有疑義請向裁判提出更正。' : data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
-            <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} ／ EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
+            <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} / EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
             {b.result && b.result.status !== 'cancelled' && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
             {b.result && <HcpSummary hcp={b.result.hcp} />}
             {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} title={draft?.board === b.number ? b.result ? '關閉更正介面' : '關閉輸入介面' : undefined} aria-expanded={draft?.board === b.number} aria-controls={draft?.board === b.number ? 'club-score-editor' : undefined} onClick={() => draft?.board === b.number ? setDraft(null) : edit(b.number)}>{draft?.board === b.number ? '關閉' : b.result ? '更正' : '輸入'}</button>}
           </div>)}</div>
-          <p>輸入：<PairDisplayName name={roleName(data.roles?.inputPair)} /> ／ 確認：<PairDisplayName name={roleName(data.roles?.confirmPair)} /> · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
+          <p>輸入：<PairDisplayName name={roleName(data.roles?.inputPair)} /> / 確認：<PairDisplayName name={roleName(data.roles?.confirmPair)} /> · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
         </> : <p>{data.round ? data.mode === 'table' ? '本桌本圈尚無可收分安排，請等待裁判。' : '本圈輪空，無需輸入或確認。' : '等待裁判指定目前圈數。'}</p>}
       </section>
       {draft && editable && <form id="club-score-editor" className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>

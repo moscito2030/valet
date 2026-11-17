@@ -28,6 +28,6 @@ test('blank explanations retain score changes in the audit trail', () => {
   const a = event.assignments[0];
   const command = mutationSchema.parse({ action: 'results', revision: 1, requestId: randomUUID(), results: [{ assignmentId: a.id, board: 1, level: 1, strain: 'NT', doubled: 1, declarer: 'N', tricks: 7, lead: '' }] });
   const saved = applyMutation({ event, projection: project(event), requests: [] }, command);
-  assert.equal(saved.event.audit.at(-1)?.reason, '輸入／更正成績');
+  assert.equal(saved.event.audit.at(-1)?.reason, '輸入/更正成績');
   assert.equal(saved.event.audit.at(-1)?.changes?.length, 1);
 });

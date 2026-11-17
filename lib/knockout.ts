@@ -44,14 +44,14 @@ export function validateKnockout(
     for (const source of [node.a, node.b]) {
       if (source.kind === 'bye') continue;
       const key = source.kind + ':' + source.id;
-      if (used.has(key)) throw new DomainError('同一隊伍或勝／敗方出口不能重複使用');
+      if (used.has(key)) throw new DomainError('同一隊伍或勝/敗方出口不能重複使用');
       used.add(key);
       if (source.kind === 'team') {
         if (!teams.has(source.id)) throw new DomainError('對戰表包含未知隊伍');
         all.add(source.id);
       } else {
         const previous = seen.get(source.id);
-        if (!previous) throw new DomainError('勝／敗方來源必須是前面已設定的對局，不能循環引用');
+        if (!previous) throw new DomainError('勝/敗方來源必須是前面已設定的對局，不能循環引用');
         if (previous.startRound + previous.rounds > node.startRound)
           throw new DomainError('後續對局必須在來源對局全部圈次結束後開始');
         if (source.kind === 'loser' && (previous.a.kind === 'bye' || previous.b.kind === 'bye'))

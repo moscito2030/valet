@@ -45,8 +45,8 @@ export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
           >
             <header className="team-butler-heading">
               <div>
-                <h3 id={`${id}-title`}>個人／搭檔 Butler 統計</h3>
-                <p>Individual / Pair Butler Score</p>
+                <h3 id={`${id}-title`}>個人/搭檔 Butler 統計</h3>
+                <p>Individual/Pair Butler Score</p>
               </div>
               <button
                 type="button"
@@ -167,12 +167,12 @@ export function TeamButlerPopover({ event, teamId, inline = false }: Props) {
               {stats.missingNames > 0 && (
                 <p>
                   全場有 {stats.missingNames}{' '}
-                  筆方向／牌次缺少完整或可區分的上場姓名，未納入搭檔統計；已知姓名仍計入個人統計。
+                  筆方向/牌次缺少完整或可區分的上場姓名，未納入搭檔統計；已知姓名仍計入個人統計。
                 </p>
               )}
               <p>
                 Butler：以{isInterleaved(event.assignments) ? '跨圈同牌' : '同圈同牌'}各方向有效獲判分平均，四捨五入至十位作為
-                Datum，不去頭去尾。正／負平均各除以正／負分牌數；總平均與每牌 IMP 均為總 IMP ÷
+                Datum，不去頭去尾。正/負平均各除以正/負分牌數；總平均與每牌 IMP 均為總 IMP ÷
                 有效牌數。商數＝正 IMP 總和 ÷ 負 IMP 總和絕對值（無負分且有正分為 ∞，全零為 —）。
               </p>
               <p>

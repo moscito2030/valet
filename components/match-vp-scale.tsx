@@ -81,7 +81,7 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
         </p>
         <p>
           {bam
-            ? `每牌勝／和／負 ${event.bam?.win ?? 2}／${event.bam?.draw ?? 1}／${event.bam?.loss ?? 0} VP，直接加總`
+            ? `每牌勝/和/負 ${event.bam?.win ?? 2} / ${event.bam?.draw ?? 1} / ${event.bam?.loss ?? 0} VP，直接加總`
             : 'WBF 20–0 · 依原訂牌數換算'}
         </p>
         <p>

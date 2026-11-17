@@ -113,7 +113,7 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
         </svg>
       </div>
       <div className="pair-chart-footer">
-        <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平／取消</span></div>
+        <div className="pair-chart-legend"><span><i className="gain" />上升</span><span><i className="loss" />下降</span><span><i className="flat" />持平/取消</span></div>
         <span>未扣罰分</span>
       </div>
 

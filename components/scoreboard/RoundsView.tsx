@@ -52,7 +52,7 @@ export function RoundsView({
               ? event.teamMethod === 'bam'
                 ? '查看各圈 BAM VP 與收分進度。'
                 : '查看各圈 IMP 比較與收分進度。'
-              : '查看桌次、南北／東西搭檔與牌組安排。'}
+              : '查看桌次、南北/東西搭檔與牌組安排。'}
           </p>
         </div>
         <RoundSelect event={event} count={event.rounds} round={round} setRound={setRound} />

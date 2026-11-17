@@ -90,7 +90,7 @@ export function KnockoutControls({
         </>
       )}
       <form onSubmit={submit('knockout-forfeit')}>
-        <h5>棄權／退賽決勝</h5>
+        <h5>棄權/退賽決勝</h5>
         <label className="field">
           棄權隊伍
           <select name="loser" required defaultValue="">

@@ -97,7 +97,7 @@ export function KnockoutView({ event }: { event: PublicEvent }) {
                       {n.winnerPlace && (
                         <p className="footnote">
                           勝方第 {n.winnerPlace} 名
-                          {n.loserPlace ? `／敗方第 ${n.loserPlace} 名` : ''}
+                          {n.loserPlace ? ` / 敗方第 ${n.loserPlace} 名` : ''}
                         </p>
                       )}
                     </article>

@@ -49,7 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (body.result) seen ??= current;
       try {
         const { baseUpdatedAt: _base, ...command } = body;
-        await mutateEvent(id, { ...command, action: 'club-play', tokenHash, revision: event.revision, reason: body.confirm ? '搭檔確認本圈' : '搭檔輸入／更正' });
+        await mutateEvent(id, { ...command, action: 'club-play', tokenHash, revision: event.revision, reason: body.confirm ? '搭檔確認本圈' : '搭檔輸入/更正' });
         return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
       } catch (e) {
         if (!isStageRevisionConflict(e) || attempt === 4) throw e;

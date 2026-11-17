@@ -21,7 +21,7 @@ export function validateInterleavedLineups(assignments: Assignment[]) {
       const cycle = Math.floor((a.round - 1) / cycleLength);
       const key = JSON.stringify([cycle, a[side], name]);
       if (directions.has(key) && directions.get(key) !== side)
-        throw new Error(`${name} 在同一交錯循環中不可交換南北／東西搭檔，以免重打牌`);
+        throw new Error(`${name} 在同一交錯循環中不可交換南北/東西搭檔，以免重打牌`);
       directions.set(key, side);
     }
 }
