@@ -86,6 +86,7 @@ test('public Swiss schedules never expose scoring snapshots before or after club
     assert.deepEqual(publicData.assignments.map(a => a.id), s.e.assignments.map(a => a.id));
     assert.deepEqual(s.e.swiss, privateSnapshot, 'redaction must not mutate director snapshots');
     s.e.club!.finalized = [1];
+    for (const board of s.e.boards) board.published = true;
     const finalized = audienceEvent(s.e);
     assert.ok(Object.keys(finalized.results).length);
     assert.ok(finalized.swiss!.publications.every(p => !p.scores.length && !p.basis.length && !p.byeBasis.length));
@@ -94,6 +95,7 @@ test('public Swiss schedules never expose scoring snapshots before or after club
   odd.apply({ action: 'swiss-publish', round: 1, partial: false });
   fill(odd.e, 1);
   odd.e.club = { enabled: true, tokens: {}, confirmations: {}, finalized: [1] };
+  for (const board of odd.e.boards) board.published = true;
   const publicOdd = audienceEvent(odd.e);
   assert.ok(publicOdd.swiss!.publications.some(p => p.bye));
   assert.ok(publicOdd.projection.byes!.some(b => b.round === 1 && b.awarded));

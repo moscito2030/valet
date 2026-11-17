@@ -139,3 +139,80 @@ test('a board played only in a settled round is published while a replayed board
   assert.equal(pub.results[resultKey(last.id, laterOnly)].lead, 'SQ');
   assert.equal(JSON.stringify(pub).includes('"lead":"HK"'), false);
 });
+
+test('declining publication keeps finished board scores out of pair results and standings', () => {
+  const event = howell();
+  event.pairMethod = 'butler';
+  for (const board of event.boards) board.published = false;
+  assert.ok([4, 5, 6].every((number) => event.boards.some((board) => board.number === number)));
+  let sequence = 1;
+  for (const assignment of event.assignments)
+    for (const board of assignment.boards) {
+      const result = score(event, assignment.id, board, 'HK');
+      result.nsScore = sequence++ * 50;
+    }
+  event.club = {
+    enabled: true,
+    tokens: {},
+    confirmations: {},
+    finalized: Array.from({ length: event.rounds }, (_, index) => index + 1),
+  };
+  const stored = project(event);
+  assert.ok(stored.standings.some((row) => row.played > 0 && row.score !== 0));
+  const hidden = audienceEvent(event, stored);
+  assert.equal(Object.keys(hidden.results).length, 0);
+  assert.deepEqual(hidden.projection.pairScores, {});
+  assert.ok(hidden.projection.standings.every((row) => row.played === 0 && row.score === 0));
+  assert.equal(JSON.stringify(hidden).includes('"lead":"HK"'), false);
+  assert.equal(JSON.stringify(hidden).includes('"nsScore"'), false);
+  assert.ok(hidden.boards.every((board) => board.published === false && !('deal' in board)));
+  assert.notDeepEqual(
+    hidden.projection.standings.map((row) => row.score),
+    stored.standings.map((row) => row.score),
+  );
+
+  for (const number of [4, 5, 6]) event.boards.find((board) => board.number === number)!.published = true;
+  const released = audienceEvent(event, project(event));
+  const shown = Object.values(released.results);
+  assert.ok(shown.length > 0);
+  assert.ok(shown.every((result) => [4, 5, 6].includes(result.board) && result.lead === 'HK'));
+  assert.equal(Object.keys(released.projection.pairScores).length, shown.length);
+  assert.ok(Object.values(released.projection.pairScores).some((score) => score.datum !== undefined));
+  assert.ok(released.projection.standings.some((row) => row.played > 0 && row.score !== 0));
+  const onlyGroup = Object.fromEntries(
+    Object.entries(event.results).filter(([, result]) => [4, 5, 6].includes(result.board)),
+  );
+  assert.deepEqual(released.projection.standings, project({ ...event, results: onlyGroup }).standings);
+  assert.deepEqual(released.projection.pairScores, project({ ...event, results: onlyGroup }).pairScores);
+  for (const number of [4, 5, 6]) {
+    const board = released.boards.find((item) => item.number === number)!;
+    assert.equal(board.published, true);
+    assert.equal('deal' in board, true);
+  }
+  assert.ok(
+    released.boards
+      .filter((board) => ![4, 5, 6].includes(board.number))
+      .every((board) => board.published === false && !('deal' in board)),
+  );
+});
+
+test('director scoring does not release a completed board before the director publishes it', () => {
+  const event = howell();
+  for (const board of event.boards) board.published = false;
+  for (const assignment of event.assignments)
+    for (const board of assignment.boards) score(event, assignment.id, board, 'HK');
+  const stored = project(event);
+  const hidden = audienceEvent(event, stored);
+  assert.equal(Object.keys(hidden.results).length, 0);
+  assert.deepEqual(hidden.projection.pairScores, {});
+  assert.ok(hidden.projection.standings.every((row) => row.played === 0));
+  assert.equal(JSON.stringify(hidden).includes('"lead":"HK"'), false);
+  assert.notDeepEqual(hidden.projection.standings, stored.standings);
+  const number = event.boards[0].number;
+  event.boards[0].published = true;
+  const one = audienceEvent(event, project(event));
+  assert.ok(Object.values(one.results).length > 0);
+  assert.ok(Object.values(one.results).every((result) => result.board === number));
+  assert.ok(Object.keys(one.projection.pairScores).every((key) => key.endsWith(`:${number}`)));
+  assert.ok(one.projection.standings.some((row) => row.played > 0));
+});

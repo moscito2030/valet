@@ -148,6 +148,7 @@ test('BAM unpublished club results remain private and interleaved compares each 
   e.club = { enabled: true, tokens: {}, confirmations: {}, finalized: [] };
   assert.ok(audienceEvent(e).projection.matches.every((m) => m.vpA === null));
   e.club.finalized = [1];
+  for (const board of e.boards) board.published = true;
   assert.ok(audienceEvent(e).projection.matches.every((m) => m.vpA === 3));
   const triangle = createEvent({
     name: 'BAM triangle',

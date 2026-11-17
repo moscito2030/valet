@@ -112,9 +112,17 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     ? new Set(event.assignments.filter((a) => finalized.has(a.round) || published.has(a.id) || exempt.has(a.id)).map((a) => a.id))
     : null;
   const waiting = boardsStillInPlay(event);
+  // Hands already follow `published`. Scores, pair IMPs and standings must too:
+  // finishing every table, or settling the round, does not publish a board the director left hidden.
+  const publishedBoards = new Set(
+    event.boards.filter((b) => b.published ?? event.publishBoards).map((b) => b.number),
+  );
   const results = Object.fromEntries(
     Object.entries(data.results).filter(
-      ([, r]) => !waiting.has(r.board) && (!visible || visible.has(r.assignmentId)),
+      ([, r]) =>
+        publishedBoards.has(r.board) &&
+        !waiting.has(r.board) &&
+        (!visible || visible.has(r.assignmentId)),
     ),
   );
   const safe = { ...data, results };
@@ -125,8 +133,8 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   return {
     ...safe,
     boards,
-    // Receipt counts use every stored result. Club scores stay out of `results`
-    // until the round is settled, so the rounds table cannot count those rows.
+    // Receipt counts use every stored result and do not include contracts.
+    // Scores stay out of `results` until the director publishes the board and it is no longer in play.
     enteredBoards: enteredBoardCounts(event),
     // Same stored results, summed the way standings count 完成. Only the numbers
     // are public; the projection below still scores the filtered results.

@@ -135,6 +135,7 @@ test('club visibility withholds unpublished round awards and corrections update 
   const e = fixture();
   fill(e, (a) => Number(a.table) * 100);
   e.club = { enabled: true, tokens: {}, confirmations: {}, finalized: [1] };
+  for (const board of e.boards) board.published = true;
   let rows = winAwardStats(audienceEvent(e));
   assert.ok(rows.every((r) => r.pending === 2 && r.win + r.loss + r.draw === 1));
   fill(e, () => 100);

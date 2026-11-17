@@ -138,7 +138,7 @@ export function PublicationPanel({
         <>
           <h4>依牌組公開牌型</h4>
           <p>
-            每個按鈕一次公開或隱藏所列牌號的手牌、PBN 與雙夢家分析。牌組由 PBN
+            每個按鈕一次公開或隱藏所列牌號的手牌與各桌成績。公開後這些牌計入排名。牌組由 PBN
             指定，未指定時依每圈牌數自動分組。已下載的牌型無法收回。
           </p>
           <div className="publication-grid">
@@ -157,7 +157,7 @@ export function PublicationPanel({
                       action: 'board-publication',
                       board: b.number,
                       published: !published,
-                      reason: `牌 ${label} ${published ? '隱藏' : '公開'}牌型`,
+                      reason: `牌 ${label} ${published ? '隱藏' : '公開'}成績與牌型`,
                     })
                   }
                 >

@@ -62,7 +62,7 @@ export function StartRoundButton({
             ))}
           </ul>
           <p className="footnote">
-            公開後可查看手牌、PBN 與雙夢家分析。已下載的牌型無法收回；本圈排名已隨結算更新。
+            公開後可查看手牌、各桌成績，並計入排名。暫不公開則這些牌的成績先不發布。已下載的牌型無法收回。
           </p>
           <div className="button-row round-workflow-actions">
             <button

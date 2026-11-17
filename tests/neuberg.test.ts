@@ -71,8 +71,10 @@ test('creation validates Neuberg scope and audience projection retains setting w
   assert.equal(createSchema.safeParse({ ...input, pairMethod: 'butler' }).success, false);
   const e = fixture(); scores(e, 1, [400, 300, 200]); scores(e, 2, [100,200,300,400]);
   e.club = { enabled: true, tokens: {}, confirmations: {}, finalized: [1] };
+  for (const board of e.boards) board.published = true;
   const publicView = audienceEvent(e);
   assert.equal(publicView.neuberg, true);
+  assert.ok(Object.values(publicView.results).length > 0);
   assert.ok(Object.values(publicView.results).every(r => r.board === 1));
   assert.deepEqual(publicView.projection, project({ ...e, results: publicView.results }));
 });
