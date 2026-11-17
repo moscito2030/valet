@@ -46,7 +46,7 @@ export function PublicationPanel({
           <input type="checkbox" name="showScoreCandles" key={String(event.showScoreCandles !== false)} defaultChecked={event.showScoreCandles !== false} disabled={busy} />
           展示 K 棒
         </label>
-        <p className="footnote">適用於全場共牌的雙人賽。</p>
+        <p className="footnote">適用於雙人賽。</p>
         <label className="checkbox-label">
           <input type="checkbox" name="danmakuDefaultEnabled" key={String(!!event.danmakuDefaultEnabled)} defaultChecked={!!event.danmakuDefaultEnabled} disabled={busy} />
           彈幕預設啟動

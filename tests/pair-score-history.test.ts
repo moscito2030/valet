@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEvent } from '../lib/events';
 import { audienceEvent } from '../lib/club-view';
-import { boardButlerVolume, pairScoreHistory, usesCommonBoards } from '../lib/pair-score-history';
+import { buildMovement } from '../lib/movement-plans';
+import { boardButlerVolume, pairScoreHistory } from '../lib/pair-score-history';
 import type { Result } from '../lib/model';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -48,11 +49,16 @@ test('table hover highlights the matching candle and clears without an external 
   assert.doesNotMatch(render(null), /pair-chart-candle flat selected/);
 });
 
-test('common-board detection uses scheduled boards, independent of movement labels', () => {
+test('common-board history stays in board order, including boards listed backwards in a round', () => {
   const e = fixture();
-  assert.ok(usesCommonBoards(e));
-  e.assignments[0].boards = [99];
-  assert.equal(usesCommonBoards(e), false);
+  assert.deepEqual(pairScoreHistory(e, 'p1').map(p => [p.round, p.board]), [[1, 1], [2, 2], [3, 3]]);
+  const wider = audienceEvent(createEvent({
+    name: 'Common boards', kind: 'pairs', movementPlan: 'double-barometer',
+    names: ['A', 'B', 'C', 'D', 'E', 'F'], rounds: 2, boardsPerRound: 2,
+    date: '2026-10-20', venue: '',
+  }));
+  for (const assignment of wider.assignments) assignment.boards.reverse();
+  assert.deepEqual(pairScoreHistory(wider, 'p1').map(p => [p.round, p.board]), [[1, 1], [1, 2], [2, 3], [2, 4]]);
 });
 test('IMP accumulates the selected side, preserving gaps and fractional precision', () => {
   const e = fixture();
@@ -94,7 +100,42 @@ test('wicks use the field on the selected side, added to the previous cumulative
   assert.match(html, /累積.*IMP/);
   assert.match(html, /role="button"/);
   e.assignments[0].boards = [99];
-  assert.equal(renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1' })), '');
+  assert.match(renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1' })), /逐副累積成績 K 棒/);
+});
+
+test('Howell movement renders candles in the order a pair played the boards, with cross-round wicks', () => {
+  const raw = createEvent({
+    name: 'Howell', kind: 'pairs', names: ['A', 'B', 'C', 'D', 'E', 'F'],
+    rounds: 5, boardsPerRound: 1, date: '2026-11-16', venue: '',
+  });
+  const plan = buildMovement(raw, 'howell-3-5');
+  raw.assignments = plan.assignments;
+  raw.participants = plan.participants;
+  const e = audienceEvent(raw);
+  e.pairMethod = 'crossimp';
+  const played = (board: number) => e.assignments.filter(a => a.boards.includes(board));
+  const score = (assignmentId: string, board: number, ns: number, ew: number) => {
+    e.projection.pairScores[`${assignmentId}:${board}`] = { ns, ew, top: 4, provisional: false };
+  };
+  // p1 sits EW on board 1 (round 1) and board 4 (round 2). Board-number order would be 1, 2, 3, 4, 5.
+  for (const a of played(1)) score(a.id, 1, a.ew === 'p1' ? -3 : a.ew === 'p2' ? 4 : -1, a.ew === 'p1' ? 3 : a.ew === 'p2' ? -4 : 1);
+  for (const a of played(4)) score(a.id, 4, a.ew === 'p1' ? -5 : a.ew === 'p5' ? 2 : 1, a.ew === 'p1' ? 5 : a.ew === 'p5' ? -2 : -1);
+  for (const a of played(4)) {
+    e.results[`${a.id}:4`] = {
+      assignmentId: a.id, board: 4, level: 4, strain: 'S', doubled: 1, declarer: 'N', tricks: 10, lead: '', nsScore: 420, updatedAt: '',
+    };
+  }
+  const history = pairScoreHistory(e, 'p1');
+  assert.deepEqual(history.map(p => [p.round, p.board]), [[1, 1], [2, 4], [3, 2], [4, 3], [5, 5]]);
+  assert.notDeepEqual(history.map(p => p.board), [...history.map(p => p.board)].sort((a, b) => a - b));
+  assert.deepEqual([history[0].open, history[0].close, history[0].low, history[0].high], [0, 3, -4, 3]);
+  assert.deepEqual([history[1].open, history[1].close, history[1].low, history[1].high], [3, 8, 1, 8]);
+  assert.equal(played(4).map(a => a.round).sort((a, b) => a - b).join(','), '1,2,4');
+  assert.deepEqual(boardButlerVolume(e, 4), { value: 0, spread: 0, tables: 3, provisional: false });
+  const html = renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1' }));
+  assert.match(html, /逐副累積成績 K 棒/);
+  assert.match(html, /pair-chart-wick/);
+  assert.deepEqual([...html.matchAll(/aria-label="牌 (\d+)：/g)].map(m => Number(m[1])), [1, 4, 2, 3, 5]);
 });
 
 test('MP wick endpoints use each field result with the accumulated top', () => {

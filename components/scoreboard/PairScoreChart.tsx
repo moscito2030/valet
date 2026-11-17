@@ -5,7 +5,7 @@ import { CircleHelp } from 'lucide-react';
 import { ScoreValue } from '../score-value';
 import { formatScore } from '@/lib/score-format';
 import type { PublicEvent } from '@/lib/model';
-import { boardButlerVolume, pairScoreHistory, usesCommonBoards } from '@/lib/pair-score-history';
+import { boardButlerVolume, pairScoreHistory } from '@/lib/pair-score-history';
 
 export function PairScoreChart({ event, person, hoveredBoard = null }: { event: PublicEvent; person: string; hoveredBoard?: number | null }) {
   const [selected, setSelected] = useState<number | null>(null);
@@ -13,7 +13,6 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
   const [focused, setFocused] = useState<number | null>(null);
   const [availableWidth, setAvailableWidth] = useState(360);
   const scroller = useRef<HTMLDivElement>(null);
-  const commonBoards = usesCommonBoards(event);
   const points = pairScoreHistory(event, person);
   const valid = points.filter(p => p.close !== null);
   const hasScores = valid.length > 0;
@@ -23,10 +22,9 @@ export function PairScoreChart({ event, person, hoveredBoard = null }: { event: 
     const observer = new ResizeObserver(() => setAvailableWidth(element.clientWidth));
     observer.observe(element);
     return () => observer.disconnect();
-  }, [commonBoards, hasScores]);
+  }, [hasScores]);
   const notesId = useId();
   const notesTrigger = useRef<HTMLButtonElement>(null);
-  if (!commonBoards) return null;
   const mp = (event.pairMethod ?? 'mp') === 'mp';
   const unit = mp ? '%' : 'IMP';
   const format = (v: number) => formatScore(v, { unit });

@@ -21,31 +21,16 @@ export function boardButlerVolume(event: PublicEvent, board: number) {
   return { value, spread, tables: valid.length, provisional: results.some(r => !r) };
 }
 
-// Identify common-board movements from the actual schedule, including imported movements.
-export function usesCommonBoards(event: Pick<PublicEvent, 'kind' | 'assignments'>) {
-  if (event.kind !== 'pairs' || !event.assignments.length) return false;
-  const rounds = new Map<number, string>();
-  const boardRounds = new Map<number, number>();
-  for (const a of event.assignments) {
-    if (!a.boards.length) return false;
-    const signature = [...a.boards].sort((a, b) => a - b).join(',');
-    if (rounds.has(a.round) && rounds.get(a.round) !== signature) return false;
-    rounds.set(a.round, signature);
-    for (const board of a.boards) {
-      if (boardRounds.has(board) && boardRounds.get(board) !== a.round) return false;
-      boardRounds.set(board, a.round);
-    }
-  }
-  return true;
-}
-
 export function pairScoreHistory(event: PublicEvent, person: string) {
   const mp = (event.pairMethod ?? 'mp') === 'mp';
   let total = 0, top = 0, previous = mp ? 50 : 0;
   return event.assignments
     .filter(a => a.ns === person || a.ew === person)
     .flatMap(a => a.boards.map(board => ({ a, board })))
-    .sort((a, b) => a.board - b.board)
+    // Follow the round this pair played the board, then board number. Common-board
+    // schedules give every table the same ascending boards each round, so this
+    // matches sorting by board number alone.
+    .sort((x, y) => x.a.round - y.a.round || x.board - y.board)
     .map(({ a, board }) => {
       const score = event.projection.pairScores[resultKey(a.id, board)];
       const value = score ? (a.ns === person ? score.ns : score.ew) : null;

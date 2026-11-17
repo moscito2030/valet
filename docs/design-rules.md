@@ -45,6 +45,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 
 - 成績元件共用 components/score-value.tsx 與 lib/score-format.ts；緊湊小數由 components/compact-imp.tsx 呈現：小數縮小、加底線，視覺隱藏小數點；輔助閱讀仍讀到正常數值。
 - 格式化只影響顯示，不改計算精度。
+- K 棒適用於所有雙人賽編排，包含 Howell、Mitchell、匯入與任意賽程。累積依該對出牌順序排列：先圈次，同圈再依牌號。影線與全場起伏都以該副全部桌次計算，各桌可在不同圈打這副牌。隊制賽不顯示。
 - K 棒明細順序：前值、本副後、全場起伏、最大分差。只有本副後依上升/下降著色，其餘文字原色。
 - 前值、本副後、全場起伏顯示兩位小數；最大分差顯示整數。
 - 明細省略 IMP，保留 %，百分號前留少量間距。右上累積分數始終保留 % 或 IMP。
