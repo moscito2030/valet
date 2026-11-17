@@ -32,10 +32,9 @@ const seats: { id: Seat; label: string; text: string }[] = [
   { id: 'S', label: '南', text: 'S' },
   { id: 'W', label: '西', text: 'W' },
 ];
-const doubles = [
-  { id: '1', label: '未加倍', text: '無' },
-  { id: '2', label: '加倍', text: 'x' },
-  { id: '4', label: '再加倍', text: 'xx' },
+const doubleOptions: { id: 2 | 4; label: string }[] = [
+  { id: 2, label: '賭倍（DBL）' },
+  { id: 4, label: '再賭倍（RDBL）' },
 ];
 
 function moveRadio(event: KeyboardEvent<HTMLDivElement>) {
@@ -109,6 +108,40 @@ function ChipRow({
   );
 }
 
+function DoubledRow({
+  value,
+  disabled,
+  onSelect,
+}: {
+  value: 1 | 2 | 4 | null;
+  disabled?: boolean;
+  onSelect: (doubled: 1 | 2 | 4) => void;
+}) {
+  const labelId = useId();
+  return (
+    <div className={`contract-group${disabled ? ' is-inactive' : ''}`}>
+      <div className="contract-group-label" id={labelId}>賭倍（選填）</div>
+      <div role="group" aria-labelledby={labelId} className="contract-chip-row doubles">
+        {doubleOptions.map((option) => {
+          const pressed = !disabled && value === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              className="contract-chip"
+              aria-pressed={pressed}
+              disabled={!!disabled}
+              onClick={() => onSelect(value === option.id ? 1 : option.id)}
+            >
+              <span>{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function initialPage(value: ContractChoice): number {
   if (value.level == null || value.level < 1 || value.tricks == null) return 0;
   return pageForDelta(value.tricks - value.level - 6);
@@ -123,7 +156,6 @@ export function ContractEntry({
   showDeclarer = true,
   showDoubled = true,
   showTricks = true,
-  doubledLabel = '賭倍',
 }: {
   value: ContractChoice;
   onChange: (value: ContractChoice) => void;
@@ -133,7 +165,6 @@ export function ContractEntry({
   showDeclarer?: boolean;
   showDoubled?: boolean;
   showTricks?: boolean;
-  doubledLabel?: string;
 }) {
   const trickLabel = useId();
   const rangeId = useId();
@@ -195,13 +226,10 @@ export function ContractEntry({
         />
       )}
       {showDoubled && (
-        <ChipRow
-          label={doubledLabel}
-          className="doubles"
-          options={doubles}
-          selected={contractLevel && value.doubled ? String(value.doubled) : null}
+        <DoubledRow
+          value={value.doubled}
           disabled={!open}
-          onSelect={(id) => onChange({ ...value, doubled: Number(id) as 1 | 2 | 4 })}
+          onSelect={(doubled) => onChange({ ...value, doubled })}
         />
       )}
       {showTricks && (

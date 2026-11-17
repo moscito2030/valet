@@ -20,7 +20,7 @@ import type { ResultInput } from '../lib/model';
 
 const base = { assignmentId: 'a1', board: 3, lead: '' };
 
-test('a new contract choice stores nothing until every part is chosen', () => {
+test('a new contract stores nothing until level, suit, declarer and tricks are chosen', () => {
   const choice = emptyContractChoice();
   assert.equal(storedContract(choice), null);
   assert.equal(storedContract({ ...choice, level: 1 }), null);
@@ -63,7 +63,20 @@ test('a complete contract round-trips without inventing fields', () => {
   const form = scoreFormFromResult(played);
   assert.deepEqual(parsedResult(form), played);
   assert.equal(contractScore(parsedResult(form)!, 'None'), 70);
-  assert.equal(parsedResult({ ...form, choice: { ...form.choice, doubled: null } }), null);
+  assert.deepEqual(parsedResult({ ...form, choice: { ...form.choice, doubled: null } }), played);
+});
+
+test('doubling is optional and an untouched contract stays undoubled', () => {
+  const choice = { ...emptyContractChoice(), level: 1, strain: 'C' as const, declarer: 'N' as const, tricks: 7 };
+  const stored = storedContract(choice);
+  assert.deepEqual(stored, { level: 1, strain: 'C', doubled: 1, declarer: 'N', tricks: 7, lead: '' });
+  const omitted = parsedResult({ ...emptyScoreForm('a1', 3), choice });
+  const explicit = parsedResult({ ...emptyScoreForm('a1', 3), choice: { ...choice, doubled: 1 } });
+  assert.deepEqual(omitted, explicit);
+  assert.equal(contractScore(omitted!, 'None'), 70);
+  assert.equal(storedContract({ ...choice, doubled: 2 })?.doubled, 2);
+  assert.equal(storedContract({ ...choice, doubled: 4 })?.doubled, 4);
+  assert.equal(storedContract({ ...choice, tricks: null }), null);
 });
 
 test('trick pages stay centred on contract and stop at 0 and 13 tricks', () => {
