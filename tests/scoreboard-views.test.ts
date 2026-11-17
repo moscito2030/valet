@@ -13,7 +13,7 @@ import { RoundsView } from '../components/scoreboard/RoundsView';
 import { StandingsView } from '../components/scoreboard/StandingsView';
 import { audienceEvent } from '../lib/club-view';
 import { applyMutation, createEvent } from '../lib/events';
-import { mutationSchema, resultKey, type StoredEvent } from '../lib/model';
+import { mutationSchema, resultKey, type Mutation, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
 
 const noop = () => {};
@@ -326,6 +326,71 @@ test('contract Butler display is opt-in and does not remove raw scores or summar
     await render();
     assert.equal(view.button('顯示單副 Butler')?.getAttribute('aria-checked'), 'false');
   });
+});
+
+test('round table shows a club submission before east-west confirmation publishes it', () => {
+  const raw = createEvent({
+    name: '俱樂部收分',
+    kind: 'pairs',
+    pairMethod: 'crossimp',
+    trim: 'none',
+    date: '2026-11-17',
+    venue: '',
+    names: ['甲', '乙', '丙', '丁'],
+    rounds: 1,
+    boardsPerRound: 2,
+  });
+  let state: StoredEvent = { event: raw, projection: project(raw), requests: [] };
+  const apply = (command: object) => {
+    state = applyMutation(state, {
+      revision: state.event.revision,
+      requestId: `round-count-${state.event.revision}`,
+      reason: '測試操作',
+      ...command,
+    } as Mutation);
+  };
+  apply({ action: 'club-config', enabled: true });
+  state.event.participants.forEach((p, i) =>
+    apply({ action: 'club-config', enabled: true, participantId: p.id, tokenHash: String(i + 1).repeat(64) }),
+  );
+  apply({ action: 'round-control', round: 1, phase: 'playing' });
+  const table = state.event.assignments[0];
+  apply({
+    action: 'club-play',
+    round: 1,
+    confirm: false,
+    tokenHash: state.event.club!.tokens[table.ns],
+    result: {
+      assignmentId: table.id,
+      board: table.boards[0],
+      level: 2,
+      strain: 'H',
+      declarer: 'S',
+      doubled: 1,
+      tricks: 8,
+      lead: 'DK',
+    },
+  });
+  const event = audienceEvent(state.event, state.projection);
+  assert.equal(event.results[resultKey(table.id, table.boards[0])], undefined);
+  assert.equal(event.enteredBoards?.[table.id], 1);
+  assert.equal(JSON.stringify(event).includes('DK'), false);
+  const props = {
+    event,
+    round: 1,
+    setBoard: noop,
+    setPerson: noop,
+    setPlayerRound: noop,
+    setRound: noop,
+    setSelectedResult: noop,
+    setTab: noop,
+  };
+  const html = renderToStaticMarkup(createElement(RoundsView, props));
+  assert.equal(html.match(/1 \/ 2/g)?.length, 1);
+  assert.equal(html.match(/0 \/ 2/g)?.length, 1);
+  const cached = { ...event, enteredBoards: undefined, results: state.event.results };
+  const fallback = renderToStaticMarkup(createElement(RoundsView, { ...props, event: cached }));
+  assert.equal(fallback.match(/1 \/ 2/g)?.length, 1);
 });
 
 test('round VP dialog uses actual match board count and handles pending and BAM scores', () => {

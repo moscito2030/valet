@@ -197,8 +197,7 @@ export function RoundsView({
                       </button>
                     </td>
                     <td>
-                      {a.boards.filter((b) => event.results[resultKey(a.id, b)]).length} /{' '}
-                      {a.boards.length}
+                      {receivedBoards(event, a)} / {a.boards.length}
                     </td>
                   </tr>
                 ))}
@@ -225,5 +224,15 @@ export function RoundsView({
         </div>
       )}
     </section>
+  );
+}
+
+// Same receipt rule as 本圈已收成績: a stored result counts, including a club
+// board the input side has sent and the other side has not confirmed. Published
+// rows are the fallback for a payload from before this field existed.
+function receivedBoards(event: PublicEvent, assignment: { id: string; boards: number[] }) {
+  return (
+    event.enteredBoards?.[assignment.id] ??
+    assignment.boards.filter((board) => event.results[resultKey(assignment.id, board)]).length
   );
 }

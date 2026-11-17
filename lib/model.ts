@@ -726,6 +726,9 @@ export type Projection = {
 };
 export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards'> & {
   clubEnabled?: boolean;
+  // Boards with a stored result, keyed by assignment. Includes unconfirmed club
+  // entries. Values are counts only; contracts stay in `results`.
+  enteredBoards?: Record<string, number>;
   collectionProgress?: ReturnType<typeof import('./round-progress').roundProgress>;
   boards: Omit<Board, 'deal'>[] | Board[];
   projection: Projection;

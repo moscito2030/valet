@@ -52,8 +52,10 @@ test('club finalization is atomic; forced finalization audits cancellations and 
   s.apply({ action: 'club-play', round: 1, confirm: false, tokenHash: s.hash(a.ns), result: s.result(a.id, a.boards[0]) });
   const hidden = audienceEvent(s.state.event);
   assert.equal(Object.keys(hidden.results).length, 0);
+  assert.equal(hidden.enteredBoards[a.id], 1);
   assert.equal(hidden.collectionProgress.received, 1);
   assert.equal(hidden.collectionProgress.expected, 4);
+  assert.equal(JSON.stringify(hidden).includes('"tricks"'), false);
   assert.equal('club' in hidden, false);
   assert.equal('audit' in hidden, false);
   assert.equal('deal' in JSON.parse(JSON.stringify(hidden.boards[0])), false);
@@ -133,6 +135,32 @@ test('last opposing approval settles atomically and retries do not duplicate aud
   assert.equal(s.state, state);
   assert.ok(Object.values(state.event.club!.confirmations).every(c => !c.forced));
 });
+test('east-west confirmation does not change the receipt count or publish the score', () => {
+  const s = setup();
+  const a = s.state.event.assignments[0];
+  const other = s.state.event.assignments.find((b) => b.round === 1 && b.id !== a.id)!;
+  for (const board of a.boards)
+    s.apply({ action: 'club-play', round: 1, confirm: false, tokenHash: s.hash(a.ns), result: s.result(a.id, board) });
+  const submitted = audienceEvent(s.state.event);
+  assert.equal(submitted.enteredBoards[a.id], a.boards.length);
+  assert.equal(submitted.enteredBoards[other.id], undefined);
+  assert.equal(Object.keys(submitted.results).length, 0);
+  assert.equal(submitted.projection.standings.every((p) => p.played === 0), true);
+  s.apply({
+    action: 'club-play',
+    round: 1,
+    confirm: true,
+    tokenHash: s.hash(a.ew),
+    reviewVersion: clubView(s.state.event, a.ew).reviewVersion,
+  });
+  const confirmed = audienceEvent(s.state.event);
+  assert.equal(confirmed.enteredBoards[a.id], a.boards.length);
+  assert.equal(confirmed.enteredBoards[other.id], undefined);
+  assert.equal(Object.keys(confirmed.results).length, 0);
+  assert.equal(confirmed.collectionProgress.received, a.boards.length);
+  assert.equal(confirmed.projection.standings.every((p) => p.played === 0), true);
+});
+
 test('bye pair cannot submit and completed round does not expose a reused board deal', () => {
   const s = setup(5);
   const assigned = s.state.event.assignments.filter(a => a.round === 1).flatMap(a => [a.ns, a.ew]);
