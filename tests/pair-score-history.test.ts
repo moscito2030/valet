@@ -136,6 +136,31 @@ test('Howell movement renders candles in the order a pair played the boards, wit
   assert.match(html, /逐副累積成績 K 棒/);
   assert.match(html, /pair-chart-wick/);
   assert.deepEqual([...html.matchAll(/aria-label="牌 (\d+)：/g)].map(m => Number(m[1])), [1, 4, 2, 3, 5]);
+  assert.deepEqual([...html.matchAll(/pair-chart-round-label"[^>]*>(\d+)</g)].map(m => Number(m[1])), [1, 2, 3, 4, 5]);
+  assert.equal((html.match(/class="pair-chart-round"/g) ?? []).length, 4);
+  assert.match(html, />圈數</);
+  assert.doesNotMatch(html, /牌號/);
+  assert.match(html, /<strong>牌 4<\/strong>/);
+});
+
+test('round axis labels each round once and keeps the board number in the detail', () => {
+  const e = audienceEvent(createEvent({
+    name: 'Common boards', kind: 'pairs', movementPlan: 'double-barometer',
+    names: ['A', 'B', 'C', 'D', 'E', 'F'], rounds: 2, boardsPerRound: 2,
+    date: '2026-10-20', venue: '',
+  }));
+  for (const assignment of e.assignments.filter(a => a.ns === 'p1')) {
+    for (const board of assignment.boards) {
+      e.projection.pairScores[`${assignment.id}:${board}`] = { ns: 2, ew: 2, top: 4, provisional: false };
+    }
+  }
+  const html = renderToStaticMarkup(createElement(PairScoreChart, { event: e, person: 'p1', hoveredBoard: 2 }));
+  assert.deepEqual([...html.matchAll(/pair-chart-round-label"[^>]*>(\d+)</g)].map(m => Number(m[1])), [1, 2]);
+  assert.equal((html.match(/class="pair-chart-round"/g) ?? []).length, 1);
+  assert.match(html, />圈數</);
+  assert.doesNotMatch(html, /牌號/);
+  assert.match(html, /<strong>牌 2<\/strong>/);
+  assert.match(html, /pair-chart-crosshair[\s\S]*?>1</);
 });
 
 test('MP wick endpoints use each field result with the accumulated top', () => {

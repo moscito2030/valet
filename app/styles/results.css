@@ -689,18 +689,20 @@ table a:focus-visible {
   .player-results-layout > .pair-score-chart { grid-column: 2; grid-row: 2; }
 }
 .pair-score-chart { padding: 24px; }
-.pair-score-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.pair-score-chart-heading h3 { font-size: 18px; font-weight: 600; }
+.pair-score-chart-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
+.pair-score-chart-heading h3 { flex: 0 0 max-content; font-size: 18px; font-weight: 600; }
 .pair-score-chart-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
 .pair-score-chart-heading p span { margin: 0 5px; }
-.pair-chart-latest { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-variant-numeric: tabular-nums; }
+.pair-chart-latest { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; margin-left: auto; max-width: 100%; font-variant-numeric: tabular-nums; }
 .pair-chart-latest strong { font-size: 24px; line-height: 1.2; font-weight: 500; letter-spacing: -.04em; }
 .pair-chart-latest small { font-size: 11px; letter-spacing: 0; margin-left: 4px; color: var(--muted); }
 .pair-chart-latest > span { font-size: 10px; color: var(--muted); }
 .pair-score-chart-scroll { overflow-x: hidden; margin-top: 8px; }
-.pair-score-chart svg { display: block; width: 100%; }
+/* Plot only. The heading help icon keeps its own 15px size. */
+.pair-score-chart-scroll svg { display: block; width: 100%; }
 .pair-chart-grid { stroke: var(--line); stroke-dasharray: 2 4; }
 .pair-chart-axis { stroke: var(--line); }
+.pair-chart-round { stroke: var(--muted); stroke-opacity: .35; }
 .pair-chart-baseline { stroke: var(--muted); stroke-opacity: .6; stroke-dasharray: 5 4; }
 .pair-chart-label { fill: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .pair-chart-candle { cursor: pointer; color: var(--text-muted); }
@@ -793,8 +795,8 @@ table a:focus-visible {
 .pair-chart-notes-popover { width: min(420px, calc(100vw - 32px)); box-sizing: border-box; font-size: 13px; line-height: 1.8; }
 .pair-chart-notes-popover p { margin: 0; }
 
-.pair-chart-title-button { display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left; }
-.pair-chart-title-button svg { color: var(--muted); flex-shrink: 0; }
+.pair-chart-title-button { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 8px; width: max-content; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; white-space: nowrap; cursor: pointer; text-align: left; -webkit-appearance: none; appearance: none; }
+.pair-chart-title-button svg { width: 15px; height: 15px; color: var(--muted); flex-shrink: 0; }
 .pair-chart-title-button:hover { color: var(--theme-solid); }
 .pair-chart-title-button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 5px; border-radius: 3px; }
 .pair-picker-panel .participant-picker-label { font-size: 18px; font-weight: 600; }

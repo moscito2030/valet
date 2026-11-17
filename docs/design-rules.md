@@ -49,7 +49,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 - K 棒明細順序：前值、本副後、全場起伏、最大分差。只有本副後依上升/下降著色，其餘文字原色。
 - 前值、本副後、全場起伏顯示兩位小數；最大分差顯示整數。
 - 明細省略 IMP，保留 %，百分號前留少量間距。右上累積分數始終保留 % 或 IMP。
-- 座標軸明確標示單位；K 棒常駐提示未扣罰分。
+- 座標軸明確標示單位；K 棒常駐提示未扣罰分。橫軸標示圈數，每圈一個數字，圈與圈之間用淡分隔線。明細與右上「截至牌」仍用牌號。
 - 全場起伏為每桌相對 Datum 的 Butler IMP 絕對值加總；不平衡得分以 NS/EW 絕對值平均，每桌計一次，取消與人工平均分排除。
 - 最大分差為最高與最低 Butler IMP 的差，不是原始分差；目前不平衡得分分 NS/EW 計算後取較大範圍。
 
@@ -80,4 +80,4 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 
 展示頁與截圖測試操作見 [視覺回歸](visual-testing.md)。
 
-- K 棒以「累積 IMP/MP%」標題按鈕開啟計分說明 popover，貼近標題並限制在視窗內；底部不重複放說明入口。累積分數與寬版「查看搭檔」標題使用一致的 18px 字級。
+- K 棒以「累積 IMP/MP%」標題按鈕開啟計分說明 popover，貼近標題並限制在視窗內；底部不重複放說明入口。累積分數與寬版「查看搭檔」標題使用一致的 18px 字級。窄寬時標題與說明圖示保持同一行，右側累積分整塊換到下一行，字級與圖示大小不變。
