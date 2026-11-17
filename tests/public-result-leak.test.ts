@@ -64,6 +64,7 @@ test('settled Howell results stay hidden while a later round still plays that bo
   assert.ok(stored.standings.some((row) => row.played > 0));
   const pub = audienceEvent(event, stored);
   assert.equal(pub.results[resultKey(early.id, board)], undefined);
+  assert.equal(pub.enteredBoards[early.id], 1);
   assert.equal(JSON.stringify(pub.results).includes('"lead":"HK"'), false);
   assert.equal(JSON.stringify(pub.projection).includes('"lead":"HK"'), false);
   assert.ok(pub.projection.standings.every((row) => row.played === 0));
@@ -94,6 +95,7 @@ test('director scoring hides a board until every scheduled table has a result', 
   const stored = project(event);
   const hidden = audienceEvent(event, stored);
   assert.equal(hidden.results[resultKey(users[0].id, replayed)], undefined);
+  assert.equal(hidden.enteredBoards[users[0].id], 1);
   assert.equal(JSON.stringify(hidden).includes('"lead":"HK"'), false);
   assert.ok(hidden.projection.standings.every((row) => row.played === 0));
   assert.notDeepEqual(hidden.projection.standings, stored.standings);

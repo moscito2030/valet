@@ -3,7 +3,7 @@ import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
 import { presentBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
-import { allRoundsComplete, roundProgress } from '../round-progress';
+import { allRoundsComplete, enteredBoardCounts, roundProgress } from '../round-progress';
 import { project } from '../scoring';
 export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   const { club } = event;
@@ -125,6 +125,9 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   return {
     ...safe,
     boards,
+    // Receipt counts use every stored result. Club scores stay out of `results`
+    // until the round is settled, so the rounds table cannot count those rows.
+    enteredBoards: enteredBoardCounts(event),
     collectionProgress: roundProgress(event),
     projection: allResultsVisible && projection && !event.knockout ? projection : project({ ...event, results }),
   };
