@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createSchema } from '@/lib/model';
 import { createEvent, DomainError } from '@/lib/events';
 import { insertStage } from '@/lib/store';
+import { competitionRedirect } from '@/lib/store';
 import { errorResponse, requireAdmin, readJson } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const body = schema.parse(await readJson(request));
     const stage = createEvent(body.stage);
     delete stage.hasStages;
-    const stored = await insertStage((await params).id, stage, body.revision);
+    const id = (await competitionRedirect((await params).id)) ?? (await params).id;
+    const stored = await insertStage(id, stage, body.revision);
     return NextResponse.json({ id: stored.event.id }, { status: 201 });
   } catch (e) { return errorResponse(e); }
 }

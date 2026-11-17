@@ -14,8 +14,12 @@ import { mutationSchema, resultKey, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
 import { createDemoRepository } from '../lib/storage/demo';
 import { createLocalRepository } from '../lib/storage/local';
+import { seedResultWrites } from '../lib/storage/cell-write';
 import { createNeonRepository, type Sql } from '../lib/storage/neon';
+import { createNormalizedRepository } from '../lib/storage/normalized';
+import { saveStage } from '../lib/storage/rows';
 import type { EventRepository } from '../lib/storage/repository';
+import { createTestDb } from './helpers/sql';
 
 const plain = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const conflict = (e: unknown) => e instanceof DomainError && e.status === 409;
@@ -39,7 +43,7 @@ const command = (extra: object, revision = 1, requestId = randomUUID()) =>
   });
 
 async function harness(
-  kind: 'local' | 'postgres',
+  kind: 'local' | 'postgres' | 'normalized',
 ): Promise<{
   repo: EventRepository;
   seedLegacy: (stored: StoredEvent) => Promise<void>;
@@ -56,7 +60,18 @@ async function harness(
         docs.push(stored);
         await writeFile(file, JSON.stringify(docs));
       },
-      close: () => rm(directory, { recursive: true, force: true }),
+    close: () => rm(directory, { recursive: true, force: true }),
+    };
+  }
+  if (kind === 'normalized') {
+    const db = await createTestDb();
+    await db.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
+    return {
+      repo: createNormalizedRepository(db.sql),
+      seedLegacy: async (stored) => {
+        await saveStage(db.sql, stored, seedResultWrites(stored.event));
+      },
+      close: db.close,
     };
   }
   const db = new PGlite();
@@ -84,7 +99,7 @@ async function harness(
   };
 }
 
-for (const kind of ['local', 'postgres'] as const)
+for (const kind of ['local', 'postgres', 'normalized'] as const)
   test(`${kind} repository contract`, async (t) => {
     const { repo, seedLegacy, close } = await harness(kind);
     try {

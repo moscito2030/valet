@@ -21,6 +21,7 @@ export type IndexEvent = Pick<
   | 'rounds'
   | 'parentEventId'
   | 'stageName'
+  | 'stageOrder'
   | 'hasStages'
   | 'revision'
 > & {
@@ -56,6 +57,7 @@ export function eventIndex(stored: StoredEvent): EventIndex {
       rounds: e.rounds,
       parentEventId: e.parentEventId,
       stageName: e.stageName,
+      stageOrder: e.stageOrder,
       hasStages: e.hasStages,
       revision: e.revision,
       participants: e.participants.map((p) => ({ id: p.id })),
