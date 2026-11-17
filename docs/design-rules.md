@@ -11,6 +11,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 - 計算方法與進階細節放入共用按鈕開啟的 popover／dialog 或手冊。禁止在產品介面使用原生 HTML details／summary；主要內容用一般區段呈現，不用摺疊控制項隱藏。
 - 單位、暫計、未公開、私下檢視與破壞性操作影響不能為了簡潔而隱藏。
 - 完成覆核等正常完成操作不用警告色；刪除、清除等破壞性操作才使用危險操作樣式。
+- 首頁賽事卡片的整體狀態只依未封存賽段計算。全部賽段都封存時顯示「已封存 · 僅裁判可見」；完全沒有賽段時仍顯示「尚未安排賽段」。
 
 ## 色彩與元件來源
 
