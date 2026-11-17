@@ -1,7 +1,6 @@
 'use client';
 import {
   canShiftTricks,
-  deltaPossible,
   formatDelta,
   formatDeltaSpan,
   pageForDelta,
@@ -149,12 +148,13 @@ export function ContractEntry({
 
   const contractLevel = value.level != null && value.level > 0 ? value.level : null;
   const open = !disabled && contractLevel != null;
-  const deltas = trickDeltas(contractLevel ? page : 0);
+  const deltas = contractLevel ? possibleDeltas(contractLevel, page) : trickDeltas(0);
   const range = trickRange(contractLevel, page, value.tricks);
   const previous = contractLevel ? possibleDeltas(contractLevel, page - 1) : [];
   const next = contractLevel ? possibleDeltas(contractLevel, page + 1) : [];
-  const selectedTrick = deltas.findIndex((delta) => contractLevel != null && value.tricks === tricksForDelta(contractLevel, delta) && deltaPossible(contractLevel, delta));
-  const firstTrick = deltas.findIndex((delta) => contractLevel != null && deltaPossible(contractLevel, delta));
+  const showPrevious = !contractLevel || previous.length > 0;
+  const showNext = !contractLevel || next.length > 0;
+  const selectedTrick = deltas.findIndex((delta) => contractLevel != null && value.tricks === tricksForDelta(contractLevel, delta));
 
   function chooseLevel(nextLevel: number) {
     if (disabled || nextLevel === value.level) return;
@@ -215,16 +215,18 @@ export function ContractEntry({
               </span>
             )}
           </div>
-          <div className="contract-trick-row">
-            <button
-              type="button"
-              className="contract-chip contract-pager"
-              aria-label={previous.length ? `顯示 ${formatDeltaSpan(previous)}` : '沒有更宕的結果'}
-              disabled={disabled || !canShiftTricks(contractLevel, page, -1)}
-              onClick={() => setPage((current) => current - 1)}
-            >
-              <span aria-hidden="true">‹</span>
-            </button>
+          <div className="contract-trick-row" data-pager-start={showPrevious ? 'true' : 'false'} data-pager-end={showNext ? 'true' : 'false'}>
+            {showPrevious && (
+              <button
+                type="button"
+                className="contract-chip contract-pager"
+                aria-label={previous.length ? `顯示 ${formatDeltaSpan(previous)}` : '更宕的結果'}
+                disabled={disabled || !canShiftTricks(contractLevel, page, -1)}
+                onClick={() => setPage((current) => current - 1)}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+            )}
             <div
               role="radiogroup"
               className="contract-trick-values"
@@ -233,10 +235,9 @@ export function ContractEntry({
               onKeyDown={moveRadio}
             >
               {deltas.map((delta, index) => {
-                const possible = contractLevel != null && deltaPossible(contractLevel, delta);
                 const tricks = contractLevel == null ? null : tricksForDelta(contractLevel, delta);
-                const checked = possible && value.tricks === tricks;
-                const tabIndex = !possible || disabled ? -1 : selectedTrick >= 0 ? (index === selectedTrick ? 0 : -1) : index === firstTrick ? 0 : -1;
+                const checked = tricks != null && value.tricks === tricks;
+                const tabIndex = !contractLevel || disabled ? -1 : selectedTrick >= 0 ? (index === selectedTrick ? 0 : -1) : index === 0 ? 0 : -1;
                 return (
                   <button
                     key={delta}
@@ -245,7 +246,7 @@ export function ContractEntry({
                     className="contract-chip"
                     aria-checked={checked}
                     aria-label={trickName(contractLevel, delta)}
-                    disabled={!possible || disabled}
+                    disabled={!contractLevel || disabled}
                     tabIndex={tabIndex}
                     onClick={() => contractLevel != null && onChange({ ...value, tricks: tricksForDelta(contractLevel, delta) })}
                   >
@@ -254,15 +255,17 @@ export function ContractEntry({
                 );
               })}
             </div>
-            <button
-              type="button"
-              className="contract-chip contract-pager"
-              aria-label={next.length ? `顯示 ${formatDeltaSpan(next)}` : '沒有更超的結果'}
-              disabled={disabled || !canShiftTricks(contractLevel, page, 1)}
-              onClick={() => setPage((current) => current + 1)}
-            >
-              <span aria-hidden="true">›</span>
-            </button>
+            {showNext && (
+              <button
+                type="button"
+                className="contract-chip contract-pager"
+                aria-label={next.length ? `顯示 ${formatDeltaSpan(next)}` : '更超的結果'}
+                disabled={disabled || !canShiftTricks(contractLevel, page, 1)}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -271,8 +274,7 @@ export function ContractEntry({
 }
 
 function trickName(level: number | null, delta: number): string {
-  const mark = formatDelta(delta);
-  if (level == null || !deltaPossible(level, delta)) return level == null ? mark : `${mark}，不可能`;
+  if (level == null) return formatDelta(delta);
   const tricks = tricksForDelta(level, delta);
   if (delta === 0) return `剛好完成，${tricks} 墩`;
   return delta < 0 ? `宕 ${-delta} 墩，${tricks} 墩` : `超 ${delta} 墩，${tricks} 墩`;
