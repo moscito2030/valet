@@ -8,6 +8,10 @@
 .deal-explorer {
   padding: 14px;
 }
+.rank-line-fit {
+  min-width: 0;
+  width: 100%;
+}
 .compass-board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -360,6 +364,10 @@
   vertical-align: middle;
   white-space: nowrap;
   transform-origin: left center;
+  /* Width-only fit. IBM Plex Mono has no wdth axis, so an overflowing line
+     drops slot padding via --rank-slot and, if it still spills, scaleX.
+     Font-size (the height) stays on .bridge-ranks. */
+  transform: scaleX(var(--rank-scale, 1)) !important;
 }
 .bridge-ranks .hand-card {
   flex-shrink: 0;
@@ -373,6 +381,10 @@
   position: relative;
   width: min(30px, 10cqw);
   text-align: center;
+}
+.bridge-ranks .rank-string > .hand-card,
+.bridge-ranks .rank-string > .void-rank {
+  width: min(30px, 10cqw, var(--rank-slot, 1000px));
 }
 .bridge-ranks .hand-card:disabled {
   opacity: 1;
