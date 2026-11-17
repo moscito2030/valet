@@ -153,7 +153,7 @@ export function applyMutation(stored: StoredEvent, command: Mutation): StoredEve
   });
   return {
     event: e,
-    requests: [...stored.requests, command.requestId].slice(-500),
+    requests: [...stored.requests, command.requestId],
     projection: project(e),
   };
 }

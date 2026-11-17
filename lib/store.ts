@@ -1,9 +1,10 @@
-import { neon } from '@neondatabase/serverless';
 import path from 'node:path';
 import 'server-only';
 import { createDemoRepository } from './storage/demo';
 import { createLocalRepository } from './storage/local';
 import { createNeonRepository } from './storage/neon';
+import { neonHttp } from './storage/sql-client';
+import { competitionRedirect as redirectFor } from './storage/switch';
 import type { EventRepository } from './storage/repository';
 
 export function storageMode() {
@@ -22,7 +23,7 @@ function repository(): EventRepository {
   if (mode === 'local') return local;
   if (mode === 'demo') return demo;
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL 尚未設定');
-  return createNeonRepository(neon(process.env.DATABASE_URL));
+  return createNeonRepository(neonHttp(process.env.DATABASE_URL));
 }
 
 export const listEvents: EventRepository['listEvents'] = (...args) =>
@@ -48,3 +49,8 @@ export const mutateCompetition: EventRepository['mutateCompetition'] = (...args)
   repository().mutateCompetition(...args);
 export const insertStage: EventRepository['insertStage'] = (...args) =>
   repository().insertStage(...args);
+
+export async function competitionRedirect(id: string) {
+  if (storageMode() !== 'neon' || !process.env.DATABASE_URL) return null;
+  return redirectFor(neonHttp(process.env.DATABASE_URL), id);
+}

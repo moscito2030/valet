@@ -47,8 +47,11 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
   const roots = new Map(data.filter(s => !s.event.parentEventId).map(s => [s.event.id, competitionInfo(s.event)]));
   for (const { competition } of records) roots.set(competition.id, competitionInfo(competition));
   return [...roots.values()].map(root => {
-    const allStages = data.filter(s => (s.event.parentEventId ?? s.event.id) === root.id)
-      .map(s => ({ ...stageSummary(s.event), venue: s.event.venueOverride ?? root.venue }));
+    const family = data.filter(s => (s.event.parentEventId ?? s.event.id) === root.id);
+    const ordered = family.some(s => typeof s.event.stageOrder === 'number')
+      ? [...family].sort((a, b) => (a.event.stageOrder ?? 1e9) - (b.event.stageOrder ?? 1e9) || a.event.date.localeCompare(b.event.date) || a.event.id.localeCompare(b.event.id))
+      : family;
+    const allStages = ordered.map(s => ({ ...stageSummary(s.event), venue: s.event.venueOverride ?? root.venue }));
     const stages = includeArchivedStages ? allStages : allStages.filter(s => !s.stageArchived);
     const dates = [...new Set(stages.map(s => s.date))].sort();
     return {

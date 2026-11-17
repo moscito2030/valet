@@ -18,7 +18,7 @@ import { DomainError } from '../domain-error';
 import { seedEvents } from '../domain/demo-events';
 import { eventIndex, type EventIndex } from '../event-index';
 import { BridgeEvent, Mutation, StoredEvent } from '../model';
-import { applyMutation } from '../mutations/apply';
+import { commitDocumentMutation, type ResultWrites } from './cell-write';
 import { project } from '../scoring';
 import { hydrateEvent } from './hydrate-event';
 import type { EventRepository } from './repository';
@@ -52,13 +52,18 @@ export function createLocalRepository(directory: string): EventRepository {
     await writeFile(file + '.tmp', JSON.stringify(data), 'utf8');
     await rename(file + '.tmp', file);
   }
+  function present(stored: StoredEvent): StoredEvent {
+    const { resultWrites, ...rest } = stored as StoredEvent & { resultWrites?: ResultWrites };
+    void resultWrites;
+    return rest;
+  }
   async function getRawEvent(id: string): Promise<StoredEvent> {
     const e = (await listEvents()).find((x) => x.event.id === id);
     if (!e) throw new DomainError('找不到賽事', 404);
     return e;
   }
   async function listEvents(): Promise<StoredEvent[]> {
-    return (await localRead()).filter(isStage);
+    return (await localRead()).filter(isStage).map(present);
   }
   async function listEventIndex(): Promise<EventIndex[]> {
     return (await listEvents()).map(eventIndex);
@@ -123,9 +128,11 @@ export function createLocalRepository(directory: string): EventRepository {
       const data = await localRead();
       const index = data.findIndex((x) => isStage(x) && x.event.id === id);
       if (index < 0) throw new DomainError('找不到賽事', 404);
-      data[index] = applyMutation(data[index] as StoredEvent, command);
+      const current = data[index] as StoredEvent & { resultWrites?: ResultWrites };
+      const next = commitDocumentMutation(present(current), command, current.resultWrites);
+      data[index] = { ...next.stored, resultWrites: next.writes } as StoredDocument;
       await localSave(data);
-      return data[index] as StoredEvent;
+      return present(next.stored);
     });
   }
   async function listCompetitionRecords(): Promise<StoredCompetition[]> {

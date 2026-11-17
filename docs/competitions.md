@@ -26,7 +26,7 @@
 
 ## 儲存與相容性
 
-同一 `bridge_events` 表儲存兩種獨立 JSON 文件；不需額外資料表或手動 migration。
+正式環境在儲存開關切到 `normalized` 之前，仍用 `bridge_events` 整份文件。新表與遷移步驟見 [儲存遷移手冊](storage-migration.md)。開關沒有切換時，程式不會把成績寫進新表。
 
 | 文件 | 儲存鍵 | 內容 |
 | --- | --- | --- |

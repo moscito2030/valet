@@ -100,6 +100,7 @@ export type BridgeEvent = {
   // Legacy root stages retain their IDs; independent competition records own shared metadata.
   parentEventId?: string;
   stageName?: string;
+  stageOrder?: number;
   venueOverride?: string;
   hasStages?: boolean;
   competition?: CompetitionInfo;

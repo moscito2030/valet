@@ -16,14 +16,21 @@ import { BridgeEvent, Mutation, StoredEvent } from '../model';
 import { applyMutation } from '../mutations/apply';
 import { project } from '../scoring';
 import { hydrateEvent } from './hydrate-event';
+import { createNormalizedRepository } from './normalized';
 import type { EventRepository } from './repository';
+import { storageGate } from './switch';
 
-export type Sql = (
+export type Sql = ((
   strings: TemplateStringsArray,
   ...values: unknown[]
-) => Promise<Record<string, unknown>[]>;
+) => Promise<Record<string, unknown>[]>) & {
+  // Non-interactive: every statement is fixed before Postgres returns a row.
+  // This is the shape of `@neondatabase/serverless` `neon().transaction([...])`.
+  transaction?(queries: import('./batch').SqlBatch[]): Promise<Record<string, unknown>[][]>;
+  query?(text: string, values?: unknown[]): Promise<unknown>;
+};
 
-export function createNeonRepository(query: Sql): EventRepository {
+export function createLegacyNeonRepository(query: Sql): EventRepository {
   const sql = () => query;
   async function getRawEvent(id: string): Promise<StoredEvent> {
     const rows =
@@ -38,7 +45,7 @@ export function createNeonRepository(query: Sql): EventRepository {
   }
   async function listEventIndex(): Promise<EventIndex[]> {
     const rows =
-      await sql()`SELECT jsonb_build_object('stageArchived', document->'event'->'stageArchived','id', document->'event'->'id','name', document->'event'->'name','prefix', document->'event'->'prefix','updatedAt', document->'event'->'updatedAt','kind', document->'event'->'kind','gameMode', document->'event'->'gameMode','pairMethod', document->'event'->'pairMethod','teamMethod', document->'event'->'teamMethod','teamFormat', CASE WHEN document->'event' ? 'knockout' THEN '"knockout"'::jsonb ELSE document->'event'->'teamFormat' END,'bam', document->'event'->'bam','date', document->'event'->'date','endDate', document->'event'->'endDate','venue', document->'event'->'venue','venueOverride', document->'event'->'venueOverride','status', document->'event'->'status','demo', document->'event'->'demo','rounds', document->'event'->'rounds','parentEventId', document->'event'->'parentEventId','stageName', document->'event'->'stageName','hasStages', document->'event'->'hasStages','revision', document->'event'->'revision', 'participants', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', p->'id')) FROM jsonb_array_elements(document->'event'->'participants') p), '[]'::jsonb), 'boards', COALESCE((SELECT jsonb_agg(jsonb_build_object('number', b->'number')) FROM jsonb_array_elements(document->'event'->'boards') b), '[]'::jsonb)) AS event, jsonb_build_object('received', document->'projection'->'received', 'expected', document->'projection'->'expected') AS projection FROM bridge_events WHERE document ? 'event' ORDER BY updated_at DESC`;
+      await sql()`SELECT jsonb_build_object('stageArchived', document->'event'->'stageArchived','id', document->'event'->'id','name', document->'event'->'name','prefix', document->'event'->'prefix','updatedAt', document->'event'->'updatedAt','kind', document->'event'->'kind','gameMode', document->'event'->'gameMode','pairMethod', document->'event'->'pairMethod','teamMethod', document->'event'->'teamMethod','teamFormat', CASE WHEN document->'event' ? 'knockout' THEN '"knockout"'::jsonb ELSE document->'event'->'teamFormat' END,'bam', document->'event'->'bam','date', document->'event'->'date','endDate', document->'event'->'endDate','venue', document->'event'->'venue','venueOverride', document->'event'->'venueOverride','status', document->'event'->'status','demo', document->'event'->'demo','rounds', document->'event'->'rounds','parentEventId', document->'event'->'parentEventId','stageName', document->'event'->'stageName','hasStages', document->'event'->'hasStages','revision', document->'event'->'revision','stageOrder', document->'event'->'stageOrder', 'participants', COALESCE((SELECT jsonb_agg(jsonb_build_object('id', p->'id')) FROM jsonb_array_elements(document->'event'->'participants') p), '[]'::jsonb), 'boards', COALESCE((SELECT jsonb_agg(jsonb_build_object('number', b->'number')) FROM jsonb_array_elements(document->'event'->'boards') b), '[]'::jsonb)) AS event, jsonb_build_object('received', document->'projection'->'received', 'expected', document->'projection'->'expected') AS projection FROM bridge_events WHERE document ? 'event' ORDER BY updated_at DESC`;
     return rows.map((r) => ({
       event: r.event as EventIndex['event'],
       projection: r.projection as EventIndex['projection'],
@@ -203,5 +210,28 @@ export function createNeonRepository(query: Sql): EventRepository {
     insertCompetition,
     mutateCompetition,
     insertStage,
+  };
+}
+
+export function createNeonRepository(query: Sql): EventRepository {
+  const legacy = createLegacyNeonRepository(query);
+  const normalized = () => createNormalizedRepository(query);
+  async function current() {
+    const gate = await storageGate(query);
+    return gate.mode === 'normalized' ? normalized() : legacy;
+  }
+  return {
+    listEvents: async () => (await current()).listEvents(),
+    listEventIndex: async () => (await current()).listEventIndex(),
+    getEvent: async (id) => (await current()).getEvent(id),
+    deleteEvent: async (id, revision) => (await current()).deleteEvent(id, revision),
+    deleteCompetitions: async (input) => (await current()).deleteCompetitions(input),
+    insertEvent: async (event) => (await current()).insertEvent(event),
+    mutateEvent: async (id, command) => (await current()).mutateEvent(id, command),
+    listCompetitionRecords: async () => (await current()).listCompetitionRecords(),
+    getCompetition: async (id) => (await current()).getCompetition(id),
+    insertCompetition: async (stored) => (await current()).insertCompetition(stored),
+    mutateCompetition: async (id, input) => (await current()).mutateCompetition(id, input),
+    insertStage: async (parentId, stage, revision) => (await current()).insertStage(parentId, stage, revision),
   };
 }
