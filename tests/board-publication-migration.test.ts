@@ -165,7 +165,7 @@ test('the publication file script verifies, writes once, and is idempotent', asy
   }
 });
 
-test('legacy documents and normalized board rows materialize publication without changing deals', async () => {
+test('normalized board rows materialize publication without changing deals', async () => {
   const event = createEvent({
     name: '公開遷移',
     kind: 'pairs',
@@ -186,41 +186,8 @@ test('legacy documents and normalized board rows materialize publication without
   const flagged = { ...event, publishBoards: true as const };
   const deals = flagged.boards.map((board) => JSON.stringify(board.deal));
 
-  const legacyDb = await createTestDb();
-  try {
-    const repo = createNeonRepository(legacyDb.sql);
-    await repo.insertEvent(flagged as BridgeEvent);
-    const read = await repo.getEvent(event.id);
-    assert.equal('publishBoards' in read.event, false);
-    assert.equal(read.event.boards[0].published, false);
-    assert.equal(read.event.boards[1].published, true);
-    assert.equal('deal' in publicBoards(read.event)[1], true);
-    assert.equal('deal' in publicBoards(read.event)[0], false);
-    assert.deepEqual(dealt(read.event.boards), dealt(flagged.boards));
-    const raw = await legacyDb.sql`SELECT document FROM bridge_events WHERE id = ${event.id}`;
-    const stored = raw[0].document as StoredEvent & { event: { publishBoards?: boolean } };
-    assert.equal(stored.event.publishBoards, true);
-    const written = await materializePublication(legacyDb.sql, { dryRun: false });
-    assert.equal(written.switch, 'legacy');
-    assert.equal(written.legacy, 'updated 1');
-    assert.equal(written.boards, 0);
-    const after = await legacyDb.sql`SELECT document FROM bridge_events WHERE id = ${event.id}`;
-    const next = after[0].document as StoredEvent & { event: { publishBoards?: boolean } };
-    assert.equal('publishBoards' in next.event, false);
-    assert.equal(next.event.boards[0].published, false);
-    assert.equal(next.event.boards[1].published, true);
-    assert.deepEqual(dealt(next.event.boards), dealt(flagged.boards));
-    assert.notEqual(next.event.boards[0].deal.N[0], makeBoard(1).deal.N[0]);
-    const again = await materializePublication(legacyDb.sql, { dryRun: false });
-    assert.equal(again.legacy, 'updated 0');
-    assert.equal(again.stages, 0);
-  } finally {
-    await legacyDb.close();
-  }
-
   const normalizedDb = await createTestDb();
   try {
-    await normalizedDb.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
     const stored: StoredEvent = {
       event: flagged as BridgeEvent,
       projection: project(flagged),
@@ -237,9 +204,15 @@ test('legacy documents and normalized board rows materialize publication without
     const hiddenJson = String(beforeRows[0].document_json);
     assert.equal(hiddenJson.includes('"published":false'), true);
     assert.equal(String(beforeRows[1].document_json).includes('"published"'), false);
+    const dry = await materializePublication(normalizedDb.sql, { dryRun: true });
+    assert.deepEqual(dry, { mode: 'dry-run', stages: 1, boards: 1 });
+    assert.deepEqual(
+      await normalizedDb.sql`SELECT board_number, document_json FROM bridge_boards WHERE event_id = ${event.id} ORDER BY board_number`,
+      beforeRows,
+    );
+    const drySettings = await normalizedDb.sql`SELECT settings FROM bridge_stages WHERE id = ${event.id}`;
+    assert.equal((drySettings[0].settings as { publishBoards?: boolean }).publishBoards, true);
     const report = await materializePublication(normalizedDb.sql, { dryRun: false });
-    assert.equal(report.switch, 'normalized');
-    assert.equal(report.legacy, 'untouched');
     assert.equal(report.stages, 1);
     assert.equal(report.boards, 1);
     const afterRows = await normalizedDb.sql`SELECT board_number, document_json FROM bridge_boards WHERE event_id = ${event.id} ORDER BY board_number`;
@@ -256,7 +229,6 @@ test('legacy documents and normalized board rows materialize publication without
     const again = await materializePublication(normalizedDb.sql, { dryRun: false });
     assert.equal(again.stages, 0);
     assert.equal(again.boards, 0);
-    assert.equal(again.legacy, 'untouched');
   } finally {
     await normalizedDb.close();
   }

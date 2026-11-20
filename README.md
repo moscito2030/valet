@@ -107,7 +107,7 @@ npm run dev:local
 
 ## 自行部署與延伸
 
-Valet 使用 Next.js、React 與 TypeScript，可部署至 Vercel，搭配 Neon PostgreSQL 保存賽事資料。
+Valet 使用 Next.js、React 與 TypeScript，可部署至 Vercel，搭配 Neon PostgreSQL 保存賽事資料。Neon 僅使用正規化賽事儲存，部署前須依 [儲存維護手冊](docs/storage-migration.md) 確認開關為 `normalized`。
 
 - [部署與備份](docs/deployment.md)
 - [賽事與賽段](docs/competitions.md)

@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createCompetition, competitionKey, isStage, type StoredCompetition } from '../lib/competition-record';
+import { createCompetition, isStage, type StoredCompetition } from '../lib/competition-record';
 import { DomainError } from '../lib/domain-error';
 import { makeBoard } from '../lib/domain/board-factory';
 import { createEvent } from '../lib/domain/event-factory';
@@ -16,17 +16,12 @@ import { competitionCatalog } from '../lib/competitions';
 import { eventIndex } from '../lib/event-index';
 import { canonical, seedResultWrites } from '../lib/storage/cell-write';
 import { createLocalRepository } from '../lib/storage/local';
-import {
-  formatMigrationReport,
-  migrateLegacyDocuments,
-  readLegacyDocuments,
-} from '../lib/storage/migrate-data';
 import { assertMergePreserved, commitStageMerge, mergeReport, planStageMerge, stageMerge } from '../lib/storage/merge-stages';
 import { createNeonRepository } from '../lib/storage/neon';
 import { createNormalizedRepository } from '../lib/storage/normalized';
-import { loadStage, saveStage } from '../lib/storage/rows';
-import { restoreLegacy } from '../lib/storage/restore-legacy';
-import { verifyStage } from '../lib/storage/verify-stage';
+import { loadStage, saveStage, saveCompetition } from '../lib/storage/rows';
+import { competitionRedirect } from '../lib/storage/switch';
+import { verifyStage } from './helpers/verify-stage';
 import { createTestDb } from './helpers/sql';
 
 const conflict = (error: unknown) => error instanceof DomainError && error.status === 409;
@@ -61,7 +56,6 @@ function stored(event: BridgeEvent, requests: string[] = []): StoredEvent {
 
 async function normalizedRepo() {
   const db = await createTestDb();
-  await db.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
   return { ...db, repo: createNormalizedRepository(db.sql) };
 }
 
@@ -182,7 +176,7 @@ for (const kind of ['local', 'normalized'] as const)
     }
   });
 
-test('migration round-trips mitchell, howell, teams, knockout, stages and aborts on a changed deal', async () => {
+test('normalized rows round-trip mitchell, howell, teams, knockout, and stages', async () => {
   const mitchell = withDeals(
     createEvent({
       name: 'Mitchell',
@@ -309,30 +303,19 @@ test('migration round-trips mitchell, howell, teams, knockout, stages and aborts
       stored(fifteen),
       createCompetition({ name: '分階段', prefix: '舊', venue: '社辦' }, 'root-stage'),
     ];
-    for (const document of documents) {
-      const id = 'event' in document ? document.event.id : `competition:${document.competition.id}`;
-      await db.sql`INSERT INTO bridge_events (id, revision, document) VALUES (${id}, ${'event' in document ? document.event.revision : document.competition.revision}, ${JSON.stringify(document)}::jsonb)`;
+    const repo = createNeonRepository(db.sql);
+    for (const fixture of documents) {
+      const document: StoredEvent | StoredCompetition = JSON.parse(JSON.stringify(fixture));
+      if (isStage(document)) {
+        await saveStage(db.sql, document, seedResultWrites(document.event));
+        const loaded = await loadStage(db.sql, document.event.id);
+        assert.ok(loaded);
+        verifyStage(document, loaded.stored);
+      } else {
+        await repo.insertCompetition(document);
+        assert.deepEqual(await repo.getCompetition(document.competition.id), document);
+      }
     }
-    await db.sql`INSERT INTO bridge_discussions (id, revision, document) VALUES ('board:demo:1', 1, ${JSON.stringify({ comments: [{ id: randomUUID(), author: 'a', nickname: 'n', text: 'hello', createdAt: '2026-11-17T00:00:00.000Z' }] })}::jsonb)`;
-    const dry = await migrateLegacyDocuments(db.sql, { dryRun: true });
-    assert.equal(dry.flip, 'no');
-    assert.equal(dry.events.length, 7);
-    assert.equal(dry.verified, 8);
-    assert.match(formatMigrationReport(dry), /mode: dry-run/);
-    assert.equal((await db.sql`SELECT count(*)::int AS n FROM bridge_stages`)[0].n, 0);
-    const written = await migrateLegacyDocuments(db.sql, { dryRun: false });
-    assert.equal(written.flip, 'normalized');
-    assert.equal(written.discussions, 1);
-    assert.match(formatMigrationReport(written), /flip: normalized/);
-    const legacy = await readLegacyDocuments(db.sql);
-    for (const document of legacy) {
-      if (!('event' in document)) continue;
-      const loaded = await loadStage(db.sql, document.event.id);
-      assert.ok(loaded);
-      verifyStage(document, loaded.stored);
-    }
-    const again = await migrateLegacyDocuments(db.sql, { dryRun: false });
-    assert.equal(again.flip, 'already-on');
     const clean = structuredClone(stored(fifteen));
     const tampered = structuredClone(clean);
     tampered.event.boards[0].deal = { ...tampered.event.boards[0].deal, N: ['SA'] };
@@ -342,7 +325,7 @@ test('migration round-trips mitchell, howell, teams, knockout, stages and aborts
   }
 });
 
-test('deployed repository keeps writing legacy until the switch flips, then fails closed if legacy moves', async () => {
+test('Neon reads and writes fail closed when normalized storage is unavailable', async () => {
   const db = await createTestDb();
   try {
     const repo = createNeonRepository(db.sql);
@@ -357,23 +340,17 @@ test('deployed repository keeps writing legacy until the switch flips, then fail
         boardsPerRound: 1,
       }),
     );
-    await repo.insertEvent(event);
-    assert.equal((await db.sql`SELECT count(*)::int AS n FROM bridge_stages`)[0].n, 0);
-    assert.equal((await db.sql`SELECT count(*)::int AS n FROM bridge_events WHERE document ? 'event'`)[0].n, 1);
-    const dry = await migrateLegacyDocuments(db.sql, { dryRun: true });
-    assert.equal(dry.flip, 'no');
-    assert.equal((await repo.getEvent(event.id)).event.revision, 1);
-    const migrated = await migrateLegacyDocuments(db.sql, { dryRun: false });
-    assert.equal(migrated.flip, 'normalized');
-    const before = JSON.stringify((await db.sql`SELECT document FROM bridge_events WHERE id = ${event.id}`)[0].document);
-    const assignment = event.assignments[0];
-    await repo.mutateEvent(event.id, score(assignment.id, assignment.boards[0], 8, 1));
-    const after = JSON.stringify((await db.sql`SELECT document FROM bridge_events WHERE id = ${event.id}`)[0].document);
-    assert.equal(after, before);
-    const live = await repo.getEvent(event.id);
-    assert.equal(live.event.results[resultKey(assignment.id, assignment.boards[0])].tricks, 8);
-    await db.sql`UPDATE bridge_events SET updated_at = now() WHERE id = ${event.id}`;
-    await assert.rejects(repo.getEvent(event.id), (error: unknown) => error instanceof DomainError && error.status === 503);
+    const unavailable = { status: 503, code: 'storage-unavailable', message: /正規化儲存尚未啟用/ };
+    await db.sql`UPDATE bridge_storage_switch SET mode = 'legacy' WHERE id = 1`;
+    await assert.rejects(repo.listEvents(), unavailable);
+    await assert.rejects(repo.insertEvent(event), unavailable);
+    await db.sql`DELETE FROM bridge_storage_switch WHERE id = 1`;
+    await assert.rejects(repo.listEvents(), unavailable);
+    await assert.rejects(repo.insertEvent(event), unavailable);
+    assert.deepEqual(await db.sql`SELECT id FROM bridge_events`, []);
+    assert.deepEqual(await db.sql`SELECT id FROM bridge_stages`, []);
+    await db.sql`DROP TABLE bridge_storage_switch`;
+    await assert.rejects(repo.listEvents(), unavailable);
   } finally {
     await db.close();
   }
@@ -463,7 +440,7 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
   assert.equal(planStageMerge(plan.documents).changed, false);
 });
 
-test('legacy mutations keep only the last 500 request ids', () => {
+test('local document mutations keep only the last 500 request ids', () => {
   const event = createEvent({
     name: '上限',
     kind: 'teams',
@@ -489,33 +466,7 @@ test('legacy mutations keep only the last 500 request ids', () => {
   assert.equal(next.requests.includes(ids[0]), false);
 });
 
-test('microsecond legacy timestamps still flip the storage switch', async () => {
-  const db = await createTestDb();
-  try {
-    const event = withDeals(
-      createEvent({
-        name: '微秒',
-        kind: 'pairs',
-        names: ['甲', '乙', '丙', '丁'],
-        date: '2026-11-17',
-        venue: '廳',
-        rounds: 1,
-        boardsPerRound: 1,
-      }),
-    );
-    const stamp = '2026-11-17 13:46:19.193888+00';
-    await db.sql`INSERT INTO bridge_events (id, revision, document, updated_at)
-      VALUES (${event.id}, 1, ${JSON.stringify(stored(event))}::jsonb, ${stamp}::timestamptz)`;
-    const report = await migrateLegacyDocuments(db.sql, { dryRun: false });
-    assert.equal(report.flip, 'normalized');
-    const saved = await db.sql`SELECT legacy_watermark::text AS watermark FROM bridge_storage_switch WHERE id = 1`;
-    assert.match(String(saved[0].watermark), /193888/);
-  } finally {
-    await db.close();
-  }
-});
-
-test('restore after merge removes the retired competition row', async () => {
+test('normalized merge retires the competition, keeps the stage, and resolves the redirect', async () => {
   const db = await createTestDb();
   try {
     const competition = createCompetition({ name: '老少盃', prefix: '舊', venue: '舊館' }, stageMerge.competitionId);
@@ -536,18 +487,14 @@ test('restore after merge removes the retired competition row', async () => {
     const deals = canonical(november.boards.map((board) => board.deal));
     const retired = createCompetition({ name: '11月社內賽', prefix: '', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
     for (const document of [stored(rehearsal), stored(final), stored(november), competition, retired]) {
-      const id = 'event' in document ? document.event.id : competitionKey(document.competition.id);
-      const revision = 'event' in document ? document.event.revision : document.competition.revision;
-      await db.sql`INSERT INTO bridge_events (id, revision, document) VALUES (${id}, ${revision}, ${JSON.stringify(document)}::jsonb)`;
+      if (isStage(document)) await saveStage(db.sql, document, seedResultWrites(document.event));
+      else await saveCompetition(db.sql, document);
     }
-    await db.sql`INSERT INTO bridge_discussions (id, revision, document) VALUES ('limit:ip:test', 1, ${JSON.stringify({ minute: 1 })}::jsonb)`;
-    assert.equal((await migrateLegacyDocuments(db.sql, { dryRun: false })).flip, 'normalized');
+    await db.sql`INSERT INTO bridge_discussions (id, revision, document) VALUES ('limit:ip:test', 1, '{"minute":1}')`;
     await commitStageMerge(db.sql);
-    await restoreLegacy(db.sql, { dryRun: false });
-    const ghost = await db.sql`SELECT id FROM bridge_events WHERE id = ${competitionKey(stageMerge.retiredId)}`;
-    assert.equal(ghost.length, 0);
-    const kept = await db.sql`SELECT document FROM bridge_events WHERE id = ${stageMerge.retiredId}`;
-    const event = (kept[0].document as StoredEvent).event;
+    assert.equal(await competitionRedirect(db.sql, stageMerge.retiredId), stageMerge.competitionId);
+    assert.deepEqual(await db.sql`SELECT id FROM bridge_competitions WHERE id = ${stageMerge.retiredId}`, []);
+    const { event } = await createNeonRepository(db.sql).getEvent(stageMerge.retiredId);
     assert.equal(event.venue, '臺灣大學 二活705');
     assert.equal(canonical(event.boards.map((board) => board.deal)), deals);
     const limit = await db.sql`SELECT id FROM bridge_discussions WHERE id = 'limit:ip:test'`;

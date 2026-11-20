@@ -1,4 +1,3 @@
-import { PGlite } from '@electric-sql/pglite';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -15,8 +14,7 @@ import { project } from '../lib/scoring';
 import { createDemoRepository } from '../lib/storage/demo';
 import { createLocalRepository } from '../lib/storage/local';
 import { seedResultWrites } from '../lib/storage/cell-write';
-import { createNeonRepository, type Sql } from '../lib/storage/neon';
-import { createNormalizedRepository } from '../lib/storage/normalized';
+import { createNeonRepository } from '../lib/storage/neon';
 import { saveStage } from '../lib/storage/rows';
 import type { EventRepository } from '../lib/storage/repository';
 import { createTestDb } from './helpers/sql';
@@ -43,10 +41,10 @@ const command = (extra: object, revision = 1, requestId = randomUUID()) =>
   });
 
 async function harness(
-  kind: 'local' | 'postgres' | 'normalized',
+  kind: 'local' | 'normalized',
 ): Promise<{
   repo: EventRepository;
-  seedLegacy: (stored: StoredEvent) => Promise<void>;
+  seedStored: (stored: StoredEvent) => Promise<void>;
   close: () => Promise<void>;
 }> {
   if (kind === 'local') {
@@ -55,7 +53,7 @@ async function harness(
     await writeFile(file, '[]');
     return {
       repo: createLocalRepository(directory),
-      seedLegacy: async (stored) => {
+      seedStored: async (stored) => {
         const docs = JSON.parse(await readFile(file, 'utf8'));
         docs.push(stored);
         await writeFile(file, JSON.stringify(docs));
@@ -63,45 +61,19 @@ async function harness(
     close: () => rm(directory, { recursive: true, force: true }),
     };
   }
-  if (kind === 'normalized') {
-    const db = await createTestDb();
-    await db.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
-    return {
-      repo: createNormalizedRepository(db.sql),
-      seedLegacy: async (stored) => {
-        await saveStage(db.sql, stored, seedResultWrites(stored.event));
-      },
-      close: db.close,
-    };
-  }
-  const db = new PGlite();
-  await db.exec(
-    'CREATE TABLE bridge_events (id text PRIMARY KEY, revision integer NOT NULL CHECK (revision > 0), document jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())',
-  );
-  // Execute the adapter's actual parameterized SQL in PostgreSQL, not a mocked query matcher.
-  const sql: Sql = async (strings, ...values) =>
-    (
-      await db.query(
-        strings.reduce((s, part, i) => s + (i ? `$${i}` : '') + part, ''),
-        values,
-      )
-    ).rows as Record<string, unknown>[];
+  const db = await createTestDb();
   return {
-    repo: createNeonRepository(sql),
-    seedLegacy: async (stored) => {
-      await db.query('INSERT INTO bridge_events(id,revision,document) VALUES ($1,$2,$3::jsonb)', [
-        stored.event.id,
-        stored.event.revision,
-        JSON.stringify(stored),
-      ]);
+    repo: createNeonRepository(db.sql),
+    seedStored: async (stored) => {
+      await saveStage(db.sql, stored, seedResultWrites(stored.event));
     },
-    close: () => db.close(),
+    close: db.close,
   };
 }
 
-for (const kind of ['local', 'postgres', 'normalized'] as const)
+for (const kind of ['local', 'normalized'] as const)
   test(`${kind} repository contract`, async (t) => {
-    const { repo, seedLegacy, close } = await harness(kind);
+    const { repo, seedStored, close } = await harness(kind);
     try {
       await t.test('stage archive persists in indexes, hides only the selected stage and restores without data loss', async () => {
         const root = await repo.insertCompetition(createCompetition({name:'Stage archive test',venue:'Hall'}));
@@ -315,7 +287,7 @@ for (const kind of ['local', 'postgres', 'normalized'] as const)
             finalized: [],
           };
           const stored = { event: e, requests: [], projection: project(e) };
-          await seedLegacy(stored);
+          await seedStored(stored);
           const update = {
             name: '獨立賽事名稱',
             prefix: '新前綴',

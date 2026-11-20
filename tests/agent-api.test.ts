@@ -74,7 +74,6 @@ test('a dry run leaves both stores unchanged, and one request id applies once', 
     const db = await createTestDb();
     try {
       if (mode === 'normalized') {
-        await db.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
       }
       const event = createEvent({
         name: '代理儲存',

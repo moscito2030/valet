@@ -11,6 +11,7 @@ export async function createTestDb() {
   );
   await db.exec(discussionTableSql);
   for (const statement of normalizedSchemaStatements) await db.exec(statement);
+  await db.exec("INSERT INTO bridge_storage_switch (id, mode) VALUES (1, 'normalized')");
   const direct: Sql = async (strings, ...values) =>
     (
       await db.query(

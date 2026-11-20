@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { PGlite } from '@electric-sql/pglite';
+import { createTestDb } from './helpers/sql';
 import {
   addComment,
   commentSchema,
@@ -16,11 +16,9 @@ import {
   type Comment,
 } from '../lib/discussion';
 import {
-  discussionTableSql,
   localDiscussionStore,
-  neonDiscussionStore,
+  normalizedDiscussionStore,
 } from '../lib/storage/discussions';
-import type { Sql } from '../lib/storage/neon';
 import { createEvent } from '../lib/events';
 import { audienceEvent } from '../lib/read-models/public-event';
 const comment = (text = 'hello', author = 'a'): Comment => ({
@@ -104,20 +102,12 @@ test('rate limits enforce both windows and reset without forgetting daily usage'
   assert.throws(() => consumeLimit(s, 1200000, 2, 3));
   assert.equal(consumeLimit(s, 86400000, 2, 3).dayCount, 1);
 });
-for (const kind of ['local', 'postgres'])
+for (const kind of ['local', 'normalized'])
   test(`${kind} discussion writes preserve concurrent posts and persist independently`, async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'valet-discussion-'));
-    const db = kind === 'postgres' ? new PGlite() : undefined;
+    const db = kind === 'normalized' ? await createTestDb() : undefined;
     try {
-      if (db) await db.exec(discussionTableSql);
-      const sql: Sql = async (strings, ...values) =>
-        (
-          await db!.query(
-            strings.reduce((s, p, i) => s + (i ? `$${i}` : '') + p, ''),
-            values,
-          )
-        ).rows as Record<string, unknown>[];
-      const store = db ? neonDiscussionStore(sql) : localDiscussionStore(directory);
+      const store = db ? normalizedDiscussionStore(db.sql) : localDiscussionStore(directory);
       await Promise.all(
         Array.from({ length: 8 }, (_, i) =>
           store.update<Discussion>('board:a:1', { comments: [] }, (d) =>
@@ -125,7 +115,7 @@ for (const kind of ['local', 'postgres'])
           ),
         ),
       );
-      const read = db ? neonDiscussionStore(sql) : localDiscussionStore(directory);
+      const read = db ? normalizedDiscussionStore(db.sql) : localDiscussionStore(directory);
       assert.equal((await read.read<Discussion>('board:a:1', { comments: [] })).comments.length, 8);
       assert.equal((await read.read<Discussion>('board:b:1', { comments: [] })).comments.length, 0);
       await store.update<Discussion>('board:a:1', { comments: [] }, (d) => ({
@@ -137,8 +127,19 @@ for (const kind of ['local', 'postgres'])
           addComment(d, comment('closed')),
         ),
       );
+      await store.update('global', { closed: false }, () => ({ closed: true }));
+      await store.update('block:test', { blocked: false }, () => ({ blocked: true }));
+      assert.equal((await read.read('global', { closed: false })).closed, true);
+      assert.equal((await read.read('block:test', { blocked: false })).blocked, true);
+      if (db) {
+        assert.deepEqual(
+          await db.sql`SELECT id FROM bridge_discussions ORDER BY id`,
+          [{ id: 'block:test' }, { id: 'global' }],
+        );
+        assert.equal((await db.sql`SELECT count(*)::int AS n FROM bridge_discussion_comments`)[0].n, 8);
+      }
       const limits = await Promise.allSettled(
-        Array.from({ length: 8 }, () => store.update('limit', {}, (s) => consumeLimit(s, 0, 3, 3))),
+        Array.from({ length: 8 }, () => store.update('limit:ip:test', {}, (s) => consumeLimit(s, 0, 3, 3))),
       );
       assert.equal(limits.filter((r) => r.status === 'fulfilled').length, 3);
     } finally {

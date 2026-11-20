@@ -5,14 +5,14 @@ import { DomainError } from '../domain-error';
 import type { Discussion } from '../discussion';
 import type { Sql } from './neon';
 import { captureSql, commitSql, isConflict } from './batch';
-import { storageGate } from './switch';
+import { requireNormalizedStorage } from './switch';
 export const discussionTableSql =
   'CREATE TABLE IF NOT EXISTS bridge_discussions (id text PRIMARY KEY, revision integer NOT NULL, document jsonb NOT NULL)';
 export type DiscussionStore = {
   read<T>(key: string, fallback: T): Promise<T>;
   update<T>(key: string, fallback: T, change: (value: T) => T): Promise<T>;
 };
-export function neonDiscussionStore(sql: Sql): DiscussionStore {
+function neonDiscussionControls(sql: Sql): DiscussionStore {
   async function snapshot(key: string) {
     return (await sql`SELECT revision,document FROM bridge_discussions WHERE id=${key}`)[0];
   }
@@ -99,18 +99,17 @@ function queueThread(sql: Sql, key: string, value: Discussion, revision: number 
         AS x(ordinal int, document jsonb)`;
 }
 
-export function switchingDiscussionStore(sql: Sql): DiscussionStore {
-  const blob = neonDiscussionStore(sql);
-  async function normalized() {
-    return (await storageGate(sql)).mode === 'normalized';
-  }
+export function normalizedDiscussionStore(sql: Sql): DiscussionStore {
+  const controls = neonDiscussionControls(sql);
   return {
     async read<T>(key: string, fallback: T) {
-      if (!isBoardThread(key) || !(await normalized())) return blob.read(key, fallback);
+      await requireNormalizedStorage(sql);
+      if (!isBoardThread(key)) return controls.read(key, fallback);
       return readThread(sql, key, fallback);
     },
     async update<T>(key: string, fallback: T, change: (value: T) => T) {
-      if (!isBoardThread(key) || !(await normalized()) || !sql.transaction) return blob.update(key, fallback, change);
+      await requireNormalizedStorage(sql);
+      if (!isBoardThread(key)) return controls.update(key, fallback, change);
       for (let attempt = 0; attempt < 20; attempt++) {
         const threads = await sql`SELECT revision FROM bridge_discussion_threads WHERE key = ${key}`;
         const current = await readThread(sql, key, fallback);
