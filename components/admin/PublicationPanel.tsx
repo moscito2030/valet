@@ -107,7 +107,7 @@ export function PublicationPanel({
           </label>
           <p className="footnote">單日賽段可將結束日期留空。</p>
           <label className="field">
-            教室/房間（選填）
+            賽場位置（選填）
             <input
               name="venueOverride"
               maxLength={80}

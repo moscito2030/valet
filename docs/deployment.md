@@ -45,7 +45,7 @@ WBF VP 來源：https://www.worldbridge.org/wp-content/uploads/2019/06/VP-Scale-
 
 部署前執行 npm run check:secrets、npm audit、npm test 與 npm run build。模式掃描只能識別已列出的秘密格式，不能保證歷史或主機設定沒有秘密；不要將 .env、資料庫備份或真實登入憑證加入 Git。
 
-## 場館與房間資料轉換
+## 場館與賽場位置資料轉換
 
 適用於已切換至正規化儲存的站台。先在維護環境設定 `DATABASE_URL`，並預覽舊資料。建議在開放裁判編輯新版賽事資訊前先保留預覽報告。
 

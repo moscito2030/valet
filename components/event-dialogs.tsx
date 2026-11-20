@@ -256,7 +256,7 @@ export function CreateDialog({
             </label>
           )}
           {competition && <label className="field create-details-wide">
-            教室/房間（選填）
+            賽場位置（選填）
             <input name="venueOverride" maxLength={80} placeholder="例如：704" />
           </label>}
         </div>
