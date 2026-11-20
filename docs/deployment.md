@@ -12,7 +12,7 @@
    - `DIRECTOR_PASSWORD`：至少 16 字元、與賽務不同的裁判密碼，供裁判後台操作
    - `SESSION_SECRET`：至少 32 字元隨機字串，可用 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` 產生
 
-4. 在本機 `.env.local` 設定目標 DB 連線，執行 `npm run db:migrate`，建立 schema。這個步驟不會建立假成績；正式環境登入後自行建立新賽事。
+4. 在本機 `.env.local` 設定目標 DB 連線，執行 `npm run db:migrate`，建立 schema。既有資料庫須確認開關已是 `normalized`；全新的空資料庫按 [儲存維護手冊](storage-migration.md) 初始化開關。正式環境登入後自行建立新賽事。
 5. 部署。Build command 為 `npm run build`，其餘採 Vercel Next.js 預設。函式區域請與 Neon 接近。
 6. 開啟 `/api/health` 確認程式服務；再開首頁確認 DB 可讀，登入建立測試賽事，收分後重新開啟網頁確認持久化。
 

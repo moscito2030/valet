@@ -57,14 +57,11 @@ test('PBN import accepts vulnerability aliases, keeps the first duplicate, and w
   assert.ok(warnings.some((warning) => warning.includes('慣例')));
 });
 
-test('imported vulnerability aliases are stored as None, NS, EW, or All in legacy documents and normalized board rows', async () => {
+test('imported vulnerability aliases are stored as None, NS, EW, or All in normalized board rows', async () => {
   const canonical = ['None', 'NS', 'EW', 'All'] as const;
   const aliases = ['Love', 'N-S', 'E/W', 'Both'];
-  for (const mode of ['legacy', 'normalized'] as const) {
-    const db = await createTestDb();
-    if (mode === 'normalized') {
-      await db.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
-    }
+  const db = await createTestDb();
+  try {
     const repo = createNeonRepository(db.sql);
     const event = createEvent({
       name: '身價匯入',
@@ -106,31 +103,18 @@ test('imported vulnerability aliases are stored as None, NS, EW, or All in legac
       reread.event.boards.map((board) => board.vulnerability),
       [...canonical],
     );
-    if (mode === 'legacy') {
-      const rows = await db.sql`SELECT document->'event'->'boards' AS boards FROM bridge_events WHERE id = ${event.id}`;
-      const boards = rows[0].boards as { vulnerability: string; deal: Board['deal'] }[];
-      assert.deepEqual(
-        boards.map((board) => board.vulnerability),
-        [...canonical],
-      );
-      for (let index = 0; index < generated.length; index++) {
-        assert.deepEqual(sorted(boards[index].deal), sorted(generated[index].deal));
-      }
-      const normalizedRows = await db.sql`SELECT count(*)::int AS n FROM bridge_boards WHERE event_id = ${event.id}`;
-      assert.equal(Number(normalizedRows[0].n), 0);
-    } else {
-      const rows = await db.sql`SELECT document_json FROM bridge_boards WHERE event_id = ${event.id} ORDER BY board_number`;
-      const boards = rows.map((row) => JSON.parse(String(row.document_json)) as Board);
-      assert.deepEqual(
-        boards.map((board) => board.vulnerability),
-        [...canonical],
-      );
-      for (let index = 0; index < generated.length; index++) {
-        assert.deepEqual(sorted(boards[index].deal), sorted(generated[index].deal));
-      }
-      const legacyRows = await db.sql`SELECT count(*)::int AS n FROM bridge_events WHERE document->'event'->>'id' = ${event.id}`;
-      assert.equal(Number(legacyRows[0].n), 0);
+    const rows = await db.sql`SELECT document_json FROM bridge_boards WHERE event_id = ${event.id} ORDER BY board_number`;
+    const boards = rows.map((row) => JSON.parse(String(row.document_json)) as Board);
+    assert.deepEqual(
+      boards.map((board) => board.vulnerability),
+      [...canonical],
+    );
+    for (let index = 0; index < generated.length; index++) {
+      assert.deepEqual(sorted(boards[index].deal), sorted(generated[index].deal));
     }
+    const legacyRows = await db.sql`SELECT count(*)::int AS n FROM bridge_events WHERE document->'event'->>'id' = ${event.id}`;
+    assert.equal(Number(legacyRows[0].n), 0);
+  } finally {
     await db.close();
   }
 });

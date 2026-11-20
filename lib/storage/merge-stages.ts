@@ -12,7 +12,7 @@ import {
   queueStage,
   type StagePrior,
 } from './rows';
-import { storageGate } from './switch';
+import { requireNormalizedStorage } from './switch';
 
 export const stageMerge = {
   competitionId: '8b01f0c3-dc13-4a5f-9178-cae97fdf5b44',
@@ -130,8 +130,7 @@ export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
 
 export async function commitStageMerge(sql: Sql) {
   if (!sql.transaction) throw new Error('需要 neon() 的 sql.transaction。請用 HTTPS 連線，不要用 Postgres 連線埠。');
-  if ((await storageGate(sql)).mode !== 'normalized')
-    throw new Error('merge writes require the normalized storage switch');
+  await requireNormalizedStorage(sql);
   const stages = await loadStages(sql);
   const competitions = await loadCompetitions(sql);
   const documents: StoredDocument[] = [...stages.map((stage) => stage.stored), ...competitions];

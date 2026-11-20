@@ -1,6 +1,6 @@
 import 'server-only';
 import path from 'node:path';
-import { localDiscussionStore, switchingDiscussionStore } from './storage/discussions';
+import { localDiscussionStore, normalizedDiscussionStore } from './storage/discussions';
 import { neonHttp } from './storage/sql-client';
 import { storageMode } from './store';
 import { DomainError } from './domain-error';
@@ -11,5 +11,5 @@ export function discussionStore() {
   const mode = storageMode();
   if (mode === 'demo') throw new DomainError('展示模式未開放留言', 503);
   if (mode === 'local') return local;
-  return switchingDiscussionStore(neonHttp(process.env.DATABASE_URL!));
+  return normalizedDiscussionStore(neonHttp(process.env.DATABASE_URL!));
 }

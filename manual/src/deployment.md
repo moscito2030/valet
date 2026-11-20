@@ -15,7 +15,7 @@ Valet 使用 Next.js，可部署至 Vercel，正式資料使用 Neon PostgreSQL�
 | SESSION_SECRET | 至少 32 字元的隨機字串 |
 | NEXT_PUBLIC_VALET_REVIEW_URL | 已部署的 Valet Review 網址 |
 
-初始化資料庫時使用專案的 `npm run db:migrate`。正式與 Preview 使用不同資料庫或分支。環境變數變更後重新部署；改密碼會撤銷相應角色的現有登入，改 SESSION_SECRET 會撤銷所有登入。
+使用 `npm run db:migrate` 安裝資料庫結構。部署前確認 `bridge_storage_switch` 的 `id = 1` 列為 `normalized`。全新的空資料庫可按專案的 `docs/storage-migration.md` 初始化開關。正式與 Preview 使用不同資料庫或分支。環境變數變更後重新部署；改密碼會撤銷相應角色的現有登入，改 SESSION_SECRET 會撤銷所有登入。
 
 正式開賽前，用測試賽事驗證建立、手機送分、對手確認、結算、公開分數及重新開啟後資料仍存在。`/api/health` 僅能證明程式回應，不能代替整個流程驗收。
 
@@ -63,8 +63,8 @@ Vercel 使用系統提供的 `VERCEL_GIT_COMMIT_SHA` 與 `VERCEL_GIT_COMMIT_MESS
 
 ## 討論區資料
 
-首次部署留言功能須先執行 `npm run db:migrate`，建立獨立的 `bridge_discussions` 資料表；若部署原本使用 `npm run db:migrate && npm run build`，可沿用。沿用既有 `SESSION_SECRET`，不需要 reCAPTCHA 金鑰。更換此秘密會讓既有瀏覽器身分失去原留言的管理權限。
+首次部署留言功能須先執行 `npm run db:migrate`，建立逐副留言表及供討論管理使用的 `bridge_discussions`；若部署原本使用 `npm run db:migrate && npm run build`，可沿用。沿用既有 `SESSION_SECRET`，不需要 reCAPTCHA 金鑰。更換此秘密會讓既有瀏覽器身分失去原留言的管理權限。
 
 留言、關閉設定、瀏覽器身分封鎖及限流紀錄與賽段文件分開儲存，留言不增加賽段版本、不觸發成績重算。Neon 模式使用資料庫版本檢查避免併發覆寫；本機模式使用資料目錄下的 `discussions` 子目錄，展示模式不提供留言。正式站限流使用 Vercel 提供的來源 IP 並以 HMAC 雜湊儲存，不記錄原始 IP；本機請求共用來源額度。
 
-資料庫備份請包含 `bridge_discussions`，本機備份請包含 `discussions`。賽段 JSON 匯出、複製賽段不包含留言。刪除賽段後留言無法再透過原 API 存取，獨立留言資料仍保留於備份/資料庫，需另外清理。討論 API 一律不快取；發文失敗不影響登分。限流與裁判管理可以減輕灌文，但並非完整的 DDoS 防護。
+資料庫備份請包含 `bridge_discussion_threads`、`bridge_discussion_comments` 與 `bridge_discussions`，本機備份請包含 `discussions`。賽段 JSON 匯出、複製賽段不包含留言。刪除賽段後留言無法再透過原 API 存取，獨立留言資料仍保留於備份/資料庫，需另外清理。討論 API 一律不快取；發文失敗不影響登分。限流與裁判管理可以減輕灌文，但並非完整的 DDoS 防護。

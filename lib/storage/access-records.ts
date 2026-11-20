@@ -1,19 +1,17 @@
 import { migrateAccessModel } from '../access/migrate';
 import type { AccessAudit } from '../access/audit';
-import type { AccessCode, Organizer } from '../access/codes';
+import type { AccessCode } from '../access/codes';
 import type { BridgeEvent } from '../model';
 import { captureSql, commitSql } from './batch';
 import type { Sql } from './neon';
-import { isUndefinedTable, storageGate } from './switch';
+import { isUndefinedTable, requireNormalizedStorage } from './switch';
 
 const organizerId = 'ntu-bridge-club';
 
 export type AccessAssignment = {
   mode: 'dry-run' | 'write';
-  switch: 'legacy' | 'normalized';
   events: number;
   codes: number;
-  legacy: string;
 };
 
 function dealText(event: { boards?: { deal?: unknown }[] }) {
@@ -21,6 +19,7 @@ function dealText(event: { boards?: { deal?: unknown }[] }) {
 }
 
 export async function loadAccessCodes(sql: Sql): Promise<AccessCode[]> {
+  await requireNormalizedStorage(sql);
   try {
     const rows = await sql`SELECT document FROM bridge_access_codes ORDER BY id`;
     return rows.map((row) => row.document as AccessCode);
@@ -37,12 +36,8 @@ export async function assignAccessRecords(
   if (!sql.transaction) throw new Error('需要 neon() 的 sql.transaction。請用 HTTPS 連線，不要用 Postgres 連線埠。');
   if (!input.siteAdminSecret || input.siteAdminSecret === input.directorSecret)
     throw new Error('站台管理員密碼必須另行設定，且不能與裁判密碼相同');
-  const gate = await storageGate(sql);
-  if (gate.mode === 'missing') throw new Error('storage switch is missing');
-  const source =
-    gate.mode === 'normalized'
-      ? await sql`SELECT id, settings AS event FROM bridge_stages ORDER BY id`
-      : await sql`SELECT id, document->'event' AS event FROM bridge_events WHERE document ? 'event' ORDER BY id`;
+  await requireNormalizedStorage(sql);
+  const source = await sql`SELECT id, settings AS event FROM bridge_stages ORDER BY id`;
   const events = source.map((row) => row.event as BridgeEvent);
   const beforeDeals = new Map(events.map((event) => [event.id, dealText(event)]));
   const migrated = migrateAccessModel(events, {
@@ -55,10 +50,6 @@ export async function assignAccessRecords(
   }
   const boardsBefore =
     await sql`SELECT event_id, board_number, document_json FROM bridge_boards ORDER BY event_id, board_number`;
-  const legacyBoardsBefore =
-    gate.mode === 'legacy'
-      ? await sql`SELECT id, document->'event'->'boards' AS boards FROM bridge_events WHERE document ? 'event' ORDER BY id`
-      : [];
   const existingCodes = new Set(
     (await sql`SELECT id FROM bridge_access_codes`).map((row) => String(row.id)),
   );
@@ -89,49 +80,27 @@ export async function assignAccessRecords(
       cap.sql`INSERT INTO bridge_access_audit (id, document)
         VALUES (${`assign-${event.id}`}, ${JSON.stringify(audit)}::jsonb)
         ON CONFLICT (id) DO NOTHING`;
-      if (gate.mode === 'normalized')
-        cap.sql`UPDATE bridge_stages
-          SET settings = jsonb_set(settings, '{organizerId}', to_jsonb(${organizerId}::text))
-          WHERE id = ${event.id} AND NOT (settings ? 'organizerId')`;
-      else
-        cap.sql`UPDATE bridge_events
-          SET document = jsonb_set(document, '{event,organizerId}', to_jsonb(${organizerId}::text)), updated_at = now()
-          WHERE id = ${event.id} AND document ? 'event' AND NOT (document->'event' ? 'organizerId')`;
+      cap.sql`UPDATE bridge_stages
+        SET settings = jsonb_set(settings, '{organizerId}', to_jsonb(${organizerId}::text))
+        WHERE id = ${event.id} AND NOT (settings ? 'organizerId')`;
     }
     await commitSql(sql, cap.batches);
   }
   const boardsAfter =
     await sql`SELECT event_id, board_number, document_json FROM bridge_boards ORDER BY event_id, board_number`;
   if (JSON.stringify(boardsBefore) !== JSON.stringify(boardsAfter)) throw new Error('deals changed');
-  if (gate.mode === 'legacy') {
-    const legacyBoardsAfter =
-      await sql`SELECT id, document->'event'->'boards' AS boards FROM bridge_events WHERE document ? 'event' ORDER BY id`;
-    const cards = (rows: Record<string, unknown>[]) =>
-      JSON.stringify(
-        rows.map((row) =>
-          ((row.boards as { deal?: Record<string, string[]> }[] | null) ?? []).map((board) =>
-            board.deal ? ['N', 'E', 'S', 'W'].map((seat) => (board.deal?.[seat] ?? []).join('')) : [],
-          ),
-        ),
-      );
-    if (cards(legacyBoardsBefore) !== cards(legacyBoardsAfter)) throw new Error('deals changed');
-  }
   return {
     mode: input.dryRun ? 'dry-run' : 'write',
-    switch: gate.mode,
     events: missingOrganizer.length,
     codes: newCodes.length,
-    legacy: gate.mode === 'normalized' ? 'untouched' : input.dryRun ? `would update ${missingOrganizer.length}` : `updated ${missingOrganizer.length}`,
   };
 }
 
 export function formatAccessAssignment(report: AccessAssignment) {
   return [
     `mode: ${report.mode}`,
-    `switch: ${report.switch}`,
     `events: ${report.events}`,
     `codes: ${report.codes}`,
-    `legacy: ${report.legacy}`,
     'deals: unchanged',
   ].join('\n');
 }

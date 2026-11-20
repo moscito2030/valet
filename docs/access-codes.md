@@ -43,7 +43,7 @@ type AccessCode = {
 }
 ```
 
-賽事只多一個可選的 `organizerId`。正規化模式把它放在 `bridge_stages.settings`，舊文件模式把它放在 `bridge_events` 的賽事 JSON。兩種模式都不改牌組、成績、`club.tokens` 或 `publishBoards`。
+賽事只多一個可選的 `organizerId`。Neon 將它存在 `bridge_stages.settings`。指定主辦單位時，牌組、成績、`club.tokens` 和 `publishBoards` 保持原樣。
 
 主辦單位、通行碼與稽核是附加表：`bridge_organizers`、`bridge_access_codes`、`bridge_access_audit`。結構遷移只建立空表。明文密碼不進表，也不進稽核。
 
@@ -95,7 +95,7 @@ type AccessAudit = {
 
 本機檔案腳本 `scripts/migrate-access-codes.ts` 只接受 JSON 檔，且必須設定 `MIGRATE_ACCESS_CODES=1`。它拒絕路徑裡出現 `DATABASE_URL`。
 
-正式資料庫用另一支指令。它走 `neon()` 的 HTTPS，不開 5432。開關是 `normalized` 時只寫新表與 `bridge_stages.settings`，不更新 `bridge_events`，所以不會觸發分裂保護。開關是 `legacy` 時才寫舊文件。已存在的碼列不會被覆蓋。先跑結構遷移，讓三張新表存在：
+正式資料庫用另一支指令。它走 `neon()` 的 HTTPS，不開 5432。指令要求儲存開關為 `normalized`，只寫通行碼相關表與 `bridge_stages.settings`。已存在的碼列不會被覆蓋。先跑結構遷移，讓三張新表存在：
 
 ```bash
 npm run db:migrate
@@ -103,11 +103,11 @@ VALET_ACCESS_CODES=1 npm run db:migrate-access -- --dry-run
 VALET_ACCESS_CODES=1 npm run db:migrate-access
 ```
 
-`SITE_ADMIN_PASSWORD` 與 `DIRECTOR_PASSWORD` 放在環境，不放在指令參數。正式跑應印出 `deals: unchanged`。開關為 `normalized` 時 `legacy: untouched`。再跑一次應是 `events: 0`、`codes: 0`。不要把這支指令指向尚未備份的正式庫，也不要改 `58f461bf-e3df-4dab-b5ac-88ba69025f2d` 的牌。
+`SITE_ADMIN_PASSWORD` 與 `DIRECTOR_PASSWORD` 放在環境，不放在指令參數。正式跑應印出 `deals: unchanged`。再跑一次應是 `events: 0`、`codes: 0`。不要把這支指令指向尚未備份的正式庫，也不要改 `58f461bf-e3df-4dab-b5ac-88ba69025f2d` 的牌。
 
 ## 選手與代理（後續 PR）
 
-選手以姓名與 email 自助登記。email 存在 `bridge_players`，公開物件不包含它。綁定與待確認通知在 `bridge_pair_bindings` 與 `bridge_partner_notices`。這三張表跟儲存開關無關，舊文件模式與正規化模式讀同一份。賽事成績仍從該模式自己的賽事列讀出，個人頁不改寫牌組或成績。遺失個人碼時重發並作廢舊碼。綁定搭檔有三條路：登記時依姓名建議並由選手確認、用過該對收分連結的人可一鍵把賽事存進個人頁、一方綁定後若另一方已登記就建立待確認通知。個人頁預設公開，改私人只藏個人頁，賽事頁仍顯示姓名與成績。
+選手以姓名與 email 自助登記。email 存在 `bridge_players`，公開物件不包含它。綁定與待確認通知在 `bridge_pair_bindings` 與 `bridge_partner_notices`。賽事成績從正規化賽事儲存讀出。遺失個人碼時重發並作廢舊碼。綁定搭檔有三條路：登記時依姓名建議並由選手確認、用過該對收分連結的人可一鍵把賽事存進個人頁、一方綁定後若另一方已登記就建立待確認通知。個人頁預設公開，改私人只藏個人頁，賽事頁仍顯示姓名與成績。
 
 代理 API 的契約在 `docs/agent-api.openapi.yaml`。MCP 工具只是那組端點的包裝。乾跑只比較會寫入的成績，不寫賽事。正式套用走儲存庫，同一個 `requestId` 在舊文件模式與正規化模式都只生效一次。改成績、公開牌型與設定都先有 dry run。`requestId` 重複時不第二次套用。錯誤同時有中文訊息與 `REVISION_CONFLICT`、`CODE_REVOKED`、`CODE_EXPIRED`、`FORBIDDEN_ROLE`。每場賽事有狀態端點：目前圈、尚未送分的桌、已公開的牌號。
 

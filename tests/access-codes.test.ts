@@ -205,7 +205,7 @@ function dealt(event: BridgeEvent) {
   return event.boards.map((board) => seats.map((seat) => board.deal[seat].join('')).join('|'));
 }
 
-test('organizer assignment persists through legacy documents and normalized stage settings without changing deals', async () => {
+test('organizer assignment persists in normalized stage settings without changing deals', async () => {
   const secrets = { siteAdminSecret: 'new-site-admin', directorSecret: 'director-secret', now };
   const build = () => {
     const event = createEvent({
@@ -229,33 +229,8 @@ test('organizer assignment persists through legacy documents and normalized stag
     return event;
   };
 
-  const legacyDb = await createTestDb();
-  try {
-    const event = build();
-    const repo = createNeonRepository(legacyDb.sql);
-    await repo.insertEvent(event);
-    const report = await assignAccessRecords(legacyDb.sql, { ...secrets, dryRun: false });
-    assert.equal(report.switch, 'legacy');
-    assert.equal(report.events, 1);
-    assert.ok(report.codes >= 3);
-    const read = await repo.getEvent(event.id);
-    assert.equal(read.event.organizerId, 'ntu-bridge-club');
-    assert.deepEqual(dealt(read.event), dealt(event));
-    assert.notEqual(read.event.boards[0].deal.N[0], makeBoard(1).deal.N[0]);
-    assert.equal(read.event.club?.tokens.p1, event.club?.tokens.p1);
-    const codes = await loadAccessCodes(legacyDb.sql);
-    assert.equal(codes.find((code) => code.scope === 'pair')?.hash, event.club?.tokens.p1);
-    assert.equal(codes.some((code) => code.hash === secrets.siteAdminSecret), false);
-    const again = await assignAccessRecords(legacyDb.sql, { ...secrets, dryRun: false });
-    assert.equal(again.events, 0);
-    assert.equal(again.codes, 0);
-  } finally {
-    await legacyDb.close();
-  }
-
   const normalizedDb = await createTestDb();
   try {
-    await normalizedDb.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
     const event = build();
     const stored = { event, projection: project(event), requests: [] as string[] };
     await saveStage(normalizedDb.sql, stored, seedResultWrites(event));
@@ -263,14 +238,19 @@ test('organizer assignment persists through legacy documents and normalized stag
       VALUES (${event.id}, ${event.revision}, ${JSON.stringify(stored)}::jsonb, '1970-01-01T00:00:00.000Z')`;
     const beforeBoards = await normalizedDb.sql`SELECT document_json FROM bridge_boards WHERE event_id = ${event.id} ORDER BY board_number`;
     const report = await assignAccessRecords(normalizedDb.sql, { ...secrets, dryRun: false });
-    assert.equal(report.switch, 'normalized');
-    assert.equal(report.legacy, 'untouched');
     const afterBoards = await normalizedDb.sql`SELECT document_json FROM bridge_boards WHERE event_id = ${event.id} ORDER BY board_number`;
     assert.deepEqual(afterBoards, beforeBoards);
     const repo = createNeonRepository(normalizedDb.sql);
     const read = await repo.getEvent(event.id);
     assert.equal(read.event.organizerId, 'ntu-bridge-club');
     assert.deepEqual(dealt(read.event), dealt(event));
+    assert.equal(report.events, 1);
+    assert.ok(report.codes >= 3);
+    assert.notEqual(read.event.boards[0].deal.N[0], makeBoard(1).deal.N[0]);
+    assert.equal(read.event.club?.tokens.p1, event.club?.tokens.p1);
+    const codes = await loadAccessCodes(normalizedDb.sql);
+    assert.equal(codes.find((code) => code.scope === 'pair')?.hash, event.club?.tokens.p1);
+    assert.equal(codes.some((code) => code.hash === secrets.siteAdminSecret), false);
     const legacy = await normalizedDb.sql`SELECT document, updated_at::text AS updated_at FROM bridge_events WHERE id = ${event.id}`;
     assert.equal((legacy[0].document as { event: BridgeEvent }).event.organizerId, undefined);
     assert.equal(String(legacy[0].updated_at).startsWith('1970-01-01'), true);

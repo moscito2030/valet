@@ -1,5 +1,5 @@
 // New tables only. Never alter or drop bridge_events, bridge_login_limits, or bridge_discussions.
-// schema migration leaves the storage switch on legacy. The data migration flips it after verification.
+// Schema migration never changes the storage switch state.
 export const normalizedSchemaStatements = [
   `CREATE TABLE IF NOT EXISTS bridge_storage_switch (
     id integer PRIMARY KEY CHECK (id = 1),
@@ -9,9 +9,6 @@ export const normalizedSchemaStatements = [
     event_count integer,
     note text NOT NULL DEFAULT ''
   )`,
-  `INSERT INTO bridge_storage_switch (id, mode, note)
-   VALUES (1, 'legacy', 'schema only; normalized rows are not the live store')
-   ON CONFLICT (id) DO NOTHING`,
   `CREATE TABLE IF NOT EXISTS bridge_competitions (
     id text PRIMARY KEY,
     revision integer NOT NULL CHECK (revision > 0),

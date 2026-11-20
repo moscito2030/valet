@@ -108,7 +108,6 @@ test('a private page reads legacy and normalized events without storing the emai
     const db = await createTestDb();
     try {
       if (mode === 'normalized') {
-        await db.sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
         await saveStage(db.sql, { event, projection: project(event), requests: [] }, seedResultWrites(event));
       } else {
         await createNeonRepository(db.sql).insertEvent(event);

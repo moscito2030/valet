@@ -1,82 +1,25 @@
-# 儲存遷移手冊
+# 正規化儲存維護手冊
 
-這份手冊給維護者自己執行。程式可以先合併、先上線；在你把儲存開關切到 `normalized` 之前，網站繼續讀寫舊的 `bridge_events`。不要把資料庫網址、密碼或牌張貼進工單或聊天。
+Neon 上的賽事、牌組、成績和逐副留言已遷移到正規化表。應用程式及維護工具要求 `bridge_storage_switch` 的 `id = 1` 列為 `normalized`。開關表或列不存在，或模式不是 `normalized` 時，賽事儲存停止讀寫，API 回傳 503「正規化儲存尚未啟用，暫停讀寫。請聯絡站台管理員。」舊格式與一次性資料搬移工具均已退役。
 
-這些腳本只用 `@neondatabase/serverless` 的 `neon()`，走 HTTPS。不要用 `psql`、`pg_dump` 或 Postgres 的 5432 埠；那台機器連不到。需要原子寫入的地方用 `sql.transaction([...])`，一次送出整批語句，中間不讀結果。
-
-## 安全順序
-
-順序不能對調。舊版程式不認識開關；若在舊版還在服務時把開關切成 `normalized`，舊版會繼續寫舊表，新版會讀新表，成績就會裂開。新版遇到這種情況會停止讀寫，而不是猜哪一份才對。
-
-1. 先合併這個 PR 到 `master`。合併會自動部署。此時資料庫可以還沒有新表，網站仍用 `bridge_events`。
-2. 在 Neon 從目前的 production 建立分支，當作備份。之後的試跑都連這個分支。
-3. 對分支跑結構遷移。它只建立新表，並把開關維持在 `legacy`。不修改、不刪除 `bridge_events`。
-4. 對分支乾跑資料遷移，看印出的計數與 id。
-5. 對分支正式跑資料遷移。請在網站沒有人收分時做這一步。每一場先寫入並核對；水位和文件在同一句 SQL 讀出，避免中間有人寫入卻沒被複製。水位用 `updated_at` 的文字比對，保留微秒。全部通過後才切換。若切換當下舊表又被寫過，腳本不會翻開關，會再複製一次。連試五次仍對不上就停在 `legacy`，網站繼續讀舊表。
-6. 對分支乾跑合併賽段，再正式合併。合併必須在開關已經是 `normalized` 之後。
-7. 用分支把公開頁、收分連結與十五副牌抽查看過。
-8. 確認分支沒問題後，對 production 重複第 3 到第 6 步。結構遷移與資料遷移要接連做：結構遷移之後，已部署的程式會在寫入時鎖開關；資料遷移的最後一步才翻面。
-
-不要先跑資料遷移再部署。也不要在乾跑階段把 production 的網址拿來寫入。
-
-## 分支上的指令
-
-在自己的殼層設定分支的 `DATABASE_URL`。不要把網址寫進檔案或提交。
+## 結構安裝與開關
 
 ```bash
 npm run db:migrate
 ```
 
-結構遷移成功時印出：
+結構遷移可重複執行。它建立正規化表、登入限流及討論管理所需的表，並保留開關原狀。既有資料庫先確認開關為 `normalized`。若開關缺失或異常，先核對目標資料庫與正規化資料，再從已驗證的設定恢復該列。單獨建立開關列不會搬移資料。
 
-```text
-Migration complete: bridge_events, normalized tables, storage switch left on legacy
+只有已確認全新的空資料庫，才在安裝結構後初始化開關：
+
+```sql
+INSERT INTO bridge_storage_switch (id, mode) VALUES (1, 'normalized')
+ON CONFLICT (id) DO NOTHING;
 ```
 
-```bash
-VALET_DATA_MIGRATION=1 npm run db:migrate-data -- --dry-run
-```
+`bridge_events` 和 `bridge_discussions` 的舊逐副留言列保留為唯讀歷史備份。現有資料表不會被改名、變更結構或刪除。`bridge_discussions` 的 `global`、`block:*` 和 `limit:*` 列仍供討論管理讀寫。登入限流仍使用 `bridge_login_limits`。舊表水位檢查已移除，正規化儲存可獨立於歷史賽事表運作。
 
-乾跑會真的把每一場寫進新表再在同一筆交易裡刪掉，所以結束後 `bridge_stages` 仍是空的，開關仍是 `legacy`。它印計數與 id，例如：
-
-```text
-mode: dry-run
-events: 2
-event: <event-id> boards=15 results=20 participants=8 penalties=0 audit=4
-competitions: 1
-competition: <competition-id>
-discussions: 0
-verified: 3
-flip: no
-```
-
-`verified` 是這次核對過的賽事列與賽事列合計。`flip: no` 表示沒有切換。乾跑結束後 `bridge_stages` 應該還是空的。
-
-```bash
-VALET_DATA_MIGRATION=1 npm run db:migrate-data
-```
-
-正式遷移最後幾行應是：
-
-```text
-mode: write
-events: 2
-event: <event-id> boards=15 results=20 participants=8 penalties=0 audit=4
-competitions: 1
-competition: <competition-id>
-discussions: 0
-verified: 3
-flip: normalized
-```
-
-核對內容是：每場的牌組 JSON（`JSON.stringify` 後的牌張字串，順序與內容都要相同）、成績、參賽者、判罰、稽核筆數與內容、以及由這些列算出來的名次。任一項不合，該場交易會回滾，開關維持 `legacy`，終端只印 `verify failed <id>: deals` 這種欄位名稱，不印牌張或憑證。
-
-若再跑一次，會拒絕覆蓋已上線的新表，並印出：
-
-```text
-flip: already-on
-refusing: copying legacy rows would overwrite the live normalized store
-```
+## 合併賽段
 
 ```bash
 VALET_MERGE_STAGES=1 npm run db:merge-stages -- --dry-run
@@ -90,50 +33,13 @@ VALET_MERGE_STAGES=1 npm run db:merge-stages
 
 `/?competition=8b01f0c3-dc13-4a5f-9178-cae97fdf5b44` 與 `/?event=58f461bf-e3df-4dab-b5ac-88ba69025f2d` 都繼續有效。舊的 `/?competition=58f461bf-e3df-4dab-b5ac-88ba69025f2d` 和 `GET /api/competitions/58f461bf-e3df-4dab-b5ac-88ba69025f2d` 會導向合併後的賽事。11月社內賽目前自己的賽事列場地是「臺灣大學 二活705」，賽段文件上的場地寫成 704，不對。合併時把賽事列的場地抄進該賽段的 `venue` 與 `venueOverride`，所以畫面上是 705，不會改吃老少盃的場地。乾跑會印 `venue=臺灣大學 二活705`。預演與正賽若本來就有上層賽事，場地不動。牌組、成績、名單、判罰與留言都不改。舊賽事列的稽核與 request id 會併進合併後的賽事，並多一筆「合併賽段」稽核。
 
-沒有帶對應的環境旗標時，三支寫入腳本都會直接拒絕。
-
-## 這次刻意維持的行為
-
-- 一場賽事最多 32 個賽段。架構審查認為要等有租戶之後再放寬，否則一份封存會占滿全域上限。這次不改這個錯誤。
-- 公開 API 仍是 `Cache-Control: no-store`。現場成績不進 CDN。投影存在賽段列上，讀取用這份快取；寫入仍呼叫原本的 `project()`，名次與今天相同。MP、IMP 與淘汰的名次依賴同一副的全部成績，所以不改成增量算法。
-- 只有同一桌、同一副的成績寫入會衝突。不同桌同時送同一副牌，兩邊都成立。
-- 舊文件模式的 `requestId` 仍只留最後 500 筆。切到新表之後不再截斷。
-
-## 還原
-
-開關仍是 `legacy` 時，網站本來就在用舊表。把 Neon 分支丟掉或還原即可，新表可以留著。
-
-開關已經是 `normalized`，而且切換之後有新成績時，不要只把開關撥回去，否則那些成績只在新表。兩種做法：
-
-1. 還原遷移前建立的 Neon 分支。切換之後的寫入會消失，舊表回到當時的位元組。
-2. 先把新表組回舊表，再切回 `legacy`：
-
-```bash
-VALET_RESTORE_LEGACY=1 npm run db:restore-legacy -- --dry-run
-VALET_RESTORE_LEGACY=1 npm run db:restore-legacy
-```
-
-正式還原印出 `switch: legacy`。同一筆交易裡，新表沒有的舊列會刪掉，所以合併後退役的賽事列不會留在 `bridge_events`。`limit:`、`block:` 與 `global` 開頭的討論列是流量限制，刻意留在舊表，不會刪。它會把牌張逐張核對。舊表是 jsonb，鍵的順序可能和 text 欄位裡的原始 JSON 不同；花色與點數必須相同。新表不會刪。
-
-若還原腳本或網站印出「舊的 bridge_events 在切換之後又被寫入」，表示有人用舊程式寫過舊表。這時不要繼續寫，直接還原 Neon 分支。
-
 ## 逐副公開
 
-`publishBoards` 是舊的整場開關。讀取時會把有效的公開狀態抄到每一副，公開頁只看該副自己的 `published`。下面這支指令把那個結果寫回資料庫，不新增欄位。開關是 `normalized` 時只改 `bridge_stages.settings` 與需要補上 `published` 的 `bridge_boards.document_json`，不寫 `bridge_events`，所以不會觸發分裂保護。開關是 `legacy` 時才更新舊文件。牌張字串必須相同，否則這次不會寫入。已經寫明公開或隱藏的牌列不會重寫。
+讀取較早的正規化資料時，`publishBoards` 仍用來推算個別牌局的公開狀態。下面的指令將這個結果保存到缺少 `published` 的牌局，並清除賽段設定中的整場開關。它會核對牌張字串，已明確公開或隱藏的牌列保持原樣。
 
 ```bash
 VALET_MATERIALIZE_PUBLICATION=1 npm run db:materialize-publication -- --dry-run
 VALET_MATERIALIZE_PUBLICATION=1 npm run db:materialize-publication
 ```
 
-正式跑印出 `deals: unchanged`。`legacy: untouched` 表示這次沒有寫舊表。再跑一次應是 `stages: 0`、`boards: 0`。
-
-## 稍後手動，這次不要執行
-
-確認新表已單獨服務一段時間、而且你另有備份之後，才可以考慮停用舊表。下面的語句不在任何腳本裡，預設不要跑。
-
-```sql
--- 稍後手動。會刪掉舊文件。確定沒有人還要讀 bridge_events 再執行。
--- ALTER TABLE bridge_events RENAME TO bridge_events_legacy;
--- DROP TABLE bridge_events_legacy;
-```
+先以乾跑檢查 `stages` 和 `boards` 計數。正式執行會印出 `deals: unchanged`，再次乾跑時兩個計數應為 0。
