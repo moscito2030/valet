@@ -10,14 +10,15 @@ const november = '58f461bf-e3df-4dab-b5ac-88ba69025f2d';
 test('venue conversion previews, updates known fields only, and preserves exact board bytes', async () => {
   const { sql, close } = await createTestDb();
   try {
-    const metadata = { name: '社內賽', organizer: null, prefix: '臺灣大學橋藝社 115-1', venue: '臺灣大學 二活', revision: 4, hasStages: true };
+    const metadata = { name: '社內賽', prefix: '臺灣大學橋藝社 115-1', venue: '臺灣大學 二活', revision: 4, hasStages: true };
     const unknown = { name: '老少盃', prefix: '臺灣大學橋藝社 114-1', venue: '台灣大學 第二學生活動中心 603' };
-    await sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = now() WHERE id = 1`;
+    await sql`UPDATE bridge_storage_switch SET mode = 'normalized' WHERE id = 1`;
     await sql`INSERT INTO bridge_competitions (id, revision, document) VALUES
       (${competition}, 4, ${JSON.stringify(metadata)}::jsonb),
       ('unknown', 4, ${JSON.stringify(unknown)}::jsonb),
       ('venue-only', 1, '{"name":"Venue only","venue":"Hall 3"}'::jsonb),
       ('empty', 1, '{"name":"Empty"}'::jsonb)`;
+    await sql`INSERT INTO bridge_organizers (id, document) VALUES ('ntu-bridge-club', '{"name":"台大橋藝社"}')`;
     const fixtures = [
       [final, competition, { name: '老少盃', venueOverride: '704' }],
       [november, competition, { name: '11月社內賽', venue: '臺灣大學 二活705', venueOverride: '臺灣大學 二活705' }],
@@ -28,7 +29,7 @@ test('venue conversion previews, updates known fields only, and preserves exact 
     ] as const;
     for (const [id, parent, settings] of fixtures) {
       await sql`INSERT INTO bridge_stages (id, competition_id, revision, settings, projection)
-        VALUES (${id}, ${parent}, 9, ${JSON.stringify({ ...settings, revision: 9 })}::jsonb, '{"received":1}'::jsonb)`;
+        VALUES (${id}, ${parent}, 9, ${JSON.stringify({ ...settings, revision: 9, ...(id === 'extra' ? {} : { organizerId: 'ntu-bridge-club' }) })}::jsonb, '{"received":1}'::jsonb)`;
       const board = '{ "number":1, "deal":{ "N":["SA"], "E":["SK"], "S":["SQ"], "W":["SJ"] } }';
       await sql`INSERT INTO bridge_boards (event_id, board_number, ordinal, document_json)
         VALUES (${id}, 1, 0, ${board})`;
@@ -41,6 +42,8 @@ test('venue conversion previews, updates known fields only, and preserves exact 
     const preview = await convertVenuePrefix(sql, { dryRun: true });
     assert.deepEqual([preview.competitionsChanged, preview.competitionsSkipped, preview.competitionsUnchanged, preview.stagesChanged], [1, 2, 1, 2]);
     const output = formatVenueConversion(preview);
+    assert.match(output, /organizer: "台大橋藝社" \(organizerId: "ntu-bridge-club"\)/);
+    assert.match(output, /needs a human decision[\s\S]*stage extra "決賽" organizerId: null/);
     assert.match(output, /name: "社內賽" → "115-1 社內賽"/);
     assert.match(output, /Skipped – needs a human decision[\s\S]*裁判另訂[\s\S]*unknown name="老少盃" prefix="臺灣大學橋藝社 114-1"[\s\S]*台灣大學 第二學生活動中心 603/);
     assert.match(output, /stage extra "決賽": no approved room mapping/);
@@ -55,7 +58,9 @@ test('venue conversion previews, updates known fields only, and preserves exact 
     assert.equal(saved.revision, 5);
     assert.equal(document.revision, 5);
     assert.equal(document.name, '115-1 社內賽');
-    assert.equal(document.organizer, '台大橋藝社');
+    assert.ok(!('organizer' in document));
+    assert.ok(!('organizerId' in document));
+    assert.match(formatVenueConversion(applied), /organizer: "台大橋藝社"/);
     assert.equal(document.venue, '臺灣大學 第二學生活動中心');
     assert.ok(!('prefix' in document));
     assert.deepEqual(after.competitions.filter(row => row.id !== competition), before.competitions.filter(row => row.id !== competition));
@@ -63,6 +68,7 @@ test('venue conversion previews, updates known fields only, and preserves exact 
       const row = after.stages.find(stage => stage.id === id)!;
       assert.equal(row.revision, 10);
       assert.equal((row.settings as Record<string, unknown>).venueOverride, room);
+      assert.equal((row.settings as Record<string, unknown>).organizerId, 'ntu-bridge-club');
       assert.deepEqual(row.projection, { received: 1 });
     }
     const unchangedStage = (row: Record<string, unknown>) => row.id !== november && row.id !== 'rehearsal';
@@ -79,7 +85,7 @@ test('venue conversion previews, updates known fields only, and preserves exact 
 test('venue conversion rolls back the entire batch when a stage changes concurrently', async () => {
   const { sql, close } = await createTestDb();
   try {
-    await sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = now() WHERE id = 1`;
+    await sql`UPDATE bridge_storage_switch SET mode = 'normalized' WHERE id = 1`;
     await sql`INSERT INTO bridge_competitions (id, revision, document)
       VALUES (${competition}, 1, '{"name":"社內賽","venue":"裁判另訂","organizer":"另一主辦","prefix":"另一前綴"}')`;
     await sql`INSERT INTO bridge_stages (id, competition_id, revision, settings, projection)
@@ -95,6 +101,7 @@ test('venue conversion rolls back the entire batch when a stage changes concurre
     assert.equal(root.revision, 1);
     assert.deepEqual(root.document, { name: '社內賽', venue: '裁判另訂', organizer: '另一主辦', prefix: '另一前綴' });
     const report = await convertVenuePrefix(sql, { dryRun: false });
+    assert.match(formatVenueConversion(report), /needs a human decision[\s\S]*Organizer: expected 台大橋藝社/);
     assert.match(formatVenueConversion(report), /venue: current "裁判另訂"/);
     assert.match(formatVenueConversion(report), /room: current "別間"/);
     assert.deepEqual((await sql`SELECT document FROM bridge_competitions WHERE id = ${competition}`)[0].document,

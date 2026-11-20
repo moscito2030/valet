@@ -42,13 +42,12 @@ export function CreateCompetitionDialog({ onClose, onCreated }: { onClose: () =>
   return <Modal title="建立賽事" onClose={onClose}><form onSubmit={async e => {
     e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
     try {
-      const result = await api<{ id: string }>('/api/competitions', { method: 'POST', body: JSON.stringify({ name: form.get('name'), organizer: String(form.get('organizer')).trim() || null, venue: form.get('venue') }) });
+      const result = await api<{ id: string }>('/api/competitions', { method: 'POST', body: JSON.stringify({ name: form.get('name'), venue: form.get('venue') }) });
       await onCreated(result.id);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }}>
     <p>先保存賽事共用資訊，之後再新增賽段、名單與賽程。</p>
     <label className="field">賽事名稱<input name="name" required minLength={2} maxLength={80} /></label>
-    <label className="field">主辦單位（選填）<input name="organizer" maxLength={80} /></label>
     <label className="field">場館（選填）<input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" /></label>
     {error && <p className="error-text" role="alert">{error}</p>}
     <button className="button primary full" disabled={busy}>{busy ? '建立中…' : '建立賽事'}</button>

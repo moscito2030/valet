@@ -1,8 +1,11 @@
 import { captureSql, commitSql } from './batch';
 import type { Sql } from './neon';
+import { resolveCompetitionOrganizer } from '../competitions';
+import { readOrganizerNames } from './organizer-names';
 import { requireNormalizedStorage } from './switch';
 
 const competitionId = '8b01f0c3-dc13-4a5f-9178-cae97fdf5b44';
+const expectedOrganizer = { id: 'ntu-bridge-club', name: '台大橋藝社' };
 const novemberId = '58f461bf-e3df-4dab-b5ac-88ba69025f2d';
 const finalId = '55178a2a-1a1e-4106-b525-dc3fe9ae9f50';
 
@@ -42,6 +45,10 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
     stagesByCompetition.set(stage.competition_id, family);
   }
 
+  const targetExists = competitions.some(({ id }) => id === competitionId);
+  const organizerNames = targetExists ? await readOrganizerNames(sql) : new Map<string, string>();
+  const targetStages = stagesByCompetition.get(competitionId) ?? [];
+  const organizer = resolveCompetitionOrganizer(targetStages.map(stage => stage.settings.organizerId), organizerNames);
   const cap = captureSql();
   const at = new Date().toISOString();
   let stagesChanged = 0;
@@ -57,9 +64,19 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
       return entry;
     }
 
+    if (organizer.id !== expectedOrganizer.id || organizer.name !== expectedOrganizer.name) {
+      entry.skipped.push(`Organizer: expected ${expectedOrganizer.name} (${expectedOrganizer.id})`);
+    }
+    if (!family.length) entry.skipped.push('No stages with organizer assignments');
+    for (const stage of family) {
+      const stageOrganizerId = stage.settings.organizerId;
+      if (stageOrganizerId !== expectedOrganizer.id) {
+        entry.skipped.push(`stage ${stage.id} ${printable(stageName(stage))} organizerId: ${printable(stageOrganizerId)}`);
+      }
+    }
+
     const patch: Metadata = {};
     planField(entry, patch, 'name', 'name', document.name, ['社內賽'], '115-1 社內賽');
-    planField(entry, patch, 'organizer', 'organizer', document.organizer, [null, undefined], '台大橋藝社');
     planField(entry, patch, 'venue', 'venue', document.venue, ['臺灣大學 二活'], '臺灣大學 第二學生活動中心');
     if (document.prefix !== '') {
       planField(entry, patch, 'prefix', 'prefix', document.prefix,
@@ -122,6 +139,8 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
   }
   return {
     dryRun,
+    organizer,
+    targetExists,
     entries,
     competitionsChanged: entries.filter(entry => entry.changes.length).length,
     competitionsSkipped: entries.filter(entry => !entry.changes.length && entry.skipped.length).length,
@@ -135,11 +154,15 @@ export function formatVenueConversion(report: Awaited<ReturnType<typeof convertV
     report.dryRun ? 'Mode: dry-run (planned changes)' : 'Mode: write',
     `Competitions changed: ${report.competitionsChanged}, skipped: ${report.competitionsSkipped}, unchanged: ${report.competitionsUnchanged}`,
     `Stages changed: ${report.stagesChanged}`,
+    `Competition ${competitionId} organizer: ${report.targetExists
+      ? `${printable(report.organizer.name)} (organizerId: ${printable(report.organizer.id)})`
+      : 'competition missing'}`,
   ];
   for (const { competition, changes } of report.entries) {
     if (changes.length) lines.push(`Competition ${competition.id} ${printable(competition.document.name)}`, ...changes.map(line => `  ${line}`));
   }
   lines.push('Skipped – needs a human decision');
+  if (!report.targetExists) lines.push(`  Competition ${competitionId} is missing`);
   for (const { competition, stages, skipped } of report.entries) {
     if (!skipped.length) continue;
     const { id, document } = competition;

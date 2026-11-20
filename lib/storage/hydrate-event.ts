@@ -4,8 +4,8 @@ import { normalizeResults } from '../result-status';
 import { project } from '../scoring';
 
 // Shared compatibility read: never persist inherited metadata or normalized legacy results here.
-export function hydrateEvent(stored: StoredEvent, competition: CompetitionInfo): StoredEvent {
-  const inherited = inheritCompetition(stored, competition);
+export function hydrateEvent(stored: StoredEvent, competition: CompetitionInfo, organizerName?: string): StoredEvent {
+  const inherited = inheritCompetition(stored, competition, organizerName);
   const event = { ...inherited.event, results: normalizeResults(inherited.event.results) };
   const legacy = Object.values(inherited.event.results).some((r) => r.status === 'average') ||
     (event.kind === 'teams' && stored.projection.matches.some((match) =>

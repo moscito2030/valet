@@ -5,14 +5,13 @@ import { DomainError } from './domain-error';
 
 export const competitionSchema = z.object({
   name: z.string().trim().min(2).max(80),
-  organizer: z.string().trim().max(80).nullable().optional(),
   venue: z.string().trim().max(80).default(''),
 }).strict();
 export const competitionUpdateSchema = competitionSchema.extend({
   archived: z.boolean().optional(),
   revision: z.number().int().positive(), requestId: z.string().uuid(),
 }).strict();
-export type StoredCompetition = { competition: CompetitionInfo & { updatedAt: string; audit: Audit[] }; requests: string[] };
+export type StoredCompetition = { competition: Omit<CompetitionInfo, 'organizerName'> & { updatedAt: string; audit: Audit[] }; requests: string[] };
 export type StoredDocument = StoredEvent | StoredCompetition;
 export const isStage = (d: StoredDocument): d is StoredEvent => 'event' in d;
 export const competitionKey = (id: string) => `competition:${id}`;
@@ -62,7 +61,6 @@ export function updateCompetition(
   const next = advanceCompetition(previous, input.revision, input.archived === undefined ? '修改賽事共用資訊' : input.archived ? '封存賽事' : '解除封存賽事');
   if (input.archived !== undefined) next.competition.archived = input.archived;
   Object.assign(next.competition, { name: input.name, venue: input.venue });
-  if (input.organizer !== undefined) next.competition.organizer = input.organizer;
   next.requests = durableRequests
     ? [...previous.requests, input.requestId]
     : [...previous.requests, input.requestId].slice(-500);

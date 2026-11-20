@@ -21,6 +21,7 @@ test('empty competitions have independent metadata, no invented stage/date, and 
   assert.equal(c.name, '空賽事'); assert.equal(c.venue, '臺北');
   assert.deepEqual(c.stages, []); assert.deepEqual(c.dates, []);
   assert.equal(c.date, ''); assert.equal(c.endDate, '');
+  assert.equal(competitionSchema.safeParse({ name: '空賽事', organizer: '自由填寫' }).success, false);
   assert.ok(!('audit' in c)); assert.ok(!('requests' in c));
   assert.equal(competitionSchema.safeParse({ name: '空賽事', date: '2026-10-16' }).success, false);
 });
@@ -43,13 +44,13 @@ test('extracting legacy metadata preserves IDs, scores, projection and device cr
 
 test('shared edits are idempotent, reject stale versions and leave stage names/dates/scores unchanged', () => {
   const stage = setup(), record = createCompetition({ name: '賽事名稱', venue: '臺北' }, stage.event.id);
-  const input = { name: '新賽事名稱', organizer: '橋藝社', venue: '新場地', revision: 1, requestId: randomUUID() };
+  const input = { name: '新賽事名稱', venue: '新場地', revision: 1, requestId: randomUUID() };
   const updated = updateCompetition(record, input);
   assert.equal(updateCompetition(updated, input), updated);
   assert.throws(() => updateCompetition(updated, { ...input, requestId: randomUUID() }), /更新/);
   const inherited = inheritCompetition(stage, updated.competition);
   assert.equal(inherited.event.venue, '新場地');
-  assert.equal(inherited.event.competition?.organizer, '橋藝社');
+  assert.equal(inherited.event.competition?.organizerName, undefined);
   assert.equal(inherited.event.name, stage.event.name);
   assert.equal(inherited.event.date, stage.event.date);
   assert.equal(inherited.event.revision, stage.event.revision);

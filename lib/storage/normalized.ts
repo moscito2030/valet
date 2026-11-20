@@ -20,6 +20,8 @@ import { project } from '../scoring';
 import { commitDocumentMutation, seedResultWrites } from './cell-write';
 import { captureSql, commitSql, isConflict } from './batch';
 import { hydrateEvent } from './hydrate-event';
+import { readOrganizerNames } from './organizer-names';
+import { resolveCompetitionOrganizer } from '../competitions';
 import type { Sql } from './neon';
 import type { AgentWrite, EventRepository } from './repository';
 import {
@@ -159,8 +161,15 @@ export function createNormalizedRepository(query: Sql) {
   async function getEvent(id: string) {
     const stage = await loadStage(sql(), id);
     if (!stage) throw new DomainError('找不到賽事', 404);
-    const root = await getCompetition(stageCompetitionId(stage.stored.event));
-    return hydrateEvent(materializeStoredPublication(stage.stored), root.competition);
+    const competitionId = stageCompetitionId(stage.stored.event);
+    const [root, assignments, names] = await Promise.all([
+      getCompetition(competitionId),
+      sql()`SELECT settings->>'organizerId' AS organizer_id FROM bridge_stages
+        WHERE competition_id = ${competitionId}`,
+      readOrganizerNames(sql()),
+    ]);
+    const organizer = resolveCompetitionOrganizer(assignments.map(row => row.organizer_id), names);
+    return hydrateEvent(materializeStoredPublication(stage.stored), root.competition, organizer.name);
   }
   async function deleteEvent(id: string, revision: number) {
     const stage = await loadStage(sql(), id);

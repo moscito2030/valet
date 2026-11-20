@@ -36,17 +36,23 @@ export function competitionStatusLabel(
 }
 
 type CompetitionSource = Pick<IndexEvent, 'id' | 'name' | 'venue' | 'hasStages' | 'revision'> &
-  Pick<CompetitionInfo, 'archived' | 'organizer'>;
+  Pick<CompetitionInfo, 'archived'>;
 
-export function competitionInfo(root: CompetitionSource): CompetitionInfo {
-  return { id: root.id, name: root.name, organizer: root.organizer ?? null, venue: root.venue, hasStages: !!root.hasStages, revision: root.revision, ...(root.archived !== undefined ? { archived: root.archived } : {}) };
+export function competitionInfo(root: CompetitionSource, organizerName?: string): CompetitionInfo {
+  return { id: root.id, name: root.name, ...(organizerName ? { organizerName } : {}), venue: root.venue, hasStages: !!root.hasStages, revision: root.revision, ...(root.archived !== undefined ? { archived: root.archived } : {}) };
+}
+
+export function resolveCompetitionOrganizer(ids: readonly unknown[], names: ReadonlyMap<string, string>) {
+  const assigned = new Set(ids.filter((id): id is string => typeof id === 'string' && !!id.trim()));
+  const id = assigned.size === 1 ? assigned.values().next().value : undefined;
+  return { id, name: id ? names.get(id) : undefined };
 }
 
 export function stageSummary(event: IndexEvent) {
   return { stageArchived: event.stageArchived, id: event.id, revision: event.revision, name: event.stageName ?? event.name, date: event.date, endDate: event.endDate || event.date, kind: event.kind, gameMode: event.gameMode ?? 'bridge', teamMethod: event.teamMethod, teamFormat: event.teamFormat, bam: event.bam, pairMethod: event.pairMethod ?? 'mp', status: event.status, participants: event.participants.length, rounds: event.rounds, boards: event.boards.length };
 }
 
-export function competitionCatalog(data: EventIndex[], records: StoredCompetition[] = [], includeArchivedStages = true) {
+export function competitionCatalog(data: EventIndex[], records: StoredCompetition[] = [], includeArchivedStages = true, organizerNames: ReadonlyMap<string, string> = new Map()) {
   const roots = new Map(data.filter(s => !s.event.parentEventId).map(s => [s.event.id, competitionInfo(s.event)]));
   for (const { competition } of records) roots.set(competition.id, competitionInfo(competition));
   return [...roots.values()].map(root => {
@@ -58,7 +64,7 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
     const stages = includeArchivedStages ? allStages : allStages.filter(s => !s.stageArchived);
     const dates = [...new Set(stages.map(s => s.date))].sort();
     return {
-      ...root,
+      ...competitionInfo(root, resolveCompetitionOrganizer(family.map(({ event }) => event.organizerId), organizerNames).name),
       date: dates[0] ?? '',
       endDate: stages.map(s => s.endDate).sort().at(-1) ?? '',
       dates,
@@ -70,9 +76,9 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
 
 export type Competition = ReturnType<typeof competitionCatalog>[number];
 
-export function inheritCompetition(stored: StoredEvent, root: CompetitionSource): StoredEvent {
+export function inheritCompetition(stored: StoredEvent, root: CompetitionSource, organizerName?: string): StoredEvent {
   const { prefix: _legacyPrefix, ...event } = stored.event as BridgeEvent & { prefix?: unknown };
-  return { ...stored, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition: competitionInfo(root) } };
+  return { ...stored, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition: competitionInfo(root, organizerName) } };
 }
 
 export function stageVenue(building?: string, room?: string): string {

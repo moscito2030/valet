@@ -57,7 +57,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
   }, []);
   useEffect(() => { void load().catch(e => setError(e.message)).finally(() => setLoading(false)); }, [load]);
   const competition = competitions.find(c => c.id === competitionId);
-  const matches = competitions.filter(c => (!date || c.stages.some(s => includesDate(s, date))) && (`${c.name} ${c.organizer ?? ''} ${c.venue} ${c.stages.map(s => `${s.venue} ${dateRangeLabel(s)}`).join(' ')}`.toLowerCase().includes(query.toLowerCase()) || (/^\d{4}-\d{2}-\d{2}$/.test(query.trim()) && c.stages.some(s => includesDate(s, query.trim())))));
+  const matches = competitions.filter(c => (!date || c.stages.some(s => includesDate(s, date))) && (`${c.name} ${c.organizerName ?? ''} ${c.venue} ${c.stages.map(s => `${s.venue} ${dateRangeLabel(s)}`).join(' ')}`.toLowerCase().includes(query.toLowerCase()) || (/^\d{4}-\d{2}-\d{2}$/.test(query.trim()) && c.stages.some(s => includesDate(s, query.trim())))));
   return <div className={`app-shell competition-hub${competitionId ? ' competition-home' : ''}`}>
     <aside className="sidebar">
       <a href="/" className="brand"><span><span className="sidebar-wordmark">VALET</span><small>橋牌賽事記分</small></span></a>
@@ -98,7 +98,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
         }}><label className="field">密碼<span className="password-input"><input type={showPassword ? 'text' : 'password'} name="password" autoComplete="current-password" required /><button type="button" className="password-toggle" aria-label={showPassword ? '隱藏密碼' : '顯示密碼'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>{loginError && <p className="alert error" role="alert">{loginError}</p>}<button className="button primary" disabled={busy}>{busy ? '登入中…' : '登入'}</button></form></Modal>}
         {loading ? <div className="empty">載入賽事中…</div> : competitionId && !competition ? <div className="empty"><h2>找不到賽事</h2><a href="/" className="button subtle">瀏覽其他賽事</a></div> : competition ? <>
           <section className="competition-hero">
-            {competition.organizer && <p>{competition.organizer}</p>}
+            {competition.organizerName && <p>{competition.organizerName}</p>}
             <h1>{competition.name}</h1>{competition.archived && <p role="status">已封存 · 僅裁判可見</p>}
             <div className="competition-facts"><span><CalendarDays size={17} />{competitionDateLabel(competition)}</span><span><MapPin size={17} />{competition.venue || '地點未公布'}</span></div>
             <div className="button-row"><a className="button subtle" href="/"><ArrowLeft size={16} />瀏覽其他賽事</a>{session.director && <><button className="button subtle" onClick={() => setEditing(!editing)}>編輯賽事資訊</button><button className="button subtle" onClick={() => setAddingStage(true)}><Plus size={16} />新增賽段</button><button className="button subtle" disabled={busy || !competition.stages.length} onClick={() => { setCopyStage(null); setCopyError(''); setCopying(true); }}><Copy size={16} />複製賽段</button><button className="button subtle" disabled={busy} onClick={async () => {
@@ -112,10 +112,10 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           {editing && session.director && <form className="panel hub-form" key={competition.revision} onSubmit={async e => {
             e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
             try {
-              await request(`/api/competitions/${competition.id}`, { revision: competition.revision, requestId: crypto.randomUUID(), name: String(form.get('name')), organizer: String(form.get('organizer')).trim() || null, venue: String(form.get('venue')) }, 'PATCH');
+              await request(`/api/competitions/${competition.id}`, { revision: competition.revision, requestId: crypto.randomUUID(), name: String(form.get('name')), venue: String(form.get('venue')) }, 'PATCH');
               await load(); setEditing(false);
             } catch (e) { setError((e as Error).message); await load().catch(() => {}); } finally { setBusy(false); }
-          }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><label className="field">主辦單位<input name="organizer" maxLength={80} defaultValue={competition.organizer ?? ''} /></label><div className="form-grid"><label className="field">場館<input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
+          }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><div className="form-grid"><label className="field">場館<input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
           <section aria-label="選擇賽段">
             <div className="hub-section-heading"><h2>選擇賽段</h2><p>各賽段的日期、名單、賽制與成績各自獨立。</p></div>
             <div className="competition-grid competition-list">{competition.stages.map(s => <div key={s.id}><a className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>
@@ -137,7 +137,7 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           </div>
           <div className="competition-grid competition-list">{matches.map(c => <a key={c.id} className="panel competition-card competition-card-compact" href={`/?competition=${encodeURIComponent(c.id)}`}>
             <span className={`event-icon ${c.stages[0]?.kind ?? ''}`} aria-hidden="true"><Users size={23} /></span>
-            <div className="competition-card-copy"><h2>{c.name}</h2><p>{c.organizer && <span>{c.organizer}</span>}<span>{`${c.stages.length} 個賽段`}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
+            <div className="competition-card-copy"><h2>{c.name}</h2><p>{c.organizerName && <span>{c.organizerName}</span>}<span>{`${c.stages.length} 個賽段`}</span><time dateTime={c.date}>{competitionDateLabel(c)}</time></p></div>
             <span className="competition-status">{c.statusLabel ?? competitionStatusLabel(c, c.stages)}</span>
           </a>)}</div>
           {!competitions.length && <div className="empty">尚未建立賽事，請裁判登入後建立。</div>}
@@ -221,7 +221,7 @@ function DeleteCompetitionsDialog({ competitions, onClose, onRefresh, onDeleted 
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const visible = competitions.filter(c => `${c.name} ${c.organizer ?? ''} ${c.date}`.toLowerCase().includes(query.toLowerCase()));
+  const visible = competitions.filter(c => `${c.name} ${c.organizerName ?? ''} ${c.date}`.toLowerCase().includes(query.toLowerCase()));
   const chosen = competitions.filter(c => selected.includes(c.id));
   const namesMatch = chosen.every(c => confirmations[c.id] === c.name);
   async function remove() {

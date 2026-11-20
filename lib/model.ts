@@ -23,7 +23,7 @@ export type Participant = {
   group?: 'NS' | 'EW';
 };
 export type CompetitionInfo = {
-  organizer?: string | null;
+  organizerName?: string;
   archived?: boolean;
   id: string;
   name: string;

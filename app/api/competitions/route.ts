@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { listEventIndex, listCompetitionRecords, insertCompetition } from '@/lib/store';
+import { listEventIndex, listCompetitionRecords, listOrganizerNames, insertCompetition } from '@/lib/store';
 import { createCompetition, competitionSchema } from '@/lib/competition-record';
 import { isDirector } from '@/lib/auth';
 import { DomainError } from '@/lib/domain-error';
@@ -8,9 +8,9 @@ import { errorResponse, requireAdmin, readJson } from '@/lib/http';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
-    const [stages, records] = await Promise.all([listEventIndex(), listCompetitionRecords()]);
+    const [stages, records, organizerNames] = await Promise.all([listEventIndex(), listCompetitionRecords(), listOrganizerNames()]);
     const director = await isDirector();
-    return NextResponse.json({ competitions: competitionCatalog(stages, records, director).filter(c => director || !c.archived) }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ competitions: competitionCatalog(stages, records, director, organizerNames).filter(c => director || !c.archived) }, { headers: { 'Cache-Control': 'no-store' } });
   }
   catch (e) { return errorResponse(e); }
 }

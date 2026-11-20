@@ -64,10 +64,10 @@ try {
   assert.ok(!('prefix' in await req('/api/admin/events/' + legacy.event.id)));
   await req('/api/competitions', 'POST', { name: '不可建立' }, 401, '');
   await req('/api/competitions', 'POST', { name: '不可建立' }, 403, staff);
-  const { id } = await req('/api/competitions', 'POST', { name: '空賽事驗證', organizer: '測試主辦', venue: '總館' }, 201);
+  const { id } = await req('/api/competitions', 'POST', { name: '空賽事驗證', venue: '總館' }, 201);
   let c = await catalog(id);
   assert.deepEqual(c.stages, []); assert.equal(c.date, '');
-  assert.equal(c.organizer, '測試主辦');
+  assert.ok(!('organizerName' in c));
   const shared = { name: '空賽事驗證', venue: '新總館', revision: c.revision, requestId: randomUUID() };
   await req('/api/competitions/' + id, 'PATCH', shared, 403, staff);
   const changed = await req('/api/competitions/' + id, 'PATCH', shared);
