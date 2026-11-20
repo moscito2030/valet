@@ -116,6 +116,8 @@ export type BridgeEvent = {
     inputOverrides?: Record<string, string>;
   };
   id: string;
+  /** Set when the event is assigned to an organizer. Absent until that migration. */
+  organizerId?: string;
   name: string;
   prefix?: string;
   kind: Kind;

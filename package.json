@@ -14,6 +14,7 @@
     "db:merge-stages": "tsx scripts/merge-stages.ts",
     "db:restore-legacy": "tsx scripts/restore-legacy.ts",
     "db:materialize-publication": "tsx scripts/materialize-publication.ts",
+    "db:migrate-access": "tsx scripts/migrate-access-db.ts",
     "prepare:dds": "node scripts/prepare-dds.mjs",
     "predev": "npm run prepare:dds && npm run manual:build",
     "predev:local": "npm run prepare:dds && npm run manual:build",

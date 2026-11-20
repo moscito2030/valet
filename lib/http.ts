@@ -52,7 +52,7 @@ export function errorResponse(error: unknown) {
     );
   if (error instanceof DomainError)
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message, ...(error.code ? { code: error.code } : {}) },
       { status: error.status, headers: { 'Cache-Control': 'no-store' } },
     );
   console.error('Request failed:', error instanceof Error ? error.name : 'UnknownError');

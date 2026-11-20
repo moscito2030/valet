@@ -107,4 +107,16 @@ export const normalizedSchemaStatements = [
     document jsonb NOT NULL,
     PRIMARY KEY (thread_key, comment_id)
   )`,
+  `CREATE TABLE IF NOT EXISTS bridge_organizers (
+    id text PRIMARY KEY,
+    document jsonb NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS bridge_access_codes (
+    id text PRIMARY KEY,
+    document jsonb NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS bridge_access_audit (
+    id text PRIMARY KEY,
+    document jsonb NOT NULL
+  )`,
 ];
