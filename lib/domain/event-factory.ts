@@ -38,7 +38,6 @@ export function createEvent(
     rounds: data.rounds,
     boardsPerRound: data.boardsPerRound,
     status: 'live',
-    publishBoards: false,
     pairMethod: data.pairMethod ?? 'mp',
     neuberg: data.neuberg ?? false,
     trim: data.kind === 'pairs' && (data.pairMethod ?? 'mp') !== 'mp' ? (data.trim ?? 'none') : 'none',

@@ -47,7 +47,6 @@ test('discussion opens only with real public deals and all scheduled uses settle
     S: cards.slice(26, 39),
     W: cards.slice(39),
   };
-  e.publishBoards = false;
   e.boards[0].published = false;
   assert.equal(discussionPublished(e, 1), false);
   e.boards[0].published = true;

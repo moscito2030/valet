@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEvent, applyMutation } from '../lib/events';
 import { impPairScore, project, trimScores, vp, imps } from '../lib/scoring';
+import { materializeBoardPublication } from '../lib/board-publication';
 import { publicBoards } from '../lib/public-event';
 import {
   bestDeclarerTricks,
@@ -279,7 +280,7 @@ test('separate explicit publication groups stay isolated and legacy states remai
   assert.ok('deal' in visible[0]);
   assert.ok(!('deal' in visible[1]));
   assert.ok(publicBoards(e).every((b) => !('deal' in b)));
-  const legacy = { ...e, publishBoards: true };
+  const legacy = materializeBoardPublication({ ...e, publishBoards: true });
   const hidden = applyMutation(
     { ...s, event: legacy },
     { ...meta, action: 'board-publication', board: 1, published: false },

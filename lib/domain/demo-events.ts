@@ -46,8 +46,7 @@ export function seedEvents(): StoredEvent[] {
   );
   return [team, pairs].map((e) => {
     e.demo = true;
-    e.publishBoards = true;
-    e.boards = e.boards.map((b) => makeBoard(b.number));
+    e.boards = e.boards.map((b) => ({ ...makeBoard(b.number), published: true }));
     const lastRound = e.kind === 'teams' ? 3 : 9;
     for (const a of e.assignments)
       for (const board of a.boards) {

@@ -6,7 +6,6 @@ import { privateBoardPreview } from '../lib/private-board-preview';
 
 test('private board preview includes unpublished scores without changing audience data', () => {
   for (const { event } of seedEvents()) {
-    event.publishBoards = false;
     event.boards.forEach(b => b.published = false);
     event.club = { enabled: true, tokens: {}, confirmations: {}, finalized: [] };
     const before = structuredClone(event);

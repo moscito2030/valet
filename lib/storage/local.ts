@@ -14,6 +14,7 @@ import {
   type StoredCompetition,
   type StoredDocument,
 } from '../competition-record';
+import { materializeStoredPublication } from '../board-publication';
 import { DomainError } from '../domain-error';
 import { seedEvents } from '../domain/demo-events';
 import { eventIndex, type EventIndex } from '../event-index';
@@ -55,7 +56,7 @@ export function createLocalRepository(directory: string): EventRepository {
   function present(stored: StoredEvent): StoredEvent {
     const { resultWrites, ...rest } = stored as StoredEvent & { resultWrites?: ResultWrites };
     void resultWrites;
-    return rest;
+    return materializeStoredPublication(rest);
   }
   async function getRawEvent(id: string): Promise<StoredEvent> {
     const e = (await listEvents()).find((x) => x.event.id === id);

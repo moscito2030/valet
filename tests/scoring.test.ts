@@ -220,7 +220,6 @@ test('invalid contracts, duplicate imports and premature finalization rejected',
         requestId: 'x',
         reason: 'test',
         status: 'finished',
-        publishBoards: false,
       }),
     /未收齊/,
   );

@@ -11,8 +11,8 @@ export function applyDealsCommand(
   const { event: e, at, changes } = context;
   let detail: string | undefined;
   if (command.action === 'board-publication') {
-    // Materialize legacy publication settings before changing just one board.
-    e.boards = e.boards.map((b) => ({ ...b, published: b.published ?? e.publishBoards }));
+    // Each board already carries its own switch. Undefined stays hidden.
+    e.boards = e.boards.map((b) => ({ ...b, published: b.published === true }));
     const b = e.boards.find((b) => b.number === command.board);
     if (!b) throw new DomainError('找不到牌號');
     const targets = boardGroups(e.boards, e.boardsPerRound).find((group) =>
@@ -39,7 +39,7 @@ export function applyDealsCommand(
       e.boards = e.boards.map((old) => {
         const board = boards.find((b) => b.number === old.number);
         return board ? { ...board, group: old.group ?? board.group,
-          published: old.published ?? e.publishBoards,
+          published: old.published === true,
           ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) } : old;
       });
       context.detail = [`匯入未打牌號：${boards.map((b) => b.number).join('、')}；保留已收分牌局`, warnings.join('；')].filter(Boolean).join('；');
@@ -60,7 +60,7 @@ export function applyDealsCommand(
       group:
         b.group ??
         `${prefix}-${Math.floor(ordered.findIndex((item) => item.number === b.number) / e.boardsPerRound) + 1}`,
-      published: e.boards.find((old) => old.number === b.number)?.published ?? e.publishBoards,
+      published: e.boards.find((old) => old.number === b.number)?.published === true,
     }));
     for (const b of e.boards) {
       if (e.boards.some((other) => other.group === b.group && !other.published))

@@ -144,7 +144,7 @@ export function PublicationPanel({
           <div className="publication-grid">
             {boardGroups(event.boards, event.boardsPerRound).map((group) => {
               const b = group[0];
-              const published = group.every((item) => item.published ?? event.publishBoards);
+              const published = group.every((item) => item.published === true);
               const label = boardRange(group.map((item) => item.number));
               return (
                 <button

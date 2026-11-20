@@ -12,6 +12,7 @@ import {
   type StoredCompetition,
   type StoredDocument,
 } from '../competition-record';
+import { materializeStoredPublication } from '../board-publication';
 import { DomainError } from '../domain-error';
 import { eventIndex, type EventIndex } from '../event-index';
 import type { BridgeEvent, Mutation, StoredEvent } from '../model';
@@ -110,7 +111,7 @@ export function createNormalizedRepository(query: Sql): EventRepository {
     };
   }
   async function listEvents() {
-    return (await loadStages(sql())).map((stage) => stage.stored);
+    return (await loadStages(sql())).map((stage) => materializeStoredPublication(stage.stored));
   }
   async function listEventIndex(): Promise<EventIndex[]> {
     const rows =
@@ -159,7 +160,7 @@ export function createNormalizedRepository(query: Sql): EventRepository {
     const stage = await loadStage(sql(), id);
     if (!stage) throw new DomainError('找不到賽事', 404);
     const root = await getCompetition(stageCompetitionId(stage.stored.event));
-    return hydrateEvent(stage.stored, root.competition);
+    return hydrateEvent(materializeStoredPublication(stage.stored), root.competition);
   }
   async function deleteEvent(id: string, revision: number) {
     const stage = await loadStage(sql(), id);
@@ -227,8 +228,9 @@ export function createNormalizedRepository(query: Sql): EventRepository {
     for (let attempt = 0; attempt < 6; attempt++) {
       const loaded = await loadStage(sql(), id);
       if (!loaded) throw new DomainError('找不到賽事', 404);
-      if (loaded.stored.requests.includes(command.requestId)) return loaded.stored;
-      const next = commitDocumentMutation(loaded.stored, command, loaded.writes, true);
+      const stored = materializeStoredPublication(loaded.stored);
+      if (stored.requests.includes(command.requestId)) return stored;
+      const next = commitDocumentMutation(stored, command, loaded.writes, true);
       try {
         await saveStage(sql(), next.stored, next.writes, priorOf(loaded));
         return next.stored;

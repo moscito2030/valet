@@ -15,6 +15,7 @@ import { type EventIndex } from '../event-index';
 import { BridgeEvent, Mutation, StoredEvent } from '../model';
 import { applyMutation } from '../mutations/apply';
 import { project } from '../scoring';
+import { materializeStoredPublication } from '../board-publication';
 import { hydrateEvent } from './hydrate-event';
 import { createNormalizedRepository } from './normalized';
 import type { EventRepository } from './repository';
@@ -36,12 +37,12 @@ export function createLegacyNeonRepository(query: Sql): EventRepository {
     const rows =
       await sql()`SELECT document FROM bridge_events WHERE id=${id} AND document ? 'event'`;
     if (!rows.length) throw new DomainError('找不到賽事', 404);
-    return rows[0].document as StoredEvent;
+    return materializeStoredPublication(rows[0].document as StoredEvent);
   }
   async function listEvents(): Promise<StoredEvent[]> {
     const rows =
       await sql()`SELECT document FROM bridge_events WHERE document ? 'event' ORDER BY updated_at DESC`;
-    return rows.map((r) => r.document as StoredEvent);
+    return rows.map((r) => materializeStoredPublication(r.document as StoredEvent));
   }
   async function listEventIndex(): Promise<EventIndex[]> {
     const rows =

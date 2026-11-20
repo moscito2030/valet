@@ -73,7 +73,6 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     roundPhase: event.roundPhase,
     roundTimes: event.roundTimes,
     status: event.status === 'live' && allRoundsComplete(event) ? 'review' as const : event.status,
-    publishBoards: event.publishBoards,
     pairMethod: event.pairMethod,
     neuberg: event.neuberg,
     trim: event.trim,
@@ -115,7 +114,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   // Hands already follow `published`. Scores, pair IMPs and standings must too:
   // finishing every table, or settling the round, does not publish a board the director left hidden.
   const publishedBoards = new Set(
-    event.boards.filter((b) => b.published ?? event.publishBoards).map((b) => b.number),
+    event.boards.filter((b) => b.published === true).map((b) => b.number),
   );
   const results = Object.fromEntries(
     Object.entries(data.results).filter(

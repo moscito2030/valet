@@ -123,8 +123,6 @@ export function applySettingsCommand(
     if (command.awardDescription !== undefined) e.awardDescription = command.awardDescription;
     if (command.movementDescription !== undefined)
       e.movementDescription = command.movementDescription;
-    if (command.publishBoards !== undefined && command.publishBoards !== e.publishBoards)
-      throw new DomainError('請使用每副牌的公開開關。');
   }
   context.detail = detail;
 }
