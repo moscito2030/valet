@@ -1,3 +1,4 @@
+import { canonical } from '../storage/cell-write';
 import { DomainError } from '../domain-error';
 import type { BridgeEvent, Mutation, Result, StoredEvent } from '../model';
 import { resultKey } from '../model';
@@ -8,7 +9,7 @@ import type { AccessCode } from '../access/codes';
 
 export function agentError(error: unknown) {
   if (error instanceof DomainError) {
-    const code = error.code === 'stage-revision' ? accessError.revisionConflict : error.code ?? accessError.forbiddenRole;
+    const code = error.code === 'stage-revision' ? accessError.revisionConflict : error.code ?? (error.status === 404 ? 'EVENT_NOT_FOUND' : accessError.forbiddenRole);
     return { message: error.message, code, status: error.status };
   }
   return { message: '無法完成', code: accessError.forbiddenRole, status: 400 };
@@ -29,10 +30,10 @@ export function eventStatus(event: BridgeEvent) {
   };
 }
 
-function resultChanges(before: Record<string, Result>, after: Record<string, Result>) {
+export function resultChanges(before: Record<string, Result>, after: Record<string, Result>) {
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
   return [...keys]
-    .filter((key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null))
+    .filter((key) => canonical(before[key] ?? null) !== canonical(after[key] ?? null))
     .map((key) => ({ target: key, before: before[key] ?? null, after: after[key] ?? null }));
 }
 

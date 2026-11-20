@@ -21,7 +21,7 @@ import { commitDocumentMutation, seedResultWrites } from './cell-write';
 import { captureSql, commitSql, isConflict } from './batch';
 import { hydrateEvent } from './hydrate-event';
 import type { Sql } from './neon';
-import type { EventRepository } from './repository';
+import type { AgentWrite, EventRepository } from './repository';
 import {
   loadCompetitions,
   loadStage,
@@ -97,7 +97,7 @@ async function competitionCount(sql: Sql) {
   return Number(rows[0]?.n ?? 0);
 }
 
-export function createNormalizedRepository(query: Sql): EventRepository {
+export function createNormalizedRepository(query: Sql) {
   const sql = () => query;
   async function family(tx: Sql, competitionId: string) {
     const [stages, competitions] = await Promise.all([loadStages(tx), loadCompetitions(tx)]);
@@ -214,8 +214,8 @@ export function createNormalizedRepository(query: Sql): EventRepository {
     );
     return stored;
   }
-  async function mutateEvent(id: string, command: Mutation): Promise<StoredEvent> {
-    if (command.action === 'competition-settings') {
+  async function mutateEvent(id: string, command: Mutation, agent?: AgentWrite): Promise<StoredEvent> {
+    if (command.action === 'competition-settings' && !agent) {
       await mutateCompetition(id, {
         name: command.name,
         prefix: command.prefix,
@@ -229,12 +229,24 @@ export function createNormalizedRepository(query: Sql): EventRepository {
       const loaded = await loadStage(sql(), id);
       if (!loaded) throw new DomainError('找不到賽事', 404);
       const stored = materializeStoredPublication(loaded.stored);
+      agent?.validate(stored);
       if (stored.requests.includes(command.requestId)) return stored;
       const next = commitDocumentMutation(stored, command, loaded.writes, true);
       try {
-        await saveStage(sql(), next.stored, next.writes, priorOf(loaded));
+        if (agent) {
+          const cap = captureSql();
+          agent.queue(cap.sql, stored, next.stored);
+          const rawEvent = loaded.stored.event;
+          const nextEvent = { ...next.stored.event };
+          if ('publishBoards' in rawEvent) Object.assign(nextEvent, { publishBoards: rawEvent.publishBoards });
+          queueStage(cap.sql, { ...next.stored, event: nextEvent }, next.writes, priorOf(loaded), true);
+          await commitSql(sql(), cap.batches);
+        } else {
+          await saveStage(sql(), next.stored, next.writes, priorOf(loaded));
+        }
         return next.stored;
       } catch (error) {
+        if (agent && (error as { code?: string }).code === '23505') throw error;
         if (!isConflict(error) || attempt === 5)
           throw isConflict(error)
             ? new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision')
@@ -307,5 +319,5 @@ export function createNormalizedRepository(query: Sql): EventRepository {
     insertCompetition,
     mutateCompetition,
     insertStage,
-  };
+  } satisfies EventRepository;
 }

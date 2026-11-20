@@ -7,7 +7,7 @@ export const valetMcpTools = [
   },
   {
     name: 'valet_preview_mutation',
-    description: 'Dry-run a score, publication, or settings change and return the before and after values.',
+    description: 'Dry-run a score change and return the before and after values.',
     method: 'POST',
     path: '/api/agent/events/{eventId}/preview',
   },

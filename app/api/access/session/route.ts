@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { exchangeCode, type AccessCode } from '@/lib/access/codes';
 import { DomainError } from '@/lib/domain-error';
 import { errorResponse, readJson } from '@/lib/http';
+import { checkLoginLimit, clearLoginFailures, recordLoginFailure } from '@/lib/login-limit';
 import { loadAccessCodes } from '@/lib/storage/access-records';
 import { neonHttp } from '@/lib/storage/sql-client';
 
@@ -22,8 +23,17 @@ async function loadCodes() {
 export async function POST(request: Request) {
   try {
     const body = z.object({ secret: z.string().min(1).max(200) }).strict().parse(await readJson(request));
-    const session = exchangeCode(body.secret, await loadCodes(), new Date());
     if (!process.env.SESSION_SECRET) throw new DomainError('尚未設定 SESSION_SECRET', 503);
+    await checkLoginLimit(request);
+    const codes = await loadCodes();
+    let session: ReturnType<typeof exchangeCode>;
+    try {
+      session = exchangeCode(body.secret, codes, new Date());
+    } catch (error) {
+      await recordLoginFailure(request);
+      throw error;
+    }
+    await clearLoginFailures(request);
     const response = NextResponse.json(
       { ok: true, scope: session.scope, role: session.role },
       { headers: { 'Cache-Control': 'no-store' } },
@@ -38,7 +48,6 @@ export async function POST(request: Request) {
     });
     return response;
   } catch (error) {
-    if (error instanceof DomainError) return errorResponse(error);
     return errorResponse(error);
   }
 }

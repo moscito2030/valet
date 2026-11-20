@@ -120,9 +120,7 @@ function assertCanIssue(actor: AccessCode, input: { scope: CodeScope; role?: Eve
 }
 
 export function exchangeCode(secret: string, codes: AccessCode[], now: Date) {
-  const code = findCode(secret, codes);
-  if (!code) throw new DomainError('通行碼不存在', 401, accessError.codeUnknown);
-  assertUsable(code, now);
+  const code = verifyAccessCode(secret, codes, now);
   return {
     codeId: code.id,
     name: code.name,
@@ -133,6 +131,12 @@ export function exchangeCode(secret: string, codes: AccessCode[], now: Date) {
     pairId: code.pairId ?? null,
     playerId: code.playerId ?? null,
   };
+}
+
+export function verifyAccessCode(secret: string, codes: AccessCode[], now: Date) {
+  const code = findCode(secret, codes);
+  if (!code) throw new DomainError('通行碼不存在', 401, accessError.codeUnknown);
+  return assertUsable(code, now);
 }
 
 export function findCode(secret: string, codes: AccessCode[]) {

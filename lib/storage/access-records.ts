@@ -29,6 +29,11 @@ export async function loadAccessCodes(sql: Sql): Promise<AccessCode[]> {
   }
 }
 
+export async function loadAccessCode(sql: Sql, hash: string) {
+  const [row] = await sql`SELECT document FROM bridge_access_codes WHERE document->>'hash' = ${hash} ORDER BY id LIMIT 1`;
+  return row?.document as AccessCode | undefined;
+}
+
 export async function assignAccessRecords(
   sql: Sql,
   input: { siteAdminSecret: string; directorSecret: string; now: string; dryRun: boolean },
