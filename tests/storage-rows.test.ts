@@ -501,7 +501,8 @@ test('normalized merge retires the competition, keeps the stage, and resolves th
     assert.equal(await competitionRedirect(db.sql, stageMerge.retiredId), stageMerge.competitionId);
     assert.deepEqual(await db.sql`SELECT id FROM bridge_competitions WHERE id = ${stageMerge.retiredId}`, []);
     const { event } = await createNeonRepository(db.sql).getEvent(stageMerge.retiredId);
-    assert.equal(event.venue, '臺灣大學 二活705');
+    assert.equal(event.venueOverride, '臺灣大學 二活705');
+    assert.equal(event.venue, '舊館 臺灣大學 二活705');
     assert.equal(canonical(event.boards.map((board) => board.deal)), deals);
     const limit = await db.sql`SELECT id FROM bridge_discussions WHERE id = 'limit:ip:test'`;
     assert.equal(limit.length, 1);
