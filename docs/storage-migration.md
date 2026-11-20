@@ -117,6 +117,17 @@ VALET_RESTORE_LEGACY=1 npm run db:restore-legacy
 
 若還原腳本或網站印出「舊的 bridge_events 在切換之後又被寫入」，表示有人用舊程式寫過舊表。這時不要繼續寫，直接還原 Neon 分支。
 
+## 逐副公開
+
+`publishBoards` 是舊的整場開關。讀取時會把有效的公開狀態抄到每一副，公開頁只看該副自己的 `published`。下面這支指令把那個結果寫回資料庫，不新增欄位。開關是 `normalized` 時只改 `bridge_stages.settings` 與需要補上 `published` 的 `bridge_boards.document_json`，不寫 `bridge_events`，所以不會觸發分裂保護。開關是 `legacy` 時才更新舊文件。牌張字串必須相同，否則這次不會寫入。已經寫明公開或隱藏的牌列不會重寫。
+
+```bash
+VALET_MATERIALIZE_PUBLICATION=1 npm run db:materialize-publication -- --dry-run
+VALET_MATERIALIZE_PUBLICATION=1 npm run db:materialize-publication
+```
+
+正式跑印出 `deals: unchanged`。`legacy: untouched` 表示這次沒有寫舊表。再跑一次應是 `stages: 0`、`boards: 0`。
+
 ## 稍後手動，這次不要執行
 
 確認新表已單獨服務一段時間、而且你另有備份之後，才可以考慮停用舊表。下面的語句不在任何腳本裡，預設不要跑。

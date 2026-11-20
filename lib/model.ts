@@ -148,7 +148,6 @@ export type BridgeEvent = {
   roundPhase?: 'playing' | 'break';
   roundTimes?: Record<number, { startAt: string; endAt: string }>;
   status: 'live' | 'review' | 'finished';
-  publishBoards: boolean;
   pairMethod?: PairMethod;
   neuberg?: boolean;
   trim?: Trim;
@@ -623,7 +622,6 @@ export const mutationSchema = z.discriminatedUnion('action', [
       neuberg: z.boolean().optional(),
       trim: z.enum(['none', 'one', 'ten-percent']).optional(),
       maxBoardNumber: z.number().int().min(0).optional(),
-      publishBoards: z.boolean().optional(),
       awardPlacesNS: z.number().int().min(0).max(32).optional(),
       awardPlacesEW: z.number().int().min(0).max(32).optional(),
       awardPlaces: z.number().int().min(0).max(32).optional(),

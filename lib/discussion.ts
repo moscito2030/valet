@@ -32,7 +32,7 @@ export function discussionPublished(e: BridgeEvent, number: number) {
   const b = e.boards.find((b) => b.number === number);
   return (
     !!b &&
-    !!(b.published ?? e.publishBoards) &&
+    b.published === true &&
     !!dealHcp(b.deal) &&
     !e.stageArchived &&
     !e.competition?.archived &&

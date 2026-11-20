@@ -6,7 +6,6 @@ import { roundStartProblem } from './round-workflow';
 type PublicationEvent = Pick<
   BridgeEvent,
   | 'boardsPerRound'
-  | 'publishBoards'
   | 'assignments'
   | 'results'
   | 'club'
@@ -37,7 +36,7 @@ export function readyBoardGroups(event: PublicationEvent) {
   const waiting = boardsStillInPlay(event);
   return boardGroups(event.boards, event.boardsPerRound).filter(
     (group) =>
-      group.some((board) => !(board.published ?? event.publishBoards)) &&
+      group.some((board) => board.published !== true) &&
       group.every((board) => {
         if (!board.deal || Object.values(board.deal).some((hand) => hand.length !== 13))
           return false;
