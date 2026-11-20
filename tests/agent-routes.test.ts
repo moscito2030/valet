@@ -18,11 +18,9 @@ const operations = { status: statusRoute, preview: previewRoute, mutations: muta
 const spec = JSON.parse(readFileSync('docs/agent-api.openapi.yaml', 'utf8'));
 const observed = new Map<Operation, Set<string>>();
 
-async function fixture(mode: 'legacy' | 'normalized' = 'normalized') {
+async function fixture() {
   const { sql, db, close } = await createTestDb();
   await sql`CREATE TABLE bridge_login_limits (key text PRIMARY KEY, attempts integer NOT NULL, window_end timestamptz NOT NULL)`;
-  if (mode === 'normalized')
-    await sql`UPDATE bridge_storage_switch SET mode = 'normalized', legacy_watermark = '1970-01-01T00:00:00.000Z' WHERE id = 1`;
   const repo = createNeonRepository(sql);
   const event = createEvent({
     name: '代理路由', date: '2026-11-20', venue: '測試', kind: 'pairs',
@@ -129,18 +127,23 @@ test('agent login throttling persists across operations and limits verification 
   assert.equal((await f.call('status')).status, 200);
 });
 
-test('agent mutations require normalized storage while legacy reads and previews remain available', async (t) => {
-  const f = await fixture('legacy');
+test('agent status, preview, and mutations fail closed without normalized storage', async (t) => {
+  const f = await fixture();
   t.after(f.close);
   const body = f.score();
-  assert.equal((await f.call('status')).status, 200);
-  assert.equal((await f.call('preview', { body })).status, 200);
-  expectError(await f.call('mutations', { body, key: 'key' }), 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
-  assert.equal((await f.repo.getEvent(f.event.id)).event.revision, f.event.revision);
-  assert.deepEqual(await f.sql`SELECT * FROM bridge_agent_mutations`, []);
-  assert.deepEqual(await f.sql`SELECT * FROM bridge_access_audit`, []);
+
+  async function expectStorageUnavailable() {
+    expectError(await f.call('status'), 503, 'storage-unavailable');
+    expectError(await f.call('preview', { body }), 503, 'storage-unavailable');
+    expectError(await f.call('mutations', { body, key: 'key' }), 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
+    assert.deepEqual(await f.sql`SELECT * FROM bridge_agent_mutations`, []);
+    assert.deepEqual(await f.sql`SELECT * FROM bridge_access_audit`, []);
+  }
+
+  await f.sql`UPDATE bridge_storage_switch SET mode = 'legacy' WHERE id = 1`;
+  await t.test('legacy mode', expectStorageUnavailable);
   await f.sql`DELETE FROM bridge_storage_switch WHERE id = 1`;
-  expectError(await f.call('mutations', { body, key: 'key' }), 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
+  await t.test('missing switch row', expectStorageUnavailable);
 });
 
 test('agent preview and atomic replay preserve normalized board storage', async (t) => {
