@@ -5,7 +5,7 @@ import { DomainError } from './domain-error';
 
 export const competitionSchema = z.object({
   name: z.string().trim().min(2).max(80),
-  prefix: z.string().trim().max(80).default(''),
+  organizer: z.string().trim().max(80).nullable().optional(),
   venue: z.string().trim().max(80).default(''),
 }).strict();
 export const competitionUpdateSchema = competitionSchema.extend({
@@ -41,7 +41,7 @@ export function findCompetition(data: StoredDocument[], id: string): StoredCompe
   const legacy = data.find(d => isStage(d) && d.event.id === id && !d.event.parentEventId);
   if (!legacy || !isStage(legacy)) throw new DomainError('找不到賽事', 404);
   const e = legacy.event;
-  return { competition: { id, name: e.name, prefix: e.prefix ?? '', venue: e.venue, hasStages: true,
+  return { competition: { id, name: e.name, venue: e.venue, hasStages: true,
     revision: e.revision, updatedAt: e.updatedAt, audit: [] }, requests: [] };
 }
 export function advanceCompetition(previous: StoredCompetition, revision: number, action: string): StoredCompetition {
@@ -61,7 +61,8 @@ export function updateCompetition(
   if (previous.requests.includes(input.requestId)) return previous;
   const next = advanceCompetition(previous, input.revision, input.archived === undefined ? '修改賽事共用資訊' : input.archived ? '封存賽事' : '解除封存賽事');
   if (input.archived !== undefined) next.competition.archived = input.archived;
-  Object.assign(next.competition, { name: input.name, prefix: input.prefix, venue: input.venue });
+  Object.assign(next.competition, { name: input.name, venue: input.venue });
+  if (input.organizer !== undefined) next.competition.organizer = input.organizer;
   next.requests = durableRequests
     ? [...previous.requests, input.requestId]
     : [...previous.requests, input.requestId].slice(-500);

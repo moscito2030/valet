@@ -11,7 +11,6 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     clubEnabled: !!club?.enabled,
     id: event.id,
     name: event.name,
-    prefix: event.prefix,
     kind: event.kind,
     rankingMode: event.rankingMode,
     teamMethod: event.teamMethod,

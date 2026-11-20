@@ -118,7 +118,6 @@ export function createLocalRepository(directory: string): EventRepository {
     if (command.action === 'competition-settings') {
       await mutateCompetition(id, {
         name: command.name,
-        prefix: command.prefix,
         venue: command.venue,
         revision: command.revision,
         requestId: command.requestId,

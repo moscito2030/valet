@@ -106,23 +106,22 @@ export function PublicationPanel({
             <input name="endDate" type="date" defaultValue={event.endDate ?? ''} />
           </label>
           <p className="footnote">單日賽段可將結束日期留空。</p>
-<label className="field">
-            賽段地點
+          <label className="field">
+            教室/房間（選填）
             <input
               name="venueOverride"
               maxLength={80}
               defaultValue={event.venueOverride ?? ''}
-              placeholder="留空沿用賽事地點"
+              placeholder="例如：704"
             />
           </label>
-          <p className="footnote">留空時沿用賽事地點：{event.competition?.venue || '未公布'}。</p>
           <button className="button subtle" disabled={busy}>
             儲存賽段資訊
           </button>
         </form>
       )}
       <p className="footnote">
-        賽事名稱、前綴與共用地點，請至{' '}
+        賽事名稱、主辦單位與場館，請至{' '}
         <a
           href={`/?competition=${encodeURIComponent(event.competition?.id ?? event.parentEventId ?? event.id)}`}
         >

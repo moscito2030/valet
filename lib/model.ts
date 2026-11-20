@@ -23,10 +23,10 @@ export type Participant = {
   group?: 'NS' | 'EW';
 };
 export type CompetitionInfo = {
+  organizer?: string | null;
   archived?: boolean;
   id: string;
   name: string;
-  prefix: string;
   venue: string;
   hasStages: boolean;
   revision: number;
@@ -119,7 +119,6 @@ export type BridgeEvent = {
   /** Set when the event is assigned to an organizer. Absent until that migration. */
   organizerId?: string;
   name: string;
-  prefix?: string;
   kind: Kind;
   rankingMode?: 'single' | 'double';
   gameMode?: 'bridge' | 'minibridge';
@@ -174,7 +173,6 @@ export const createSchema = z
   .object({
     firstStageName: z.string().trim().min(1).max(80).optional(),
     name: z.string().trim().min(2).max(80),
-    prefix: z.string().trim().max(80).optional(),
     kind: z.enum(['teams', 'pairs']),
     gameMode: z.enum(['bridge', 'minibridge']).optional(),
     teamMethod: z.enum(['imp', 'bam']).optional(),
@@ -455,7 +453,6 @@ export const mutationSchema = z.discriminatedUnion('action', [
       requestId: z.string().uuid(),
       reason: z.string().min(2).max(200),
       name: z.string().trim().min(2).max(80),
-      prefix: z.string().trim().max(80),
       venue: z.string().trim().max(80),
     })
     .strict(),
@@ -646,7 +643,6 @@ export const mutationSchema = z.discriminatedUnion('action', [
       stageName: z.string().trim().min(1).max(80).optional(),
       venueOverride: z.string().trim().max(80).nullable().optional(),
       name: z.string().trim().min(2).max(80).optional(),
-      prefix: z.string().trim().max(80).optional(),
     })
     .strict(),
   z

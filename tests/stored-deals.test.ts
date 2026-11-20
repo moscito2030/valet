@@ -66,7 +66,6 @@ test('reading an existing stored section does not change applied deals', async (
     const hydrated = hydrateEvent(JSON.parse(before)[0], {
       id: event.id,
       name: event.name,
-      prefix: event.prefix ?? '',
       venue: event.venue,
       hasStages: false,
       revision: event.revision,

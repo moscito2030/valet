@@ -106,11 +106,11 @@ for (const kind of ['local', 'normalized'] as const)
         await repo.insertStage(root.competition.id,e,root.competition.revision);
         const before = await repo.getEvent(e.id);
         let c = (await repo.getCompetition(root.competition.id)).competition;
-        const input = {name:c.name,prefix:c.prefix,venue:c.venue,revision:c.revision,requestId:randomUUID(),archived:true};
+        const input = {name:c.name,venue:c.venue,revision:c.revision,requestId:randomUUID(),archived:true};
         await repo.mutateCompetition(c.id,input);
         assert.equal((await repo.getEvent(e.id)).event.competition?.archived,true);
         c = (await repo.getCompetition(c.id)).competition;
-        await repo.mutateCompetition(c.id,{name:'Renamed archive',prefix:c.prefix,venue:c.venue,revision:c.revision,requestId:randomUUID()});
+        await repo.mutateCompetition(c.id,{name:'Renamed archive',venue:c.venue,revision:c.revision,requestId:randomUUID()});
         assert.equal((await repo.getCompetition(c.id)).competition.archived,true);
         c = (await repo.getCompetition(c.id)).competition;
         await repo.mutateCompetition(c.id,{...input,revision:c.revision,requestId:randomUUID(),archived:false});
@@ -228,9 +228,9 @@ for (const kind of ['local', 'normalized'] as const)
           const c = createCompetition({ name: '空賽事測試', venue: '共用場地' });
           await repo.insertCompetition(c);
           const e = stage();
-          e.venueOverride = '獨立場地';
+          e.venueOverride = '704';
           await repo.insertStage(c.competition.id, e, 1);
-          assert.equal((await repo.getEvent(e.id)).event.venue, '獨立場地');
+          assert.equal((await repo.getEvent(e.id)).event.venue, '共用場地 704');
           await repo.mutateEvent(
             e.id,
             command({ action: 'settings', status: 'live', venueOverride: null }),
@@ -290,7 +290,6 @@ for (const kind of ['local', 'normalized'] as const)
           await seedStored(stored);
           const update = {
             name: '獨立賽事名稱',
-            prefix: '新前綴',
             venue: '新地點',
             revision: 1,
             requestId: randomUUID(),

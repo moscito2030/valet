@@ -24,7 +24,8 @@
     "manual:check": "node scripts/check-manual.mjs",
     "test:visual": "playwright test",
     "test:knockout": "playwright test --config playwright.ko.config.ts",
-    "test:visual:update": "playwright test --update-snapshots"
+    "test:visual:update": "playwright test --update-snapshots",
+    "db:convert-venue-prefix": "tsx scripts/convert-venue-prefix.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

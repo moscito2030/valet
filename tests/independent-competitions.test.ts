@@ -43,13 +43,13 @@ test('extracting legacy metadata preserves IDs, scores, projection and device cr
 
 test('shared edits are idempotent, reject stale versions and leave stage names/dates/scores unchanged', () => {
   const stage = setup(), record = createCompetition({ name: '賽事名稱', venue: '臺北' }, stage.event.id);
-  const input = { name: '新賽事名稱', prefix: '第十屆', venue: '新場地', revision: 1, requestId: randomUUID() };
+  const input = { name: '新賽事名稱', organizer: '橋藝社', venue: '新場地', revision: 1, requestId: randomUUID() };
   const updated = updateCompetition(record, input);
   assert.equal(updateCompetition(updated, input), updated);
   assert.throws(() => updateCompetition(updated, { ...input, requestId: randomUUID() }), /更新/);
   const inherited = inheritCompetition(stage, updated.competition);
   assert.equal(inherited.event.venue, '新場地');
-  assert.equal(inherited.event.prefix, '第十屆');
+  assert.equal(inherited.event.competition?.organizer, '橋藝社');
   assert.equal(inherited.event.name, stage.event.name);
   assert.equal(inherited.event.date, stage.event.date);
   assert.equal(inherited.event.revision, stage.event.revision);
@@ -57,14 +57,15 @@ test('shared edits are idempotent, reject stale versions and leave stage names/d
   assert.equal(competitionCatalog([stage], [updated])[0].name, input.name);
 });
 
-test('venue overrides including explicit empty values survive shared edits and can be reset to inheritance', () => {
+test('stage rooms combine with the shared building and can be cleared', () => {
   const stage = setup(), record = createCompetition({ name: '俱樂部盃', venue: '共用地點' }, stage.event.id);
-  for (const venue of ['分館', '']) {
+  for (const venue of ['704', '']) {
+    const display = venue ? `共用地點 ${venue}` : '共用地點';
     const mutation = command({ venueOverride: venue });
     assert.equal(canMutate('admin', mutation), false); assert.equal(canMutate('director', mutation), true);
     const changed = applyMutation(stage, mutation);
-    assert.equal(inheritCompetition(changed, record.competition).event.venue, venue);
-    assert.equal(competitionCatalog([changed], [record])[0].stages[0].venue, venue);
+    assert.equal(inheritCompetition(changed, record.competition).event.venue, display);
+    assert.equal(competitionCatalog([changed], [record])[0].stages[0].venue, display);
     const reset = applyMutation(changed, command({ venueOverride: null }, changed.event.revision));
     assert.equal(reset.event.venueOverride, undefined);
     assert.equal(inheritCompetition(reset, record.competition).event.venue, '共用地點');
@@ -72,6 +73,9 @@ test('venue overrides including explicit empty values survive shared edits and c
   }
   const created = createEvent({ name: '另設場地', kind: 'teams', date: '2026-10-18', venue: '共用地點', venueOverride: '分館', names: ['甲', '乙', '丙'] });
   assert.equal(created.venueOverride, '分館');
+  const withoutBuilding = createCompetition({ name: '無場館' }, stage.event.id);
+  const roomOnly = applyMutation(stage, command({ venueOverride: '704' }));
+  assert.equal(inheritCompetition(roomOnly, withoutBuilding.competition).event.venue, '704');
 });
 
 test('removing first or final legacy stage leaves independently deletable competition and surviving stage IDs', () => {

@@ -218,7 +218,6 @@ export function createNormalizedRepository(query: Sql) {
     if (command.action === 'competition-settings' && !agent) {
       await mutateCompetition(id, {
         name: command.name,
-        prefix: command.prefix,
         venue: command.venue,
         revision: command.revision,
         requestId: command.requestId,

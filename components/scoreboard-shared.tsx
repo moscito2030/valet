@@ -5,7 +5,6 @@ import type { Audit, Board, Kind, PublicEvent, Result, ResultInput, Seat } from 
 export type EventSummary = {
   id: string;
   name: string;
-  prefix?: string;
   updatedAt?: string;
   competitionRevision?: number;
   kind: Kind;

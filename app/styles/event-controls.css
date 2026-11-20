@@ -102,12 +102,6 @@
 .event-meta span {
   display: inline;
 }
-.event-heading .event-prefix {
-  display: inline;
-}
-.event-heading .event-prefix + span:before {
-  content: '·';
-}
 .compact-page-heading {
   justify-content: flex-end;
   margin-bottom: 16px;

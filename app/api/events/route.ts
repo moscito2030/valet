@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createSchema } from '@/lib/model';
 import { createEvent } from '@/lib/events';
 import { insertEvent, listEventIndex, listCompetitionRecords, storageMode } from '@/lib/store';
-import { competitionCatalog } from '@/lib/competitions';
+import { competitionCatalog, stageVenue } from '@/lib/competitions';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
 import { DomainError } from '@/lib/domain-error';
@@ -21,14 +21,13 @@ export async function GET() {
           .map(({ event: e, projection: p }) => ({
             id: e.id,
             name: e.name,
-            prefix: roots.get(e.parentEventId ?? e.id)?.prefix ?? e.prefix ?? '',
             updatedAt: e.updatedAt,
             competitionRevision: roots.get(e.parentEventId ?? e.id)?.revision,
             kind: e.kind,
             pairMethod: e.pairMethod ?? 'mp',
             date: e.date,
             endDate: e.endDate,
-            venue: e.venueOverride ?? roots.get(e.parentEventId ?? e.id)?.venue ?? e.venue,
+            venue: stageVenue(roots.get(e.parentEventId ?? e.id)?.venue ?? e.venue, e.venueOverride),
             status: e.status,
             demo: e.demo,
             participants: e.participants.length,

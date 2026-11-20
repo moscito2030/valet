@@ -35,8 +35,11 @@ export function competitionStatusLabel(
   return '進行中';
 }
 
-export function competitionInfo(root: Pick<IndexEvent, 'id' | 'name' | 'prefix' | 'venue' | 'hasStages' | 'revision'> & { archived?: boolean }): CompetitionInfo {
-  return { id: root.id, name: root.name, prefix: root.prefix ?? '', venue: root.venue, hasStages: !!root.hasStages, revision: root.revision, ...(root.archived !== undefined ? { archived: root.archived } : {}) };
+type CompetitionSource = Pick<IndexEvent, 'id' | 'name' | 'venue' | 'hasStages' | 'revision'> &
+  Pick<CompetitionInfo, 'archived' | 'organizer'>;
+
+export function competitionInfo(root: CompetitionSource): CompetitionInfo {
+  return { id: root.id, name: root.name, organizer: root.organizer ?? null, venue: root.venue, hasStages: !!root.hasStages, revision: root.revision, ...(root.archived !== undefined ? { archived: root.archived } : {}) };
 }
 
 export function stageSummary(event: IndexEvent) {
@@ -51,7 +54,7 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
     const ordered = family.some(s => typeof s.event.stageOrder === 'number')
       ? [...family].sort((a, b) => (a.event.stageOrder ?? 1e9) - (b.event.stageOrder ?? 1e9) || a.event.date.localeCompare(b.event.date) || a.event.id.localeCompare(b.event.id))
       : family;
-    const allStages = ordered.map(s => ({ ...stageSummary(s.event), venue: s.event.venueOverride ?? root.venue }));
+    const allStages = ordered.map(s => ({ ...stageSummary(s.event), venue: stageVenue(root.venue, s.event.venueOverride) }));
     const stages = includeArchivedStages ? allStages : allStages.filter(s => !s.stageArchived);
     const dates = [...new Set(stages.map(s => s.date))].sort();
     return {
@@ -67,6 +70,11 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
 
 export type Competition = ReturnType<typeof competitionCatalog>[number];
 
-export function inheritCompetition(stored: StoredEvent, root: Pick<BridgeEvent, 'id' | 'name' | 'prefix' | 'venue' | 'hasStages' | 'revision'> & { archived?: boolean }): StoredEvent {
-  return { ...stored, event: { ...stored.event, prefix: root.prefix ?? '', venue: stored.event.venueOverride ?? root.venue, competition: competitionInfo(root) } };
+export function inheritCompetition(stored: StoredEvent, root: CompetitionSource): StoredEvent {
+  const { prefix: _legacyPrefix, ...event } = stored.event as BridgeEvent & { prefix?: unknown };
+  return { ...stored, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition: competitionInfo(root) } };
+}
+
+export function stageVenue(building?: string, room?: string): string {
+  return [building?.trim(), room?.trim()].filter(Boolean).join(' ');
 }

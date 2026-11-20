@@ -44,3 +44,14 @@ WBF VP 來源：https://www.worldbridge.org/wp-content/uploads/2019/06/VP-Scale-
 賽務可收分、更正、取消/恢復成績、扣分與維護入座名單。裁判另可匯入資料、調整賽程、公開牌型、管理隊伍名單、設定不平衡合約、建立與刪除賽事。俱樂部專屬連結只能操作自己的當圈桌次。角色規則集中於 lib/mutation-permissions.ts。
 
 部署前執行 npm run check:secrets、npm audit、npm test 與 npm run build。模式掃描只能識別已列出的秘密格式，不能保證歷史或主機設定沒有秘密；不要將 .env、資料庫備份或真實登入憑證加入 Git。
+
+## 場館與房間資料轉換
+
+適用於已切換至正規化儲存的站台。先在維護環境設定 `DATABASE_URL`，並預覽舊資料。建議在開放裁判編輯新版賽事資訊前先保留預覽報告。
+
+```sh
+VALET_CONVERT_VENUE=1 npm run db:convert-venue-prefix -- --dry-run
+VALET_CONVERT_VENUE=1 npm run db:convert-venue-prefix
+```
+
+確認預覽內容後再執行第二行。腳本只套用已確認的「115-1 社內賽」對照，逐欄比對舊值並保留人工修改。其他可能需要拆分地點的賽事，以及待確認的欄位與賽段，列在 `Skipped – needs a human decision`。已套用的項目重跑時顯示零筆變更。遇到版本衝突時整批回滾，重新預覽後再執行。既有資料表與牌局資料均保留。

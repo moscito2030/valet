@@ -48,7 +48,7 @@ export async function saveStage(
 
 export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: StagePrior, preserveBoards = false) {
   const event = stored.event;
-  const settings = { ...event } as Partial<BridgeEvent>;
+  const { prefix: _legacyPrefix, ...settings }: Partial<BridgeEvent> & { prefix?: unknown } = event;
   for (const key of splitKeys) delete settings[key];
   if (!prior)
     sql`INSERT INTO bridge_stages (id, revision, competition_id, settings, projection, updated_at)
@@ -202,7 +202,7 @@ async function hydrateStages(sql: Sql, stages: StageRow[]): Promise<LoadedStage[
   const requestRows = group(requests as { event_id: unknown }[]);
   return stages.map((stage) => {
     const id = String(stage.id);
-    const settings = stage.settings;
+    const { prefix: _legacyPrefix, ...settings } = stage.settings as BridgeEvent & { prefix?: unknown };
     const event: BridgeEvent = {
       ...settings,
       id: String(stage.id ?? settings.id),
@@ -266,7 +266,7 @@ export async function deleteStageRows(sql: Sql, id: string) {
 }
 
 export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRevision?: number) {
-  const { audit, ...document } = stored.competition;
+  const { audit, prefix: _legacyPrefix, ...document } = stored.competition as StoredCompetition['competition'] & { prefix?: unknown };
   if (expectedRevision === undefined)
     sql`INSERT INTO bridge_competitions (id, revision, document, updated_at)
       VALUES (${stored.competition.id}, ${stored.competition.revision}, ${JSON.stringify(document)}::jsonb, now())
@@ -309,7 +309,7 @@ export async function loadCompetitions(sql: Sql): Promise<StoredCompetition[]> {
   ]);
   return rows.map((row) => {
     const id = String(row.id);
-    const document = row.document as StoredCompetition['competition'];
+    const { prefix: _legacyPrefix, ...document } = row.document as StoredCompetition['competition'] & { prefix?: unknown };
     return {
       competition: {
         ...document,
