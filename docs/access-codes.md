@@ -105,11 +105,19 @@ VALET_ACCESS_CODES=1 npm run db:migrate-access
 
 `SITE_ADMIN_PASSWORD` 與 `DIRECTOR_PASSWORD` 放在環境，不放在指令參數。正式跑應印出 `deals: unchanged`。開關為 `normalized` 時 `legacy: untouched`。再跑一次應是 `events: 0`、`codes: 0`。不要把這支指令指向尚未備份的正式庫，也不要改 `58f461bf-e3df-4dab-b5ac-88ba69025f2d` 的牌。
 
-## 選手與代理（後續 PR）
+## 選手與代理
 
 選手以姓名與 email 自助登記。email 存在 `bridge_players`，公開物件不包含它。綁定與待確認通知在 `bridge_pair_bindings` 與 `bridge_partner_notices`。這三張表跟儲存開關無關，舊文件模式與正規化模式讀同一份。賽事成績仍從該模式自己的賽事列讀出，個人頁不改寫牌組或成績。遺失個人碼時重發並作廢舊碼。綁定搭檔有三條路：登記時依姓名建議並由選手確認、用過該對收分連結的人可一鍵把賽事存進個人頁、一方綁定後若另一方已登記就建立待確認通知。個人頁預設公開，改私人只藏個人頁，賽事頁仍顯示姓名與成績。
 
-代理 API 的契約在 `docs/agent-api.openapi.yaml`。MCP 工具只是那組端點的包裝。乾跑只比較會寫入的成績，不寫賽事。正式套用走儲存庫，同一個 `requestId` 在舊文件模式與正規化模式都只生效一次。改成績、公開牌型與設定都先有 dry run。`requestId` 重複時不第二次套用。錯誤同時有中文訊息與 `REVISION_CONFLICT`、`CODE_REVOKED`、`CODE_EXPIRED`、`FORBIDDEN_ROLE`。每場賽事有狀態端點：目前圈、尚未送分的桌、已公開的牌號。
+代理程式直接在每次請求送出 `Authorization: Bearer <賽事通行碼>`。使用發給該賽段的碼，唯讀碼可查狀態，收分碼與裁判碼可試算與提交成績。完整契約見 [代理 API](agent-api.openapi.yaml)。
+
+1. 呼叫 `GET /api/agent/events/{eventId}/status` 取得目前的 `revision`、圈次、待收分桌次及已公開的牌號。
+2. 呼叫 `POST /api/agent/events/{eventId}/preview` 試算輸入成績（`results`）、匯入 CSV（`results-import`）或清除單筆成績（`clear-result`）。這些操作只處理成績。牌組、牌型公開設定、賽程和其他指令皆禁止。
+3. 將相同 JSON 送到 `POST /api/agent/events/{eventId}/mutations`，並以 `Idempotency-Key` 標頭傳送此次操作的唯一鍵。外層與 `command` 內的 `requestId` 須使用同一個 UUID，例如 `{"requestId":"00000000-0000-4000-8000-000000000001","command":{"action":"clear-result","requestId":"00000000-0000-4000-8000-000000000001","revision":1,"assignmentId":"桌次 ID","board":1}}`。
+
+提交成功後會回傳新版本。相同賽段、通行碼及冪等鍵的重試會回傳原版本結果，即使之後有其他分數寫入。相同鍵搭配不同 JSON，或相同 `requestId` 搭配新鍵均回傳 409。物件欄位順序與 JSON 空白不影響內容比對。遇到版本衝突時，重新取得狀態、試算，並使用新的 UUID 與冪等鍵提交。成功的提交才會儲存冪等結果與 `viaAgent` 稽核，並與成績寫入共用一個交易。
+
+代理 API 使用 Neon 儲存模式及 `SESSION_SECRET`。先用 `npm run db:migrate` 建立 `bridge_agent_mutations` 等附加表，舊文件模式與正規化模式皆可使用。缺少必要資料表時回傳 503。代理 API 與既有登入共用每個來源 IP 的十分鐘失敗計數。被限制時回傳 429，`Retry-After` 標頭提供等待秒數。
 
 ## 尚未決定
 

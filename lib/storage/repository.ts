@@ -4,6 +4,13 @@ import type { StoredCompetition, competitionUpdateSchema } from '../competition-
 import type { EventIndex } from '../event-index';
 import type { BridgeEvent, Mutation, StoredEvent } from '../model';
 
+import type { Sql } from './neon';
+
+export type AgentWrite = {
+  validate(stored: StoredEvent): void;
+  queue(sql: Sql, before: StoredEvent, after: StoredEvent): void;
+};
+
 // Each mutating operation is atomic, including revision checks and audit/projection updates.
 // Implementations may use a local file lock or a database transaction, never a read/write pair in callers.
 export interface EventRepository {

@@ -46,7 +46,7 @@ export async function saveStage(
   await commitSql(sql, cap.batches);
 }
 
-export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: StagePrior) {
+export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: StagePrior, preserveBoards = false) {
   const event = stored.event;
   const settings = { ...event } as Partial<BridgeEvent>;
   for (const key of splitKeys) delete settings[key];
@@ -75,12 +75,14 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       SELECT ${event.id}, document->>'id', ordinal, document
       FROM jsonb_to_recordset(${JSON.stringify(event.assignments.map((document, ordinal) => ({ ordinal, document })))}::jsonb)
         AS x(ordinal int, document jsonb)`;
-  sql`DELETE FROM bridge_boards WHERE event_id = ${event.id}`;
-  if (event.boards.length)
-    sql`INSERT INTO bridge_boards (event_id, board_number, ordinal, document_json)
-      SELECT ${event.id}, board_number, ordinal, document_json
-      FROM jsonb_to_recordset(${JSON.stringify(event.boards.map((document, ordinal) => ({ ordinal, board_number: document.number, document_json: boardJson(document) })))}::jsonb)
-        AS x(board_number int, ordinal int, document_json text)`;
+  if (!preserveBoards) {
+    sql`DELETE FROM bridge_boards WHERE event_id = ${event.id}`;
+    if (event.boards.length)
+      sql`INSERT INTO bridge_boards (event_id, board_number, ordinal, document_json)
+        SELECT ${event.id}, board_number, ordinal, document_json
+        FROM jsonb_to_recordset(${JSON.stringify(event.boards.map((document, ordinal) => ({ ordinal, board_number: document.number, document_json: boardJson(document) })))}::jsonb)
+          AS x(board_number int, ordinal int, document_json text)`;
+  }
   queueResults(sql, event, writes, prior);
   sql`DELETE FROM bridge_penalties WHERE event_id = ${event.id}`;
   const penalties = Object.entries(event.penalties ?? {});

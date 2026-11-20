@@ -119,6 +119,16 @@ export const normalizedSchemaStatements = [
     id text PRIMARY KEY,
     document jsonb NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS bridge_agent_mutations (
+    event_id text NOT NULL,
+    actor_id text NOT NULL,
+    key text NOT NULL,
+    request_id text NOT NULL,
+    body_hash text NOT NULL,
+    response jsonb NOT NULL,
+    PRIMARY KEY (event_id, actor_id, key),
+    UNIQUE (event_id, actor_id, request_id)
+  )`,
   `CREATE TABLE IF NOT EXISTS bridge_players (
     id text PRIMARY KEY,
     email_key text NOT NULL,

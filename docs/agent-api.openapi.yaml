@@ -1,56 +1,507 @@
-openapi: 3.1.0
-info:
-  title: VALET agent API
-  version: 0.1.0
-paths:
-  /api/agent/events/{eventId}/status:
-    get:
-      operationId: eventStatus
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        '200':
-          description: Current round, tables still missing a score, and published board numbers.
-  /api/agent/events/{eventId}/preview:
-    post:
-      operationId: previewMutation
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [requestId, command]
-              properties:
-                requestId: { type: string }
-                command: { type: object }
-      responses:
-        '200':
-          description: What would change. Nothing is stored.
-  /api/agent/events/{eventId}/mutations:
-    post:
-      operationId: applyMutation
-      parameters:
-        - name: eventId
-          in: path
-          required: true
-          schema: { type: string }
-        - name: Idempotency-Key
-          in: header
-          required: true
-          schema: { type: string }
-      responses:
-        '200':
-          description: Applied once. The same key returns the first result.
-        '403':
-          description: Machine code CODE_REVOKED, CODE_EXPIRED, or FORBIDDEN_ROLE, plus the Chinese message.
-        '409':
-          description: Machine code REVISION_CONFLICT, plus the Chinese message.
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "VALET agent API",
+    "version": "0.2.0",
+    "description": "使用指定賽段的賽事通行碼。唯讀碼只能查狀態。收分碼與裁判碼可試算與提交成績。代理 API 禁止變更牌組、牌型公開設定、賽程及其他非成績指令。每個來源 IP 共用十分鐘登入失敗計數，十次後再失敗會封鎖後續驗證至視窗結束。"
+  },
+  "security": [{"accessCode": []}],
+  "paths": {
+    "/api/agent/events/{eventId}/status": {
+      "get": {
+        "operationId": "eventStatus",
+        "parameters": [{"name": "eventId", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {
+          "200": {
+            "description": "目前版本、圈次、未收齊成績的桌次及已公開牌號。",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Status"}}},
+            "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+          },
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "429": {"$ref": "#/components/responses/429"},
+          "503": {"$ref": "#/components/responses/503"}
+        }
+      }
+    },
+    "/api/agent/events/{eventId}/preview": {
+      "post": {
+        "operationId": "previewMutation",
+        "parameters": [{"name": "eventId", "in": "path", "required": true, "schema": {"type": "string"}}],
+        "responses": {
+          "200": {
+            "description": "試算成績差異，不儲存賽段、冪等結果或稽核。",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Preview"}}},
+            "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+          },
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {
+            "description": "賽段版本衝突。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {"$ref": "#/components/schemas/Error"},
+                    {"properties": {"code": {"enum": ["REVISION_CONFLICT"]}}}
+                  ]
+                }
+              }
+            },
+            "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+          },
+          "422": {"$ref": "#/components/responses/422"},
+          "429": {"$ref": "#/components/responses/429"},
+          "503": {"$ref": "#/components/responses/503"}
+        },
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MutationRequest"}}}
+        }
+      }
+    },
+    "/api/agent/events/{eventId}/mutations": {
+      "post": {
+        "operationId": "applyMutation",
+        "parameters": [
+          {"name": "eventId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {"type": "string", "pattern": "^[!-+\\--~]{1,200}$", "minLength": 1, "maxLength": 200}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "套用成績變更一次。同一賽段、通行碼與冪等鍵重試相同 JSON 時，回傳首次成功結果。",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Applied"}}},
+            "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+          },
+          "401": {"$ref": "#/components/responses/401"},
+          "403": {"$ref": "#/components/responses/403"},
+          "404": {"$ref": "#/components/responses/404"},
+          "409": {
+            "description": "版本衝突、冪等鍵已用於其他內容，或 requestId 已搭配其他冪等鍵。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {"$ref": "#/components/schemas/Error"},
+                    {
+                      "properties": {
+                        "code": {"enum": ["REVISION_CONFLICT", "IDEMPOTENCY_CONFLICT", "REQUEST_ID_CONFLICT"]}
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+          },
+          "422": {"$ref": "#/components/responses/422"},
+          "429": {"$ref": "#/components/responses/429"},
+          "503": {"$ref": "#/components/responses/503"}
+        },
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/MutationRequest"}}}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"accessCode": {"type": "http", "scheme": "bearer", "description": "Authorization: Bearer <賽事通行碼>"}},
+    "schemas": {
+      "MutationRequest": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {"type": "string", "const": "results-import"},
+                  "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "reason": {"type": "string", "maxLength": 200},
+                  "csv": {"type": "string", "minLength": 1, "maxLength": 200000}
+                },
+                "required": ["action", "revision", "requestId", "csv"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {"type": "string", "const": "clear-result"},
+                  "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "reason": {"type": "string", "maxLength": 200},
+                  "assignmentId": {"type": "string", "minLength": 1, "maxLength": 100},
+                  "board": {"type": "integer", "minimum": 1, "maximum": 9007199254740991}
+                },
+                "required": ["action", "revision", "requestId", "assignmentId", "board"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {"type": "string", "const": "results"},
+                  "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "reason": {"type": "string", "maxLength": 200},
+                  "results": {
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "assignmentId": {"type": "string", "minLength": 1, "maxLength": 100},
+                        "board": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+                        "level": {"type": "integer", "minimum": 0, "maximum": 7},
+                        "strain": {"type": "string", "enum": ["C", "D", "H", "S", "NT"]},
+                        "doubled": {
+                          "anyOf": [
+                            {"type": "number", "const": 1},
+                            {"type": "number", "const": 2},
+                            {"type": "number", "const": 4}
+                          ]
+                        },
+                        "declarer": {"type": "string", "enum": ["N", "E", "S", "W"]},
+                        "tricks": {"type": "integer", "minimum": 0, "maximum": 13},
+                        "lead": {"default": "", "type": "string", "maxLength": 4},
+                        "miniBridge": {"type": "boolean"},
+                        "hcp": {
+                          "type": "object",
+                          "properties": {
+                            "N": {"type": "integer", "minimum": 0, "maximum": 37},
+                            "E": {"type": "integer", "minimum": 0, "maximum": 37},
+                            "S": {"type": "integer", "minimum": 0, "maximum": 37},
+                            "W": {"type": "integer", "minimum": 0, "maximum": 37}
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": ["assignmentId", "board", "level", "strain", "doubled", "declarer", "tricks"],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": ["action", "revision", "requestId", "results"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": ["requestId", "command"],
+        "additionalProperties": false,
+        "description": "外層與指令內的 requestId 須相同。JSON 上限為 500,000 bytes。HCP 合計不可超過 40，四家齊全時須等於 40。Pass out 須為 0 墩且未加倍。"
+      },
+      "Status": {
+        "type": "object",
+        "required": ["revision", "currentRound", "phase", "tablesPending", "publishedBoards"],
+        "additionalProperties": false,
+        "properties": {
+          "revision": {"type": "integer", "minimum": 1},
+          "currentRound": {"type": "integer"},
+          "phase": {"enum": ["playing", "break"]},
+          "tablesPending": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["assignmentId", "round"],
+              "additionalProperties": false,
+              "properties": {"assignmentId": {"type": "string"}, "round": {"type": "integer"}}
+            }
+          },
+          "publishedBoards": {"type": "array", "items": {"type": "integer"}}
+        }
+      },
+      "Result": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {"type": "string", "minLength": 1, "maxLength": 100},
+          "board": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+          "level": {"type": "integer", "minimum": 0, "maximum": 7},
+          "strain": {"type": "string", "enum": ["C", "D", "H", "S", "NT"]},
+          "doubled": {
+            "anyOf": [
+              {"type": "number", "const": 1},
+              {"type": "number", "const": 2},
+              {"type": "number", "const": 4}
+            ]
+          },
+          "declarer": {"type": "string", "enum": ["N", "E", "S", "W"]},
+          "tricks": {"type": "integer", "minimum": 0, "maximum": 13},
+          "lead": {"default": "", "type": "string", "maxLength": 4},
+          "miniBridge": {"type": "boolean"},
+          "hcp": {
+            "type": "object",
+            "properties": {
+              "N": {"type": "integer", "minimum": 0, "maximum": 37},
+              "E": {"type": "integer", "minimum": 0, "maximum": 37},
+              "S": {"type": "integer", "minimum": 0, "maximum": 37},
+              "W": {"type": "integer", "minimum": 0, "maximum": 37}
+            },
+            "additionalProperties": false
+          },
+          "nsScore": {"type": "number"},
+          "updatedAt": {"type": "string", "format": "date-time"},
+          "status": {"enum": ["played", "cancelled", "average"]},
+          "split": {
+            "type": "object",
+            "required": ["ns", "ew"],
+            "properties": {
+              "ns": {
+                "type": "object",
+                "required": [
+                  "assignmentId",
+                  "board",
+                  "level",
+                  "strain",
+                  "doubled",
+                  "declarer",
+                  "tricks",
+                  "lead",
+                  "nsScore"
+                ],
+                "properties": {
+                  "assignmentId": {"type": "string", "minLength": 1, "maxLength": 100},
+                  "board": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+                  "level": {"type": "integer", "minimum": 0, "maximum": 7},
+                  "strain": {"type": "string", "enum": ["C", "D", "H", "S", "NT"]},
+                  "doubled": {
+                    "anyOf": [
+                      {"type": "number", "const": 1},
+                      {"type": "number", "const": 2},
+                      {"type": "number", "const": 4}
+                    ]
+                  },
+                  "declarer": {"type": "string", "enum": ["N", "E", "S", "W"]},
+                  "tricks": {"type": "integer", "minimum": 0, "maximum": 13},
+                  "lead": {"default": "", "type": "string", "maxLength": 4},
+                  "miniBridge": {"type": "boolean"},
+                  "hcp": {
+                    "type": "object",
+                    "properties": {
+                      "N": {"type": "integer", "minimum": 0, "maximum": 37},
+                      "E": {"type": "integer", "minimum": 0, "maximum": 37},
+                      "S": {"type": "integer", "minimum": 0, "maximum": 37},
+                      "W": {"type": "integer", "minimum": 0, "maximum": 37}
+                    },
+                    "additionalProperties": false
+                  },
+                  "nsScore": {"type": "number"}
+                }
+              },
+              "ew": {
+                "type": "object",
+                "required": [
+                  "assignmentId",
+                  "board",
+                  "level",
+                  "strain",
+                  "doubled",
+                  "declarer",
+                  "tricks",
+                  "lead",
+                  "nsScore"
+                ],
+                "properties": {
+                  "assignmentId": {"type": "string", "minLength": 1, "maxLength": 100},
+                  "board": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+                  "level": {"type": "integer", "minimum": 0, "maximum": 7},
+                  "strain": {"type": "string", "enum": ["C", "D", "H", "S", "NT"]},
+                  "doubled": {
+                    "anyOf": [
+                      {"type": "number", "const": 1},
+                      {"type": "number", "const": 2},
+                      {"type": "number", "const": 4}
+                    ]
+                  },
+                  "declarer": {"type": "string", "enum": ["N", "E", "S", "W"]},
+                  "tricks": {"type": "integer", "minimum": 0, "maximum": 13},
+                  "lead": {"default": "", "type": "string", "maxLength": 4},
+                  "miniBridge": {"type": "boolean"},
+                  "hcp": {
+                    "type": "object",
+                    "properties": {
+                      "N": {"type": "integer", "minimum": 0, "maximum": 37},
+                      "E": {"type": "integer", "minimum": 0, "maximum": 37},
+                      "S": {"type": "integer", "minimum": 0, "maximum": 37},
+                      "W": {"type": "integer", "minimum": 0, "maximum": 37}
+                    },
+                    "additionalProperties": false
+                  },
+                  "nsScore": {"type": "number"}
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "assignmentId",
+          "board",
+          "level",
+          "strain",
+          "doubled",
+          "declarer",
+          "tricks",
+          "lead",
+          "nsScore",
+          "updatedAt"
+        ]
+      },
+      "Preview": {
+        "type": "object",
+        "required": ["alreadyApplied", "changes"],
+        "additionalProperties": false,
+        "properties": {
+          "alreadyApplied": {"type": "boolean"},
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["target", "before", "after"],
+              "additionalProperties": false,
+              "properties": {
+                "target": {"type": "string"},
+                "before": {"anyOf": [{"$ref": "#/components/schemas/Result"}, {"type": "null"}]},
+                "after": {"anyOf": [{"$ref": "#/components/schemas/Result"}, {"type": "null"}]}
+              }
+            }
+          }
+        }
+      },
+      "Applied": {
+        "type": "object",
+        "required": ["revision"],
+        "additionalProperties": false,
+        "properties": {"revision": {"type": "integer", "minimum": 1}}
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "code"],
+        "additionalProperties": false,
+        "properties": {"error": {"type": "string"}, "code": {"type": "string"}}
+      }
+    },
+    "responses": {
+      "401": {
+        "description": "通行碼缺漏、格式不符或不存在。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref": "#/components/schemas/Error"},
+                {"properties": {"code": {"enum": ["CODE_UNKNOWN"]}}}
+              ]
+            }
+          }
+        },
+        "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+      },
+      "403": {
+        "description": "通行碼撤銷、過期、權限不足、超出範圍或指令禁止。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref": "#/components/schemas/Error"},
+                {
+                  "properties": {
+                    "code": {"enum": ["CODE_REVOKED", "CODE_EXPIRED", "FORBIDDEN_ROLE", "FORBIDDEN_SCOPE"]}
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+      },
+      "404": {
+        "description": "找不到賽段，或通行碼角色無法查看封存賽段。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref": "#/components/schemas/Error"},
+                {"properties": {"code": {"enum": ["EVENT_NOT_FOUND"]}}}
+              ]
+            }
+          }
+        },
+        "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+      },
+      "429": {
+        "description": "此來源的登入嘗試次數過多。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref": "#/components/schemas/Error"},
+                {"properties": {"code": {"enum": ["RATE_LIMITED"]}}}
+              ]
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {"description": "距離可再次嘗試的秒數。", "required": true, "schema": {"type": "integer", "minimum": 1}},
+          "Cache-Control": {"required": true, "schema": {"const": "no-store"}}
+        }
+      },
+      "503": {
+        "description": "代理儲存未設定、無法使用、缺少資料表，或儲存模式不一致。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref": "#/components/schemas/Error"},
+                {
+                  "properties": {
+                    "code": {"enum": ["AGENT_STORAGE_UNAVAILABLE", "AGENT_SCHEMA_MISSING", "storage-split"]}
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+      },
+      "422": {
+        "description": "請求內容、指令或冪等鍵不符格式，或指令不適用於賽段目前狀態。",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {"$ref": "#/components/schemas/Error"},
+                {"properties": {"code": {"enum": ["INVALID_MUTATION"]}}}
+              ]
+            }
+          }
+        },
+        "headers": {"Cache-Control": {"required": true, "schema": {"const": "no-store"}}}
+      }
+    }
+  }
+}
