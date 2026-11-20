@@ -10,7 +10,7 @@ import { checkPersistentLoginLimit, LoginRateLimitError, loginClientKey, recordP
 import { createNeonRepository, type Sql } from '../storage/neon';
 import { createNormalizedRepository } from '../storage/normalized';
 import { neonHttp } from '../storage/sql-client';
-import { isUndefinedTable, storageGate } from '../storage/switch';
+import { isUndefinedTable } from '../storage/switch';
 import { agentError, auditAgentChange, eventStatus, previewMutation, resultChanges } from './api';
 import { agentCommandSchema, isAgentAction } from './commands';
 
@@ -27,6 +27,14 @@ function configuration(): Configuration | undefined {
 
 function normalizedStorageRequired() {
   return new DomainError('代理 API 寫入需要啟用正規化儲存', 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
+}
+
+async function assertNormalizedStorage(sql: Sql) {
+  const rows = await sql`SELECT mode FROM bridge_storage_switch WHERE id = 1`.catch((error: unknown) => {
+    if (isUndefinedTable(error)) throw normalizedStorageRequired();
+    throw error;
+  });
+  if (rows[0]?.mode !== 'normalized') throw normalizedStorageRequired();
 }
 
 function forbidden(message: string) {
@@ -81,7 +89,7 @@ export async function agentRoute(
       throw new DomainError('通行碼不適用於這場賽事', 403, 'FORBIDDEN_SCOPE');
 
     const writeRepo = operation === 'mutations' ? createNormalizedRepository(sql) : undefined;
-    if (writeRepo && (await storageGate(sql)).mode !== 'normalized') throw normalizedStorageRequired();
+    if (writeRepo) await assertNormalizedStorage(sql);
     const repo = writeRepo ?? createNeonRepository(sql);
     const stored = await repo.getEvent(eventId);
     assertEventAccess(stored, actor);
