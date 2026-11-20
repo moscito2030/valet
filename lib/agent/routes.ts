@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { accessError, assertUsable, hashSecret, type AccessCode } from '../access/codes';
+import { accessError, hashSecret, verifyAccessCode, type AccessCode } from '../access/codes';
 import { DomainError } from '../domain-error';
 import { mutationSchema, type StoredEvent } from '../model';
 import { canMutate } from '../mutation-permissions';
@@ -8,8 +8,9 @@ import { loadAccessCode } from '../storage/access-records';
 import { canonical } from '../storage/cell-write';
 import { checkPersistentLoginLimit, LoginRateLimitError, loginClientKey, recordPersistentLoginFailure } from '../storage/login-limit';
 import { createNeonRepository, type Sql } from '../storage/neon';
+import { createNormalizedRepository } from '../storage/normalized';
 import { neonHttp } from '../storage/sql-client';
-import { isUndefinedTable } from '../storage/switch';
+import { isUndefinedTable, storageGate } from '../storage/switch';
 import { agentError, auditAgentChange, eventStatus, previewMutation, resultChanges } from './api';
 import { agentCommandSchema, isAgentAction } from './commands';
 
@@ -22,6 +23,10 @@ function configuration(): Configuration | undefined {
   const { DATABASE_URL, SESSION_SECRET, STORAGE_MODE } = process.env;
   if (!DATABASE_URL || !SESSION_SECRET || (STORAGE_MODE && STORAGE_MODE !== 'neon')) return;
   return { sql: neonHttp(DATABASE_URL), sessionSecret: SESSION_SECRET };
+}
+
+function normalizedStorageRequired() {
+  return new DomainError('代理 API 寫入需要啟用正規化儲存', 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
 }
 
 function forbidden(message: string) {
@@ -56,22 +61,28 @@ export async function agentRoute(
     config ??= configuration();
     if (!config) {
       if (!secret) throw new DomainError('請提供有效的通行碼', 401, accessError.codeUnknown);
+      if (operation === 'mutations' && (process.env.STORAGE_MODE === 'local' || process.env.STORAGE_MODE === 'demo'))
+        throw normalizedStorageRequired();
       throw new DomainError('代理 API 尚未設定資料庫或工作階段密鑰', 503, 'AGENT_STORAGE_UNAVAILABLE');
     }
     const { sql, sessionSecret } = config;
     const client = loginClientKey(request, sessionSecret);
     await checkPersistentLoginLimit(sql, client);
-    const actor = secret ? await loadAccessCode(sql, hashSecret(secret)) : undefined;
-    if (!actor) {
+    const candidate = secret ? await loadAccessCode(sql, hashSecret(secret)) : undefined;
+    let actor: AccessCode;
+    try {
+      actor = verifyAccessCode(secret ?? '', candidate ? [candidate] : [], new Date());
+    } catch (error) {
       await recordPersistentLoginFailure(sql, client);
-      throw new DomainError('請提供有效的通行碼', 401, accessError.codeUnknown);
+      throw error;
     }
-    assertUsable(actor, new Date());
     if (actor.scope !== 'event' || !actor.role) throw forbidden('代理操作需要賽事通行碼');
     if (actor.eventId !== eventId)
       throw new DomainError('通行碼不適用於這場賽事', 403, 'FORBIDDEN_SCOPE');
 
-    const repo = createNeonRepository(sql);
+    const writeRepo = operation === 'mutations' ? createNormalizedRepository(sql) : undefined;
+    if (writeRepo && (await storageGate(sql)).mode !== 'normalized') throw normalizedStorageRequired();
+    const repo = writeRepo ?? createNeonRepository(sql);
     const stored = await repo.getEvent(eventId);
     assertEventAccess(stored, actor);
     if (operation === 'status') return respond({ revision: stored.event.revision, ...eventStatus(stored.event) });
@@ -113,9 +124,9 @@ export async function agentRoute(
       throw forbidden('此操作需要收分或裁判權限');
 
     const scopedCommand = { ...command, requestId: `agent:${hashSecret(canonical([actor.id, parsed.data.requestId]))}` };
-    if (operation === 'preview') return respond(previewMutation(stored, scopedCommand));
+    if (!writeRepo) return respond(previewMutation(stored, scopedCommand));
     try {
-      const next = await repo.mutateEvent(eventId, scopedCommand, {
+      const next = await writeRepo.mutateEvent(eventId, scopedCommand, {
         validate(current) {
           assertEventAccess(current, actor);
           if (current.requests.includes(scopedCommand.requestId)) throw reusedRequest();

@@ -18,7 +18,7 @@ const operations = { status: statusRoute, preview: previewRoute, mutations: muta
 const spec = JSON.parse(readFileSync('docs/agent-api.openapi.yaml', 'utf8'));
 const observed = new Map<Operation, Set<string>>();
 
-async function fixture(mode: 'legacy' | 'normalized' = 'legacy') {
+async function fixture(mode: 'legacy' | 'normalized' = 'normalized') {
   const { sql, db, close } = await createTestDb();
   await sql`CREATE TABLE bridge_login_limits (key text PRIMARY KEY, attempts integer NOT NULL, window_end timestamptz NOT NULL)`;
   if (mode === 'normalized')
@@ -112,7 +112,10 @@ test('agent access codes enforce roles, event and organizer scope, and expiry', 
 test('agent login throttling persists across operations and limits verification by IP', async (t) => {
   const f = await fixture();
   t.after(f.close);
-  for (let i = 0; i < 10; i++)
+  const expired = await f.code('scoring', { expiresAt: '2000-01-01T00:00:00Z' });
+  expectError(await f.call('status', { secret: f.revoked.secret }), 403, 'CODE_REVOKED');
+  expectError(await f.call('status', { secret: expired.secret }), 403, 'CODE_EXPIRED');
+  for (let i = 0; i < 8; i++)
     expectError(await f.call('status', { secret: 'unknown' }), 401, 'CODE_UNKNOWN');
   const blocked = await f.call('status', { secret: 'unknown' });
   expectError(blocked, 429, 'RATE_LIMITED');
@@ -121,68 +124,74 @@ test('agent login throttling persists across operations and limits verification 
   expectError(await f.call('preview', { body: f.score() }), 429, 'RATE_LIMITED');
   expectError(await f.call('mutations', { body: f.score(), key: 'key' }), 429, 'RATE_LIMITED');
   assert.equal((await f.call('status', { ip: '192.0.2.2' })).status, 200);
+  expectError(await f.call('status'), 429, 'RATE_LIMITED');
   await f.sql`UPDATE bridge_login_limits SET window_end = now() - interval '1 second'`;
   assert.equal((await f.call('status')).status, 200);
 });
 
-for (const mode of ['legacy', 'normalized'] as const) {
-  test(`agent preview and atomic replay preserve board storage in ${mode}`, async (t) => {
-    const f = await fixture(mode);
-    t.after(f.close);
-    if (mode === 'normalized') {
-      // Detect a rewrite even if the board values round-trip unchanged.
-      await f.sql`UPDATE bridge_boards SET document_json = document_json || ' ' WHERE event_id = ${f.event.id}`;
-    } else {
-      await f.sql`UPDATE bridge_events SET document = jsonb_set(document #- '{event,boards,0,published}', '{event,publishBoards}', 'true')
-        WHERE id = ${f.event.id}`;
-    }
-    const boardSnapshot = () => mode === 'normalized'
-      ? f.sql`SELECT xmin::text, document_json FROM bridge_boards WHERE event_id = ${f.event.id} ORDER BY ordinal`
-      : f.sql`SELECT document->'event'->'boards' AS boards, document->'event'->'publishBoards' AS published
-          FROM bridge_events WHERE id = ${f.event.id}`;
-    const boards = await boardSnapshot();
-    const body = f.score();
-    const { secret } = await f.code();
-    const before = await f.repo.getEvent(f.event.id);
-    const preview = await f.call('preview', { body, secret });
-    assert.equal(preview.status, 200);
-    assert.equal(preview.data.alreadyApplied, false);
-    assert.equal(preview.data.changes.length, 1);
-    assert.deepEqual(await f.repo.getEvent(f.event.id), before);
-    assert.deepEqual(await f.sql`SELECT * FROM bridge_access_audit`, []);
-    assert.deepEqual(await f.sql`SELECT * FROM bridge_agent_mutations`, []);
-    assert.deepEqual(await f.sql`SELECT * FROM bridge_login_limits`, []);
-    expectError(await f.call('mutations', { body, secret }), 422, 'INVALID_MUTATION');
-    for (const operation of ['preview', 'mutations'] as const) {
-      const banned = { ...body, command: { ...body.command, action: 'board-publication', board: 1, published: false } };
-      expectError(await f.call(operation, { body: banned, key: 'denied' }), 403, 'FORBIDDEN_ROLE');
-    }
-    const request = { body, key: 'one', secret };
-    const [first, second] = await Promise.all([f.call('mutations', request), f.call('mutations', request)]);
-    assert.equal(first.status, 200, JSON.stringify(first.data));
-    assert.equal(second.status, 200, JSON.stringify(second.data));
-    assert.deepEqual(first.data, { revision: f.event.revision + 1 });
-    assert.deepEqual(second.data, first.data);
-    const audits = await f.sql`SELECT document FROM bridge_access_audit`;
-    assert.equal(audits.length, 1);
-    assert.deepEqual((audits[0].document as { viaAgent: boolean }).viaAgent, true);
-    assert.deepEqual(await boardSnapshot(), boards);
-    assert.equal(Object.keys((await f.repo.getEvent(f.event.id)).event.results).length, 1);
-    const latest = f.score(first.data.revision);
-    const next = await f.call('mutations', { body: latest, key: 'one' });
-    assert.equal(next.status, 200, JSON.stringify(next.data));
-    assert.deepEqual((await f.call('mutations', request)).data, first.data);
-    expectError(await f.call('mutations', { ...request, body: latest }), 409, 'IDEMPOTENCY_CONFLICT');
-    expectError(await f.call('mutations', { ...request, key: 'new' }), 409, 'REQUEST_ID_CONFLICT');
-    expectError(await f.call('mutations', { body: f.score(), key: 'stale' }), 409, 'REVISION_CONFLICT');
-    expectError(await f.call('preview', { body: f.score() }), 409, 'REVISION_CONFLICT');
-    expectError(await f.call('preview', { body: {} }), 422, 'INVALID_MUTATION');
-    assert.deepEqual((await f.call('preview', request)).data, { alreadyApplied: true, changes: [] });
-    assert.deepEqual(await boardSnapshot(), boards);
-    assert.equal((await f.sql`SELECT * FROM bridge_agent_mutations`).length, 2);
-    assert.equal((await f.sql`SELECT * FROM bridge_access_audit`).length, 2);
-  });
-}
+test('agent mutations require normalized storage while legacy reads and previews remain available', async (t) => {
+  const f = await fixture('legacy');
+  t.after(f.close);
+  const body = f.score();
+  assert.equal((await f.call('status')).status, 200);
+  assert.equal((await f.call('preview', { body })).status, 200);
+  expectError(await f.call('mutations', { body, key: 'key' }), 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
+  assert.equal((await f.repo.getEvent(f.event.id)).event.revision, f.event.revision);
+  assert.deepEqual(await f.sql`SELECT * FROM bridge_agent_mutations`, []);
+  assert.deepEqual(await f.sql`SELECT * FROM bridge_access_audit`, []);
+  await f.sql`DELETE FROM bridge_storage_switch WHERE id = 1`;
+  expectError(await f.call('mutations', { body, key: 'key' }), 503, 'AGENT_NORMALIZED_STORAGE_REQUIRED');
+});
+
+test('agent preview and atomic replay preserve normalized board storage', async (t) => {
+  const f = await fixture();
+  t.after(f.close);
+  // Detect a rewrite even if the board values round-trip unchanged.
+  await f.sql`UPDATE bridge_boards SET document_json = document_json || ' ' WHERE event_id = ${f.event.id}`;
+  const boardSnapshot = () =>
+    f.sql`SELECT xmin::text, document_json FROM bridge_boards WHERE event_id = ${f.event.id} ORDER BY ordinal`;
+  const boards = await boardSnapshot();
+  const body = f.score();
+  const { secret } = await f.code();
+  const before = await f.repo.getEvent(f.event.id);
+  const preview = await f.call('preview', { body, secret });
+  assert.equal(preview.status, 200);
+  assert.equal(preview.data.alreadyApplied, false);
+  assert.equal(preview.data.changes.length, 1);
+  assert.deepEqual(await f.repo.getEvent(f.event.id), before);
+  assert.deepEqual(await f.sql`SELECT * FROM bridge_access_audit`, []);
+  assert.deepEqual(await f.sql`SELECT * FROM bridge_agent_mutations`, []);
+  assert.deepEqual(await f.sql`SELECT * FROM bridge_login_limits`, []);
+  expectError(await f.call('mutations', { body, secret }), 422, 'INVALID_MUTATION');
+  for (const operation of ['preview', 'mutations'] as const) {
+    const banned = { ...body, command: { ...body.command, action: 'board-publication', board: 1, published: false } };
+    expectError(await f.call(operation, { body: banned, key: 'denied' }), 403, 'FORBIDDEN_ROLE');
+  }
+  const request = { body, key: 'one', secret };
+  const [first, second] = await Promise.all([f.call('mutations', request), f.call('mutations', request)]);
+  assert.equal(first.status, 200, JSON.stringify(first.data));
+  assert.equal(second.status, 200, JSON.stringify(second.data));
+  assert.deepEqual(first.data, { revision: f.event.revision + 1 });
+  assert.deepEqual(second.data, first.data);
+  const audits = await f.sql`SELECT document FROM bridge_access_audit`;
+  assert.equal(audits.length, 1);
+  assert.deepEqual((audits[0].document as { viaAgent: boolean }).viaAgent, true);
+  assert.deepEqual(await boardSnapshot(), boards);
+  assert.equal(Object.keys((await f.repo.getEvent(f.event.id)).event.results).length, 1);
+  const latest = f.score(first.data.revision);
+  const next = await f.call('mutations', { body: latest, key: 'one' });
+  assert.equal(next.status, 200, JSON.stringify(next.data));
+  assert.deepEqual((await f.call('mutations', request)).data, first.data);
+  expectError(await f.call('mutations', { ...request, body: latest }), 409, 'IDEMPOTENCY_CONFLICT');
+  expectError(await f.call('mutations', { ...request, key: 'new' }), 409, 'REQUEST_ID_CONFLICT');
+  expectError(await f.call('mutations', { body: f.score(), key: 'stale' }), 409, 'REVISION_CONFLICT');
+  expectError(await f.call('preview', { body: f.score() }), 409, 'REVISION_CONFLICT');
+  expectError(await f.call('preview', { body: {} }), 422, 'INVALID_MUTATION');
+  assert.deepEqual((await f.call('preview', request)).data, { alreadyApplied: true, changes: [] });
+  assert.deepEqual(await boardSnapshot(), boards);
+  assert.equal((await f.sql`SELECT * FROM bridge_agent_mutations`).length, 2);
+  assert.equal((await f.sql`SELECT * FROM bridge_access_audit`).length, 2);
+});
 
 test('agent storage errors fail closed and leave scores and audit unchanged', async (t) => {
   const f = await fixture();

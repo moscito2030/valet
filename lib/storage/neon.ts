@@ -18,8 +18,7 @@ import { project } from '../scoring';
 import { materializeStoredPublication } from '../board-publication';
 import { hydrateEvent } from './hydrate-event';
 import { createNormalizedRepository } from './normalized';
-import { captureSql, commitSql, isConflict } from './batch';
-import type { AgentWrite, EventRepository } from './repository';
+import type { EventRepository } from './repository';
 import { storageGate } from './switch';
 
 export type Sql = ((
@@ -32,7 +31,7 @@ export type Sql = ((
   query?(text: string, values?: unknown[]): Promise<unknown>;
 };
 
-export function createLegacyNeonRepository(query: Sql) {
+export function createLegacyNeonRepository(query: Sql): EventRepository {
   const sql = () => query;
   async function getRawEvent(id: string): Promise<StoredEvent> {
     const rows =
@@ -97,8 +96,8 @@ export function createLegacyNeonRepository(query: Sql) {
     await sql()`INSERT INTO bridge_events (id,revision,document) VALUES (${event.id},${event.revision},${JSON.stringify(stored)}::jsonb), (${competitionKey(event.id)},${metadata.competition.revision},${JSON.stringify(metadata)}::jsonb)`;
     return stored;
   }
-  async function mutateEvent(id: string, command: Mutation, agent?: AgentWrite): Promise<StoredEvent> {
-    if (command.action === 'competition-settings' && !agent) {
+  async function mutateEvent(id: string, command: Mutation): Promise<StoredEvent> {
+    if (command.action === 'competition-settings') {
       await mutateCompetition(id, {
         name: command.name,
         prefix: command.prefix,
@@ -108,30 +107,8 @@ export function createLegacyNeonRepository(query: Sql) {
       });
       return getEvent(id);
     }
-    const previous = await getRawEvent(id);
-    agent?.validate(previous);
-    const next = applyMutation(previous, command);
-    if (agent) {
-      const cap = captureSql();
-      agent.queue(cap.sql, previous, next);
-      const { boards: _boards, ...settings } = next.event;
-      cap.sql`WITH upd AS (
-        UPDATE bridge_events SET revision = ${next.event.revision}, updated_at = now(),
-          document = document || ${JSON.stringify({ projection: next.projection, requests: next.requests })}::jsonb ||
-            jsonb_build_object('event', (document->'event') ||
-              ${JSON.stringify(settings)}::jsonb)
-        WHERE id = ${id} AND revision = ${command.revision}
-        RETURNING 1
-      ) SELECT 1 / (SELECT count(*)::int FROM upd)`;
-      try {
-        await commitSql(query, cap.batches);
-      } catch (error) {
-        if (isConflict(error) && (error as { code?: string }).code !== '23505')
-          throw new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision');
-        throw error;
-      }
-      return next;
-    }
+    const previous = await getRawEvent(id),
+      next = applyMutation(previous, command);
     if (next === previous) return previous;
     const rows =
       await sql()`UPDATE bridge_events SET document=${JSON.stringify(next)}::jsonb,revision=${next.event.revision},updated_at=now() WHERE id=${id} AND revision=${command.revision} RETURNING id`;
@@ -234,10 +211,10 @@ export function createLegacyNeonRepository(query: Sql) {
     insertCompetition,
     mutateCompetition,
     insertStage,
-  } satisfies EventRepository;
+  };
 }
 
-export function createNeonRepository(query: Sql) {
+export function createNeonRepository(query: Sql): EventRepository {
   const legacy = createLegacyNeonRepository(query);
   const normalized = () => createNormalizedRepository(query);
   async function current() {
@@ -251,11 +228,11 @@ export function createNeonRepository(query: Sql) {
     deleteEvent: async (id, revision) => (await current()).deleteEvent(id, revision),
     deleteCompetitions: async (input) => (await current()).deleteCompetitions(input),
     insertEvent: async (event) => (await current()).insertEvent(event),
-    mutateEvent: async (id, command, agent?: AgentWrite) => (await current()).mutateEvent(id, command, agent),
+    mutateEvent: async (id, command) => (await current()).mutateEvent(id, command),
     listCompetitionRecords: async () => (await current()).listCompetitionRecords(),
     getCompetition: async (id) => (await current()).getCompetition(id),
     insertCompetition: async (stored) => (await current()).insertCompetition(stored),
     mutateCompetition: async (id, input) => (await current()).mutateCompetition(id, input),
     insertStage: async (parentId, stage, revision) => (await current()).insertStage(parentId, stage, revision),
-  } satisfies EventRepository;
+  };
 }

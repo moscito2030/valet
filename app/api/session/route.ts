@@ -4,7 +4,7 @@ import { authConfigured, isAdmin, isDirector, issueSession, loginRole } from '@/
 import { storageMode } from '@/lib/store';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 import { DomainError } from '@/lib/domain-error';
-import { clearLoginFailures, recordLoginFailure } from '@/lib/login-limit';
+import { checkLoginLimit, clearLoginFailures, recordLoginFailure } from '@/lib/login-limit';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     checkOrigin(request);
     if (!authConfigured()) throw new DomainError('請先設定 ADMIN_PASSWORD 與 SESSION_SECRET', 503);
     const body = z.object({ password: z.string().max(200) }).strict().parse(await readJson(request));
+    await checkLoginLimit(request);
     const role =
       typeof body.password === 'string' && body.password.length <= 200
         ? loginRole(body.password)

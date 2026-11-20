@@ -117,7 +117,7 @@ VALET_ACCESS_CODES=1 npm run db:migrate-access
 
 提交成功後會回傳新版本。相同賽段、通行碼及冪等鍵的重試會回傳原版本結果，即使之後有其他分數寫入。相同鍵搭配不同 JSON，或相同 `requestId` 搭配新鍵均回傳 409。物件欄位順序與 JSON 空白不影響內容比對。遇到版本衝突時，重新取得狀態、試算，並使用新的 UUID 與冪等鍵提交。成功的提交才會儲存冪等結果與 `viaAgent` 稽核，並與成績寫入共用一個交易。
 
-代理 API 使用 Neon 儲存模式及 `SESSION_SECRET`。先用 `npm run db:migrate` 建立 `bridge_agent_mutations` 等附加表，舊文件模式與正規化模式皆可使用。缺少必要資料表時回傳 503。代理 API 與既有登入共用每個來源 IP 的十分鐘失敗計數。被限制時回傳 429，`Retry-After` 標頭提供等待秒數。
+代理 API 使用 Neon 儲存模式及 `SESSION_SECRET`。先用 `npm run db:migrate` 建立 `bridge_agent_mutations` 等附加表，狀態查詢及預覽支援舊文件模式及正規化模式。寫入只支援正規化模式，未啟用時回傳 503（`AGENT_NORMALIZED_STORAGE_REQUIRED`）。缺少必要資料表時回傳 503。代理 API 與既有登入共用每個來源 IP 的十分鐘失敗計數。被限制時回傳 429，`Retry-After` 標頭提供等待秒數。
 
 ## 尚未決定
 

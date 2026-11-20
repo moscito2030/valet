@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { DomainError } from './domain-error';
 import { isAdmin } from './auth';
+import { LoginRateLimitError } from './storage/login-limit';
 export async function requireAdmin(request: Request) {
   checkOrigin(request);
   if (!(await isAdmin())) throw new DomainError('請先登入裁判/賽務後台', 401);
@@ -31,7 +32,13 @@ export function errorResponse(error: unknown) {
   if (error instanceof DomainError)
     return NextResponse.json(
       { error: error.message, ...(error.code ? { code: error.code } : {}) },
-      { status: error.status, headers: { 'Cache-Control': 'no-store' } },
+      {
+        status: error.status,
+        headers: {
+          'Cache-Control': 'no-store',
+          ...(error instanceof LoginRateLimitError ? { 'Retry-After': String(error.retryAfter) } : {}),
+        },
+      },
     );
   console.error('Request failed:', error instanceof Error ? error.name : 'UnknownError');
   return NextResponse.json(
