@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createEvent } from '../lib/domain/event-factory';
 import { makeBoard } from '../lib/domain/board-factory';
 import { seats, type BridgeEvent } from '../lib/model';
+import { competitionCatalog } from '../lib/competitions';
+import { readOrganizerNames } from '../lib/storage/organizer-names';
 import { createNeonRepository } from '../lib/storage/neon';
 import { assignAccessRecords, loadAccessCodes } from '../lib/storage/access-records';
 import { seedResultWrites } from '../lib/storage/cell-write';
@@ -243,6 +245,7 @@ test('organizer assignment persists in normalized stage settings without changin
     const repo = createNeonRepository(normalizedDb.sql);
     const read = await repo.getEvent(event.id);
     assert.equal(read.event.organizerId, 'ntu-bridge-club');
+    assert.equal(read.event.competition?.organizerName, '台大橋藝社');
     assert.deepEqual(dealt(read.event), dealt(event));
     assert.equal(report.events, 1);
     assert.ok(report.codes >= 3);
@@ -257,6 +260,10 @@ test('organizer assignment persists in normalized stage settings without changin
     const again = await assignAccessRecords(normalizedDb.sql, { ...secrets, dryRun: false });
     assert.equal(again.events, 0);
     assert.equal(again.codes, 0);
+    const stages = await repo.listEventIndex();
+    const records = await repo.listCompetitionRecords();
+    const names = await readOrganizerNames(normalizedDb.sql);
+    assert.equal(competitionCatalog(stages, records, true, names)[0].organizerName, '台大橋藝社');
   } finally {
     await normalizedDb.close();
   }

@@ -42,15 +42,13 @@ export function CreateCompetitionDialog({ onClose, onCreated }: { onClose: () =>
   return <Modal title="建立賽事" onClose={onClose}><form onSubmit={async e => {
     e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
     try {
-      const result = await api<{ id: string }>('/api/competitions', { method: 'POST', body: JSON.stringify({ name: form.get('name'), prefix: form.get('prefix'), venue: form.get('venue') }) });
+      const result = await api<{ id: string }>('/api/competitions', { method: 'POST', body: JSON.stringify({ name: form.get('name'), venue: form.get('venue') }) });
       await onCreated(result.id);
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }}>
     <p>先保存賽事共用資訊，之後再新增賽段、名單與賽程。</p>
     <label className="field">賽事名稱<input name="name" required minLength={2} maxLength={80} /></label>
-    <label className="field">前綴（選填）<input name="prefix" maxLength={80} /></label>
-    <label className="field">共用地點（選填）<input name="venue" maxLength={80} /></label>
-    <p className="footnote">各賽段預設沿用共用地點，也可另設地點。</p>
+    <label className="field">場館（選填）<input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" /></label>
     {error && <p className="error-text" role="alert">{error}</p>}
     <button className="button primary full" disabled={busy}>{busy ? '建立中…' : '建立賽事'}</button>
   </form></Modal>;
@@ -89,10 +87,9 @@ export function CreateDialog({
         neuberg: kind === 'pairs' && method === 'mp' && form.get('neuberg') === 'true',
         trim: kind === 'pairs' && method !== 'mp' ? form.get('trim') : 'none',
         name: form.get('name'),
-        prefix: competition ? '' : form.get('prefix'),
         date: form.get('date'),
         ...(form.get('endDate') ? { endDate: form.get('endDate') } : {}),
-        venue: competition?.venue ?? form.get('venue'),
+        venue: competition ? '' : form.get('venue'),
         ...(competition && String(form.get('venueOverride') ?? '').trim() ? { venueOverride: String(form.get('venueOverride')).trim() } : {}),
         names: [],
       };
@@ -232,7 +229,7 @@ export function CreateDialog({
           </div>
         )}
         <label className="field">
-          {competition ? '新賽段名稱' : '賽事名稱（不含前綴）'}
+          {competition ? '新賽段名稱' : '賽事名稱'}
           <input
             name="name"
             required
@@ -241,12 +238,6 @@ export function CreateDialog({
             placeholder="例如：秋季俱樂部邀請賽"
           />
         </label>
-        {!competition && (
-          <label className="field">
-            比賽前綴（選填）
-            <input name="prefix" maxLength={80} placeholder="例如：臺灣大學橋藝社 114-1" />
-          </label>
-        )}
         <div className="form-grid create-details-grid">
           <div className="field">
             <span>開始日期</span>
@@ -260,14 +251,14 @@ export function CreateDialog({
           <p className="footnote create-details-help" id="create-date-help">單日比賽只需填開始日期。</p>
           {!competition && (
             <label className="field create-details-wide">
-              地點
-              <input name="venue" maxLength={80} placeholder="比賽地點" />
+              場館（選填）
+              <input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" />
             </label>
           )}
-          {competition && <div className="field create-details-wide">
-            <input aria-label="賽段地點" name="venueOverride" maxLength={80} placeholder="留空沿用賽事地點" />
-            <span className="footnote">留空時沿用賽事地點：{competition.venue || '未公布'}</span>
-          </div>}
+          {competition && <label className="field create-details-wide">
+            賽場位置（選填）
+            <input name="venueOverride" maxLength={80} placeholder="例如：704" />
+          </label>}
         </div>
         {kind === 'pairs' && <label className="field">排名方式
           <select value={rankingMode} onChange={e => setRankingMode(e.target.value as 'single' | 'double')}>

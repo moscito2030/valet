@@ -82,9 +82,7 @@ export function clubView(event: BridgeEvent, pair: string) {
             : { kind: 'pending' as const },
     id: event.id,
     gameMode: event.gameMode ?? 'bridge',
-    name: [event.competition?.prefix ?? event.prefix, event.stageName ?? event.name]
-      .filter(Boolean)
-      .join(' '),
+    name: event.stageName ?? event.name,
     pair,
     pairName: event.participants.find((p) => p.id === pair)?.name ?? pair,
     round,

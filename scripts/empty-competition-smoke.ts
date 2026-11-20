@@ -19,6 +19,7 @@ const makeStage = (name: string) => {
   return applyMutation(stored, { action: 'results', revision: 1, requestId: randomUUID(), reason: '測試', results: [{ assignmentId: a.id, board: a.boards[0], level: 1, strain: 'NT', declarer: 'N', doubled: 1, tricks: 7, lead: '' }] });
 };
 const legacy = makeStage('舊賽事'), sibling = makeStage('舊決賽'), legacyEdit = makeStage('舊單段賽事');
+Object.assign(legacy.event, { prefix: '舊前綴' });
 sibling.event.parentEventId = legacy.event.id;
 sibling.event.club = { enabled: true, tokens: { p1: 'non-authentic-fixture-hash' }, confirmations: {}, finalized: [] };
 await writeFile(file, JSON.stringify([legacy, sibling, legacyEdit]));
@@ -57,12 +58,17 @@ try {
   assert.ok(ready, logs);
   cookie = await login('competition-director-test-only');
   const staff = await login('competition-staff-test-only');
+  const oldEvent = await req('/api/events/' + legacy.event.id);
+  assert.ok(!('prefix' in oldEvent));
+  assert.ok(!('prefix' in oldEvent.competition));
+  assert.ok(!('prefix' in await req('/api/admin/events/' + legacy.event.id)));
   await req('/api/competitions', 'POST', { name: '不可建立' }, 401, '');
   await req('/api/competitions', 'POST', { name: '不可建立' }, 403, staff);
-  const { id } = await req('/api/competitions', 'POST', { name: '空賽事驗證', prefix: '測試', venue: '總館' }, 201);
+  const { id } = await req('/api/competitions', 'POST', { name: '空賽事驗證', venue: '總館' }, 201);
   let c = await catalog(id);
   assert.deepEqual(c.stages, []); assert.equal(c.date, '');
-  const shared = { name: '空賽事驗證', prefix: '更新', venue: '新總館', revision: c.revision, requestId: randomUUID() };
+  assert.ok(!('organizerName' in c));
+  const shared = { name: '空賽事驗證', venue: '新總館', revision: c.revision, requestId: randomUUID() };
   await req('/api/competitions/' + id, 'PATCH', shared, 403, staff);
   const changed = await req('/api/competitions/' + id, 'PATCH', shared);
   assert.deepEqual(await req('/api/competitions/' + id, 'PATCH', shared), changed);
@@ -73,7 +79,7 @@ try {
   await req(`/api/competitions/${first.id}/stages`, 'POST', { stage, revision: 1 }, 404);
   await req(`/api/competitions/${id}/stages`, 'POST', { stage, revision: c.revision }, 409);
   c = await catalog(id);
-  const second = await req(`/api/competitions/${id}/stages`, 'POST', { stage: { ...stage, name: '下午場', date: '2026-11-03', endDate: '2026-11-04', venueOverride: '分館' }, revision: c.revision }, 201);
+  const second = await req(`/api/competitions/${id}/stages`, 'POST', { stage: { ...stage, name: '下午場', date: '2026-11-03', endDate: '2026-11-04', venueOverride: '704' }, revision: c.revision }, 201);
   c = await catalog(id);
   assert.equal(c.date, '2026-11-01'); assert.equal(c.endDate, '2026-11-04');
   const before = await req('/api/admin/events/' + first.id);
@@ -82,17 +88,18 @@ try {
   assert.equal(after.venue, '再改總館'); assert.equal(after.revision, before.revision);
   assert.deepEqual(after.assignments, before.assignments);
   let overridden = await req('/api/admin/events/' + second.id);
-  assert.equal(overridden.venue, '分館');
+  assert.equal(overridden.venue, '再改總館 704');
+  assert.equal((await req('/api/events')).events.find((event: { id: string }) => event.id === second.id).venue, '再改總館 704');
   const settings = { action: 'settings', status: 'live', venueOverride: null, reason: '恢復共用地點', revision: overridden.revision, requestId: randomUUID() };
   await req('/api/events/' + second.id, 'PATCH', settings, 403, staff);
   await req('/api/events/' + second.id, 'PATCH', settings);
   overridden = await req('/api/admin/events/' + second.id);
   assert.equal(overridden.venue, '再改總館');
   await req('/api/events/' + second.id, 'PATCH', { ...settings, venueOverride: '', revision: overridden.revision, requestId: randomUUID() });
-  assert.equal((await req('/api/events/' + second.id)).venue, '');
+  assert.equal((await req('/api/events/' + second.id)).venue, '再改總館');
   // Archive is competition-wide and cannot be bypassed via stage or staff endpoints.
   c = await catalog(id);
-  const archive = {name:c.name,prefix:c.prefix,venue:c.venue,revision:c.revision,requestId:randomUUID(),archived:true};
+  const archive = {name:c.name,venue:c.venue,revision:c.revision,requestId:randomUUID(),archived:true};
   await req('/api/competitions/' + id,'PATCH',archive,401,'');
   await req('/api/competitions/' + id,'PATCH',archive,403,staff);
   await req('/api/competitions/' + id,'PATCH',archive);

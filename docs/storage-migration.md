@@ -28,7 +28,7 @@ VALET_MERGE_STAGES=1 npm run db:merge-stages
 
 合併把這三個 id 放進同一場賽事，id 本身不變：
 
-- 賽事 `8b01f0c3-dc13-4a5f-9178-cae97fdf5b44`，前綴「台大橋藝社 115-1」，名稱「社內賽」
+- 賽事 `8b01f0c3-dc13-4a5f-9178-cae97fdf5b44`，合併時名稱為「社內賽」。場館與賽場位置的後續轉換見 [部署手冊](deployment.md#場館與賽場位置資料轉換)。
 - 賽段順序：`fed8635d-0737-48ca-a17b-5d4d96884f26`（預演，封存狀態保持原樣）、`55178a2a-1a1e-4106-b525-dc3fe9ae9f50`（正賽）、`58f461bf-e3df-4dab-b5ac-88ba69025f2d`（11月社內賽）
 
 `/?competition=8b01f0c3-dc13-4a5f-9178-cae97fdf5b44` 與 `/?event=58f461bf-e3df-4dab-b5ac-88ba69025f2d` 都繼續有效。舊的 `/?competition=58f461bf-e3df-4dab-b5ac-88ba69025f2d` 和 `GET /api/competitions/58f461bf-e3df-4dab-b5ac-88ba69025f2d` 會導向合併後的賽事。11月社內賽目前自己的賽事列場地是「臺灣大學 二活705」，賽段文件上的場地寫成 704，不對。合併時把賽事列的場地抄進該賽段的 `venue` 與 `venueOverride`，所以畫面上是 705，不會改吃老少盃的場地。乾跑會印 `venue=臺灣大學 二活705`。預演與正賽若本來就有上層賽事，場地不動。牌組、成績、名單、判罰與留言都不改。舊賽事列的稽核與 request id 會併進合併後的賽事，並多一筆「合併賽段」稽核。

@@ -451,14 +451,8 @@ export default function Scoreboard() {
                         popover="auto"
                         className="player-detail-popover event-information"
                       >
-                        <strong>
-                          {[
-                            event.competition?.prefix ?? event.prefix,
-                            event.competition?.name ?? event.name,
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                        </strong>
+                        <strong>{event.competition?.name ?? event.name}</strong>
+                        {event.competition?.organizerName && <div>{event.competition.organizerName}</div>}
                         <div>日期：{dateRangeLabel(event)}</div>
                         <div>地點：{event.venue || '線上記分'}</div>
                       </div>

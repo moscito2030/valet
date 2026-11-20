@@ -17,7 +17,6 @@ import { requireNormalizedStorage } from './switch';
 export const stageMerge = {
   competitionId: '8b01f0c3-dc13-4a5f-9178-cae97fdf5b44',
   retiredId: '58f461bf-e3df-4dab-b5ac-88ba69025f2d',
-  prefix: '台大橋藝社 115-1',
   name: '社內賽',
   stages: [
     { id: 'fed8635d-0737-48ca-a17b-5d4d96884f26', name: '預演', stageOrder: 0 },
@@ -70,15 +69,13 @@ export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
     });
   if (
     ready &&
-    competition.competition.prefix === stageMerge.prefix &&
-    competition.competition.name === stageMerge.name &&
+    (competition.competition.name === stageMerge.name || competition.competition.name === '115-1 社內賽') &&
     !competitions.some((item) => item.competition.id === stageMerge.retiredId)
   )
     return { documents, redirect, changed: false };
   const at = new Date().toISOString();
   const retired = competitions.find((item) => item.competition.id === stageMerge.retiredId);
   const nextCompetition = structuredClone(competition);
-  nextCompetition.competition.prefix = stageMerge.prefix;
   nextCompetition.competition.name = stageMerge.name;
   nextCompetition.competition.hasStages = true;
   nextCompetition.competition.revision += 1;

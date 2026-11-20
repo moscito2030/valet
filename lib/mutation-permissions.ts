@@ -51,7 +51,6 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
       command.trim !== undefined ||
       command.neuberg !== undefined ||
       command.name !== undefined ||
-      command.prefix !== undefined ||
       command.maxBoardNumber !== undefined ||
       command.audienceRefreshSeconds !== undefined ||
       command.danmakuDefaultEnabled !== undefined ||

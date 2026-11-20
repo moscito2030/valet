@@ -22,7 +22,6 @@ export function createEvent(
   const e: BridgeEvent = {
     id,
     name: data.name,
-    prefix: data.prefix ?? '',
     ...(data.firstStageName ? { hasStages: true, stageName: data.firstStageName } : {}),
     kind: data.kind,
     ...(data.kind === 'teams' ? { teamFormat: data.teamFormat ?? 'league' } : {}),

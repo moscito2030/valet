@@ -4,7 +4,6 @@ export type IndexEvent = Pick<
   | 'stageArchived'
   | 'id'
   | 'name'
-  | 'prefix'
   | 'updatedAt'
   | 'kind'
   | 'gameMode'
@@ -16,6 +15,7 @@ export type IndexEvent = Pick<
   | 'endDate'
   | 'venue'
   | 'venueOverride'
+  | 'organizerId'
   | 'status'
   | 'demo'
   | 'rounds'
@@ -40,7 +40,6 @@ export function eventIndex(stored: StoredEvent): EventIndex {
       stageArchived: e.stageArchived,
       id: e.id,
       name: e.name,
-      prefix: e.prefix,
       updatedAt: e.updatedAt,
       kind: e.kind,
       gameMode: e.gameMode,
@@ -52,6 +51,7 @@ export function eventIndex(stored: StoredEvent): EventIndex {
       endDate: e.endDate,
       venue: e.venue,
       venueOverride: e.venueOverride,
+      organizerId: e.organizerId,
       status: e.status,
       demo: e.demo,
       rounds: e.rounds,

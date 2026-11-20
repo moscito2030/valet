@@ -181,15 +181,12 @@ test('award settings preserve scores and zero disables awards', () => {
   assert.equal(s.stored.event.awardPlaces, 0);
 });
 
-test('event prefix and short name remain separate and can be updated without changing results', () => {
+test('event name can include a semester and be updated without changing results', () => {
   const s = setup();
   const projection = structuredClone(s.stored.projection);
-  s.apply({ action: 'settings', status: 'live', prefix: '臺灣大學橋藝社 114-1', name: '老少盃' });
-  assert.equal(s.stored.event.prefix, '臺灣大學橋藝社 114-1');
-  assert.equal(s.stored.event.name, '老少盃');
+  s.apply({ action: 'settings', status: 'live', name: '114-1 老少盃' });
+  assert.equal(s.stored.event.name, '114-1 老少盃');
   assert.deepEqual(s.stored.projection, projection);
-  s.apply({ action: 'settings', status: 'live', prefix: '' });
-  assert.equal(s.stored.event.prefix, '');
 });
 
 test('director can set current round and break state without changing score projections', () => {

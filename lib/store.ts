@@ -3,6 +3,7 @@ import 'server-only';
 import { createDemoRepository } from './storage/demo';
 import { createLocalRepository } from './storage/local';
 import { createNeonRepository } from './storage/neon';
+import { readOrganizerNames } from './storage/organizer-names';
 import { neonHttp } from './storage/sql-client';
 import { competitionRedirect as redirectFor } from './storage/switch';
 import type { EventRepository } from './storage/repository';
@@ -49,6 +50,11 @@ export const mutateCompetition: EventRepository['mutateCompetition'] = (...args)
   repository().mutateCompetition(...args);
 export const insertStage: EventRepository['insertStage'] = (...args) =>
   repository().insertStage(...args);
+
+export async function listOrganizerNames() {
+  if (storageMode() !== 'neon' || !process.env.DATABASE_URL) return new Map<string, string>();
+  return readOrganizerNames(neonHttp(process.env.DATABASE_URL));
+}
 
 export async function competitionRedirect(id: string) {
   if (storageMode() !== 'neon' || !process.env.DATABASE_URL) return null;

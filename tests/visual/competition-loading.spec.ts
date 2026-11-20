@@ -9,7 +9,7 @@ for (const director of [false, true]) {
       await route.fulfill({ json: { admin: director, director } });
     });
     await page.route('**/api/competitions', route => route.fulfill({ json: { competitions: [{
-      id: 'public-fixture', name: 'Performance fixture', prefix: '', venue: '',
+      id: 'public-fixture', name: 'Performance fixture', venue: '',
       date: '2026-10-25', archived: false, stages: [],
     }] } }));
     const sessionResponse = page.waitForResponse(response => response.url().endsWith('/api/session'));

@@ -301,7 +301,7 @@ test('normalized rows round-trip mitchell, howell, teams, knockout, and stages',
       stored(rehearsal),
       stored(final),
       stored(fifteen),
-      createCompetition({ name: '分階段', prefix: '舊', venue: '社辦' }, 'root-stage'),
+      createCompetition({ name: '分階段', venue: '社辦' }, 'root-stage'),
     ];
     const repo = createNeonRepository(db.sql);
     for (const fixture of documents) {
@@ -357,7 +357,7 @@ test('Neon reads and writes fail closed when normalized storage is unavailable',
 });
 
 test('merge keeps ids, deal bytes, results and archived rehearsal, and orders stages by date', () => {
-  const competition = createCompetition({ name: '老少盃', prefix: '舊', venue: '舊館' }, stageMerge.competitionId);
+  const competition = createCompetition({ name: '老少盃', venue: '舊館' }, stageMerge.competitionId);
   const rehearsal = withDeals(
     createEvent(
       { name: '預演', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-10-20', venue: '舊館', rounds: 1, boardsPerRound: 1 },
@@ -387,7 +387,7 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
     novemberStored,
     score(november.assignments[0].id, november.assignments[0].boards[0], 9, 1),
   );
-  const retired = createCompetition({ name: '11月社內賽', prefix: '', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
+  const retired = createCompetition({ name: '11月社內賽', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
   retired.competition.audit.push({ at: '2026-11-01T00:00:00.000Z', action: '舊紀錄', reason: '舊紀錄', revision: 1 });
   retired.requests.push(randomUUID());
   const documents = [stored(rehearsal), stored(final), novemberStored, competition, retired];
@@ -430,7 +430,7 @@ test('merge keeps ids, deal bytes, results and archived rehearsal, and orders st
     root?.stages.map((stage) => stage.id),
     stageMerge.stages.map((stage) => stage.id),
   );
-  assert.equal(root?.prefix, stageMerge.prefix);
+  assert.ok(root && !('prefix' in root));
   assert.equal(root?.name, stageMerge.name);
   const mergedCompetition = plan.documents.find((document): document is StoredCompetition => !isStage(document) && document.competition.id === stageMerge.competitionId);
   assert.ok(mergedCompetition);
@@ -469,7 +469,7 @@ test('local document mutations keep only the last 500 request ids', () => {
 test('normalized merge retires the competition, keeps the stage, and resolves the redirect', async () => {
   const db = await createTestDb();
   try {
-    const competition = createCompetition({ name: '老少盃', prefix: '舊', venue: '舊館' }, stageMerge.competitionId);
+    const competition = createCompetition({ name: '老少盃', venue: '舊館' }, stageMerge.competitionId);
     const rehearsal = withDeals(createEvent({
       name: '預演', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-10-20', venue: '舊館', rounds: 1, boardsPerRound: 1,
     }, stageMerge.stages[0].id));
@@ -485,17 +485,24 @@ test('normalized merge retires the competition, keeps the stage, and resolves th
       name: '11月社內賽', kind: 'pairs', names: ['甲', '乙', '丙', '丁'], date: '2026-11-17', venue: '704室', rounds: 1, boardsPerRound: 1,
     }, stageMerge.retiredId));
     const deals = canonical(november.boards.map((board) => board.deal));
-    const retired = createCompetition({ name: '11月社內賽', prefix: '', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
+    const retired = createCompetition({ name: '11月社內賽', venue: '臺灣大學 二活705' }, stageMerge.retiredId);
     for (const document of [stored(rehearsal), stored(final), stored(november), competition, retired]) {
       if (isStage(document)) await saveStage(db.sql, document, seedResultWrites(document.event));
       else await saveCompetition(db.sql, document);
     }
+    await db.sql`UPDATE bridge_competitions
+      SET document = jsonb_set(document, '{prefix}', '"舊前綴"'::jsonb)
+      WHERE id = ${competition.competition.id}`;
     await db.sql`INSERT INTO bridge_discussions (id, revision, document) VALUES ('limit:ip:test', 1, '{"minute":1}')`;
     await commitStageMerge(db.sql);
+    const [merged] = await db.sql`SELECT document ? 'prefix' AS has_prefix
+      FROM bridge_competitions WHERE id = ${competition.competition.id}`;
+    assert.equal(merged?.has_prefix, false);
     assert.equal(await competitionRedirect(db.sql, stageMerge.retiredId), stageMerge.competitionId);
     assert.deepEqual(await db.sql`SELECT id FROM bridge_competitions WHERE id = ${stageMerge.retiredId}`, []);
     const { event } = await createNeonRepository(db.sql).getEvent(stageMerge.retiredId);
-    assert.equal(event.venue, '臺灣大學 二活705');
+    assert.equal(event.venueOverride, '臺灣大學 二活705');
+    assert.equal(event.venue, '舊館 臺灣大學 二活705');
     assert.equal(canonical(event.boards.map((board) => board.deal)), deals);
     const limit = await db.sql`SELECT id FROM bridge_discussions WHERE id = 'limit:ip:test'`;
     assert.equal(limit.length, 1);

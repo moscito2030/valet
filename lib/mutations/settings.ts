@@ -18,9 +18,8 @@ export function applySettingsCommand(
   } else if (command.action === 'competition-settings') {
     if (e.parentEventId) throw new DomainError('請從賽事主頁修改共用資訊');
     e.name = command.name;
-    e.prefix = command.prefix;
     e.venue = command.venue;
-    detail = '修改賽事共用名稱、前綴與地點';
+    detail = '修改賽事共用名稱與場館';
   } else if (command.action === 'settings') {
     if (command.status === 'review' && e.status !== 'review' && !allRoundsComplete(e))
       throw new DomainError('全部圈次完成後才可進入成績覆核。');
@@ -67,7 +66,7 @@ export function applySettingsCommand(
     if (command.maxBoardNumber !== undefined) e.maxBoardNumber = command.maxBoardNumber;
     if (
       (e.parentEventId || e.hasStages) &&
-      (command.name !== undefined || command.prefix !== undefined)
+      command.name !== undefined
     )
       throw new DomainError('賽事共用資訊請至賽事主頁修改');
     if (command.stageName !== undefined) {
@@ -84,7 +83,6 @@ export function applySettingsCommand(
     }
     if (e.endDate && e.endDate < e.date) throw new DomainError('結束日期不可早於開始日期');
     if (command.name !== undefined) e.name = command.name;
-    if (command.prefix !== undefined) e.prefix = command.prefix;
     if (command.awardPlacesNS !== undefined || command.awardPlacesEW !== undefined) {
       if (!hasDirectionalAwards(e)) throw new DomainError('NS/EW 給獎範圍僅適用 Double Winner');
       if (command.awardPlacesNS !== undefined) e.awardPlacesNS = command.awardPlacesNS;
