@@ -5,6 +5,10 @@ import { readOrganizerNames } from './organizer-names';
 import { requireNormalizedStorage } from './switch';
 
 const competitionId = '8b01f0c3-dc13-4a5f-9178-cae97fdf5b44';
+const standaloneId = '64c0734e-00ce-4c16-9e9e-ecfa359cc9ba';
+const standaloneBuilding = '台灣大學 第二學生活動中心';
+const standaloneVenue = `${standaloneBuilding} 603`;
+const rehearsalId = 'fed8635d-0737-48ca-a17b-5d4d96884f26';
 const expectedOrganizer = { id: 'ntu-bridge-club', name: '台大橋藝社' };
 const novemberId = '58f461bf-e3df-4dab-b5ac-88ba69025f2d';
 const finalId = '55178a2a-1a1e-4106-b525-dc3fe9ae9f50';
@@ -56,31 +60,32 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
     const family = stagesByCompetition.get(competition.id) ?? [];
     const entry: Entry = { competition, stages: family, changes: [], skipped: [] };
     const { document, id, revision } = competition;
-    if (id !== competitionId) {
-      // Venue text alone cannot reliably distinguish a building from a full address.
-      if ([document.prefix, document.venue, ...family.flatMap(({ settings }) => [settings.venue, settings.venueOverride])]
-        .some(value => typeof value === 'string' && value.trim()))
-        entry.skipped.push('No approved mapping');
+    if (id !== competitionId && id !== standaloneId) {
+      entry.skipped.push('No approved mapping');
       return entry;
     }
 
-    if (organizer.id !== expectedOrganizer.id || organizer.name !== expectedOrganizer.name) {
-      entry.skipped.push(`Organizer: expected ${expectedOrganizer.name} (${expectedOrganizer.id})`);
-    }
-    if (!family.length) entry.skipped.push('No stages with organizer assignments');
-    for (const stage of family) {
-      const stageOrganizerId = stage.settings.organizerId;
-      if (stageOrganizerId !== expectedOrganizer.id) {
-        entry.skipped.push(`stage ${stage.id} ${printable(stageName(stage))} organizerId: ${printable(stageOrganizerId)}`);
-      }
-    }
-
     const patch: Metadata = {};
-    planField(entry, patch, 'name', 'name', document.name, ['社內賽'], '115-1 社內賽');
-    planField(entry, patch, 'venue', 'venue', document.venue, ['臺灣大學 二活'], '臺灣大學 第二學生活動中心');
-    if (document.prefix !== '') {
-      planField(entry, patch, 'prefix', 'prefix', document.prefix,
-        ['臺灣大學橋藝社 115-1', '台大橋藝社 115-1'], null);
+    if (id === standaloneId) {
+      planField(entry, patch, 'venue', 'venue', document.venue, [standaloneVenue], standaloneBuilding);
+    } else {
+      if (organizer.id !== expectedOrganizer.id || organizer.name !== expectedOrganizer.name) {
+        entry.skipped.push(`Organizer: expected ${expectedOrganizer.name} (${expectedOrganizer.id})`);
+      }
+      if (!family.length) entry.skipped.push('No stages with organizer assignments');
+      for (const stage of family) {
+        const stageOrganizerId = stage.settings.organizerId;
+        if (stageOrganizerId !== expectedOrganizer.id) {
+          entry.skipped.push(`stage ${stage.id} ${printable(stageName(stage))} organizerId: ${printable(stageOrganizerId)}`);
+        }
+      }
+
+      planField(entry, patch, 'name', 'name', document.name, ['社內賽'], '115-1 社內賽');
+      planField(entry, patch, 'venue', 'venue', document.venue, ['臺灣大學 二活'], '臺灣大學 第二學生活動中心');
+      if (document.prefix !== '') {
+        planField(entry, patch, 'prefix', 'prefix', document.prefix,
+          ['臺灣大學橋藝社 115-1', '台大橋藝社 115-1'], null);
+      }
     }
     if (Object.keys(patch).length) {
       const removePrefix = 'prefix' in patch;
@@ -96,25 +101,40 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
 
     for (const stage of family) {
       const label = `stage ${stage.id} ${printable(stageName(stage))}`;
-      const november = stage.id === novemberId;
-      if (!november && stage.id !== finalId && stageName(stage) !== '預演' && stageName(stage) !== '正賽') {
-        entry.skipped.push(`${label}: no approved room mapping`);
-        continue;
-      }
-      const room = november ? '705' : '704';
-      const current = roomSource(stage);
       const stagePatch: Metadata = {};
-      if (stage.settings.venueOverride == null && current === room) {
-        // Older stages may contain the room only in the legacy venue slot.
-        stagePatch.venueOverride = room;
-        entry.changes.push(`${label} room field: null → ${printable(room)}`);
+      if (id === standaloneId) {
+        if (stage.id !== standaloneId) {
+          entry.skipped.push(`${label}: no approved room mapping`);
+          continue;
+        }
+        const current = stage.settings.venueOverride ?? null;
+        if (current === null && stage.settings.venue !== standaloneVenue) {
+          entry.skipped.push(`${label} room: current ${printable(stage.settings.venue)}, expected ${printable(standaloneVenue)}`);
+        } else {
+          planField(entry, stagePatch, `${label} room field`, 'venueOverride', current, [null], '603');
+        }
       } else {
-        planField(entry, stagePatch, `${label} room`, 'venueOverride', current,
-          november ? ['臺灣大學 二活705'] : ['704'], room);
-      }
-      if (november && (current === room || 'venueOverride' in stagePatch) && stage.settings.venue === '臺灣大學 二活705') {
-        stagePatch.venue = room;
-        entry.changes.push(`${label} legacy venue: ${printable(stage.settings.venue)} → ${printable(room)}`);
+        const november = stage.id === novemberId;
+        const rehearsalOrFinal = stage.id === rehearsalId || stageName(stage) === '預演' || stageName(stage) === '正賽';
+        if (!november && stage.id !== finalId && !rehearsalOrFinal) {
+          entry.skipped.push(`${label}: no approved room mapping`);
+          continue;
+        }
+        const room = november ? '705' : '704';
+        const current = roomSource(stage);
+        if (stage.settings.venueOverride == null && current === room) {
+          // Older stages may contain the room only in the legacy venue slot.
+          stagePatch.venueOverride = room;
+          entry.changes.push(`${label} room field: null → ${printable(room)}`);
+        } else {
+          planField(entry, stagePatch, `${label} room`, 'venueOverride', current,
+            november ? ['臺灣大學 二活705'] : rehearsalOrFinal && stage.settings.venueOverride == null
+              ? ['704', '臺灣大學 二活704'] : ['704'], room);
+        }
+        if (november && (current === room || 'venueOverride' in stagePatch) && stage.settings.venue === '臺灣大學 二活705') {
+          stagePatch.venue = room;
+          entry.changes.push(`${label} legacy venue: ${printable(stage.settings.venue)} → ${printable(room)}`);
+        }
       }
       if (!Object.keys(stagePatch).length) continue;
       stagesChanged++;
