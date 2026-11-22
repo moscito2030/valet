@@ -183,7 +183,7 @@ export function createLocalRepository(directory: string): EventRepository {
       if (data.filter(isStage).filter((s) => stageCompetitionId(s.event) === parentId).length >= 32)
         throw new DomainError('每場最多 32 個賽段');
       const next = advanceCompetition(previous, revision, '新增賽段');
-      await localSave([...saveCompetitionRecord(data, next), stored]);
+      await localSave([...data.filter((item) => isStage(item) || item.competition.id !== parentId), next, stored]);
       return stored;
     });
   }

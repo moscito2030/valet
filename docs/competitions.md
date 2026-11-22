@@ -35,7 +35,7 @@
 
 新賽段的 `parentEventId` 指向賽事 ID；原第一賽段沒有此欄位時，以自身 ID 找賽事。賽事 ID 與原第一賽段 ID 可以相同，但儲存鍵不同。新增、刪除或改名均不重新編號其餘賽段，保留成績網址與收分連結。
 
-舊資料在尚無獨立賽事文件時，讀取以原根賽段的共用欄位作相容來源；第一次修改共用資訊、新增或刪除賽段時原子分離。保留的原根賽段 revision 在分離時加一，阻擋舊版本併發寫入，其原始成績、牌型、projection 與裝置憑證不變。後續共用資訊修改不再更動任何賽段 revision。`getEvent` 動態解析共用資訊及地點，衍生的 `event.competition` 不寫回原始文件。
+舊資料在尚無獨立賽事文件時，讀取以原根賽段的共用欄位作相容來源；第一次修改共用資訊、新增或刪除賽段時原子分離。修改共用資訊或刪除賽段時，分離作業透過調高保留的原根賽段 revision 防止使用過期版本。新增及貼上賽段會核對並鎖定原根賽段版本，再建立獨立的賽事紀錄及新賽段。後續共用資訊修改不再更動任何賽段 revision。`getEvent` 動態解析共用資訊及地點，衍生的 `event.competition` 不寫回原始文件。
 
 local 使用儲存鎖與整檔原子替換；Neon 的賽段增刪/共用修改以一個 SQL CTE、共用文件 revision 檢查與 row lock 執行。整場刪除要求精確的賽事及各賽段 revision，並在同一 SQL 中重新鎖定與比對整個集合，避免漏刪新賽段或誤刪更新後資料。
 
@@ -45,6 +45,7 @@ local 使用儲存鎖與整檔原子替換；Neon 的賽段增刪/共用修改�
 - `POST /api/competitions`：裁判建立空賽事，接受 `name`、選填 `venue`。
 - `PATCH /api/competitions/[id]`：裁判修改共用欄位，附 `revision`、`requestId`。
 - `POST /api/competitions/[id]/stages`：裁判新增賽段，附賽事 revision；禁止巢狀賽段。
+- `POST /api/competitions/[id]/stages/paste`：裁判可從可存取的賽段貼上，包含已封存賽段。比對來源與目標版本後建立新賽段。帶入成績時須同時帶入設定／移位、名單及牌。
 - `DELETE /api/admin/events/[id]`：刪除單一賽段，保留賽事。
 - `DELETE /api/admin/competitions`：連同所有賽段刪除選定賽事；空賽事的 `stages` 是空陣列。
 - 舊 `POST /api/events` 仍可一次建立共用資訊與第一賽段，儲存時已分成兩份文件。

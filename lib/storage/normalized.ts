@@ -61,8 +61,8 @@ function queueSaved(
       queueCompetition(
         sql,
         document,
-        competition && document.competition.id === competition.id && competition.existed
-          ? competition.revision
+        competition && document.competition.id === competition.id
+          ? (competition.existed ? competition.revision : null)
           : undefined,
       );
       continue;
@@ -303,12 +303,15 @@ export function createNormalizedRepository(query: Sql) {
       const previous = findCompetition(data, parentId);
       const next = advanceCompetition(previous, revision, '新增賽段');
       const conflict = await writeOnce(sql(), (cap) => {
-        queueSaved(cap, current.stages, saveCompetitionRecord(data, next), {
-          id: parentId,
-          revision: previous.competition.revision,
-          existed: current.competitions.some((item) => item.competition.id === parentId),
-        });
-        queueStage(cap, stored, {});
+        const existing = current.competitions.length > 0;
+        if (!existing) {
+          // Fence the legacy metadata snapshot without changing the root stage.
+          cap`WITH root AS (
+            SELECT id FROM bridge_stages WHERE id = ${parentId} AND revision = ${revision} FOR UPDATE
+          ) SELECT 1 / (SELECT count(*)::int FROM root)`;
+        }
+        queueCompetition(cap, next, existing ? revision : null);
+        queueStage(cap, stored, seedResultWrites(child));
       });
       if (!conflict) return stored;
     }

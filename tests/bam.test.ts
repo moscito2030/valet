@@ -16,7 +16,7 @@ import { bamBoardPoints } from '../lib/team-method';
 import { audienceEvent } from '../lib/read-models/public-event';
 import { eventIndex } from '../lib/event-index';
 import { stageSummary } from '../lib/competitions';
-import { duplicateStage } from '../lib/domain/duplicate-stage';
+import { pasteStage } from '../lib/domain/paste-stage';
 import { interleavedAssignments } from '../lib/team-movement';
 import { swissPreview } from '../lib/swiss';
 import { winAwardStats } from '../lib/win-awards';
@@ -120,7 +120,7 @@ test('BAM schema, settings locks, clone, audience and competition summaries pres
   assert.deepEqual(e.bam, { win: 2, draw: 1, loss: 0 });
   const saved = apply(e, { bam: { win: 4, draw: 2, loss: 0 } });
   assert.equal(audienceEvent(saved.event).teamMethod, 'bam');
-  assert.deepEqual(duplicateStage(saved.event, 'copy').bam, saved.event.bam);
+  assert.deepEqual(pasteStage(saved.event, { name: '貼上', sameCompetition: true, include: { setup: true, roster: true, boards: false, results: false } }).bam, saved.event.bam);
   assert.equal(stageSummary(eventIndex(saved).event).teamMethod, 'bam');
   fill(e);
   assert.throws(() => apply(e, { bam: { win: 4, draw: 2, loss: 0 } }), /不能變更/);
