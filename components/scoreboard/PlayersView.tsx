@@ -330,7 +330,7 @@ export function PlayersView({
                 >
                   {event.knockout ? <KnockoutMatchSummary event={event} matchId={playerMatchScore?.id} /> : <>
                   <strong>第 {roundLabel(event, playerRound)} 圈 · 累積 VP</strong>
-                  <p>賽前 → {playerMatchScore?.vpA != null ? '賽後' : '目前已結算'}</p>
+                  <p>賽前 → {playerMatchScore?.provisional ? '暫定' : playerMatchScore?.vpA != null ? '賽後' : '目前已結算'}</p>
                   {[playerId!, playerMatch.ns === playerId ? playerMatch.ew : playerMatch.ns].map(
                     (id, i) => {
                       const standing = previousStandings.find((s) => s.id === id);
@@ -492,7 +492,7 @@ export function PlayersView({
                       title={event.teamMethod === 'bam' ? '查看 BAM 計分規則' : '查看 VP 換算表'} popoverTarget="player-vp-scale"
                       onClick={(e) => positionDetail(e.currentTarget)}
                     >
-                      {provisionalVp ? '暫計 VP' : event.teamMethod === 'bam' ? '計分規則' : '換算 VP'}
+                      {playerMatchScore?.provisional ? '暫定 VP' : provisionalVp ? '暫計 VP' : event.teamMethod === 'bam' ? '計分規則' : '換算 VP'}
                     </button>
                     <button
                       type="button"
@@ -539,6 +539,7 @@ export function PlayersView({
                       第 {roundLabel(event, playerRound)} 圈 · {playerVpBoards} 牌 VP 計分
                     </strong>
                     <p>{event.teamMethod === 'bam' ? `每牌勝/和/負 ${event.bam?.win ?? 2} / ${event.bam?.draw ?? 1} / ${event.bam?.loss ?? 0} VP，直接加總` : 'WBF 20–0 · 依原訂牌數換算'}</p>
+                    {playerMatchScore?.provisional && <p className="muted">暫定 VP 已計入排名，成績收齊後以實際 VP 取代。</p>}
                     {provisionalVp && <p className="muted">暫計 VP：依目前已比對成績估算，尚未計入累積 VP 與排名。</p>}
                     <p>
                       {playerMatchVp === null

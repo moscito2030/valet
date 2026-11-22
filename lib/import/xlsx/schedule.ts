@@ -212,6 +212,7 @@ export function readImportSchedule(
         'source-internal': differences.length,
         'ranking-convention': 0,
         scoring: 0,
+        'expected-by-decision': 0,
       },
     });
 
@@ -374,6 +375,7 @@ export function readImportSchedule(
         'source-internal': differences.length,
         'ranking-convention': 0,
         scoring: 0,
+        'expected-by-decision': 0,
       },
     });
   }

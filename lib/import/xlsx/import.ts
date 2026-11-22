@@ -1,8 +1,14 @@
+import { displayedBoardNumber } from '../../board-navigation';
 import { createCompetition } from '../../competition-record';
 import { type Assignment, type BridgeEvent, type Result, type Seat, resultKey } from '../../model';
 import { contractScore, project, teamBoardImps } from '../../scoring';
 import { boardMetadata, cell, label, numeric, parseContract, parseDeals } from './bridge';
-import { readImportSchedule, roundColumn, type ImportFormat } from './schedule';
+import {
+  ImportScheduleError,
+  readImportSchedule,
+  roundColumn,
+  type ImportFormat,
+} from './schedule';
 import { readWorkbook, type Sheet } from './workbook';
 
 type Value = number | string | null;
@@ -17,11 +23,15 @@ type Location = {
 };
 type Difference = Location & { field: string; file: Value } & (
     | { category: 'source-internal'; expected: Value }
-    | { category: 'ranking-convention' | 'scoring'; valet: Value }
+    | { category: 'ranking-convention' | 'scoring' | 'expected-by-decision'; valet: Value }
   );
 type BoardMapping = { round: number; original: number; board: number };
-type Options = {
-  public?: boolean;
+export type ImportOptions = {
+  archived?: boolean;
+  date?: string;
+  endDate?: string;
+  maxBoardNumber?: number;
+  deferredMatches?: ReadonlyMap<string, [number, number] | null>;
   boardsPrivate?: boolean;
   organizerId?: string;
   format?: ImportFormat;
@@ -46,7 +56,7 @@ function readPair(sheet: Sheet, row: number, col: string) {
   };
 }
 
-export function buildImport(zip: Buffer, options: Options, identity: Identity) {
+export function buildImport(zip: Buffer, options: ImportOptions, identity: Identity) {
   const workbook = readWorkbook(zip);
   const players = workbook.sheet('Players');
   const roster = [...players.keys()]
@@ -79,6 +89,11 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
     throw new Error('Players 隊號或隊數無效');
 
   const schedule = readImportSchedule(workbook, teams, options.format ?? 'auto');
+  const requested = options.deferredMatches ?? new Map<string, [number, number] | null>();
+  const deferred = new Map<
+    string,
+    { round: number; table: number; teams: [number, number]; vp: [number, number] | null }
+  >();
   const swiss = schedule.format.inferred === 'swiss';
   const stageName = swiss
     ? '瑞士制'
@@ -90,22 +105,24 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
     identity.competitionId,
   );
   competition.competition.updatedAt = identity.timestamp;
-  competition.competition.archived = !options.public;
+  competition.competition.archived = Boolean(options.archived);
   const event: BridgeEvent = {
     id: identity.stageId,
     parentEventId: identity.competitionId,
     name: stageName,
     stageName,
     stageOrder: 1,
-    stageArchived: !options.public,
+    stageArchived: Boolean(options.archived),
     organizerId: options.organizerId,
-    status: 'finished',
+    status: requested.size ? 'live' : 'finished',
     kind: 'teams',
     gameMode: 'bridge',
     teamMethod: 'imp',
     teamFormat: 'league',
     venue: '',
-    date: '',
+    date: options.date ?? '',
+    ...(options.endDate ? { endDate: options.endDate } : {}),
+    ...(requested.size ? { provisionalVp: {} } : {}),
     rounds: schedule.rounds.size,
     ...(schedule.byeVp != null ? { byeVp: schedule.byeVp } : {}),
     ...(swiss ? { swiss: { mode: 'current', publications: [] } } : {}),
@@ -148,10 +165,18 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
     }
   }
   function compareSource(location: Location, field: string, file: Value, expected: Value) {
-    compare(location, field, file, expected, 0, 'source-internal');
+    compare(
+      location,
+      field,
+      file,
+      expected,
+      0,
+      requested.has(`R${location.round}T${location.table}`)
+        ? 'expected-by-decision'
+        : 'source-internal',
+    );
   }
   const unmapped: string[] = [
-    'XLSX 未提供完整賽事日期，賽段日期留空',
     'Datum、Butler、頻率、雙明手及衍生欄位由來源保留或由 VALET 另算',
   ];
   const rosterNames = new Set(
@@ -185,6 +210,29 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
       const second = group.find((view) => !view.openNS)!;
       const key = matchKey(first.team, second.team);
       const matchId = swiss ? `swiss-r${round}t${table}` : `r${round}m${table}`;
+      const matchRef = `R${round}T${table}`;
+      const leavePending = requested.has(matchRef);
+      if (leavePending) {
+        const vp = requested.get(matchRef)!;
+        deferred.set(matchId, { round, table, teams: [first.team, second.team], vp });
+        event.provisionalVp![matchId] = { vp };
+        const description = vp ? `套用暫定 VP ${vp.join(':')}` : '成績與 VP 留空';
+        event.audit.push({
+          at: identity.timestamp,
+          revision: 1,
+          action: 'XLSX 匯入',
+          reason: 'Edgar 決定',
+          detail: `${matchRef} ${description}`,
+        });
+        compare(
+          { source, round, table },
+          'match results',
+          'spreadsheet',
+          null,
+          0,
+          'expected-by-decision',
+        );
+      }
       const namesFor = (room: 'open' | 'closed') => {
         const ns = readPair(sheet, first.row, room === 'open' ? 'C' : 'AJ');
         const ew = readPair(sheet, first.row + 1, room === 'open' ? 'AJ' : 'C');
@@ -289,6 +337,7 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
         }
         open.boards.push(board);
         closed.boards.push(board);
+        if (leavePending) continue;
         const results: (Result | undefined)[] = [];
         for (const [i, assignment] of [open, closed].entries()) {
           const primary = positions[i],
@@ -380,6 +429,7 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
       }
       if (originals.size !== hands.size)
         throw new Error(`${source} 第 ${table} 桌牌數與 Hands 不符`);
+      if (leavePending) continue;
       const totals = (sourceRow: number): [number | null, number | null] => [
         numeric(cell(sheet, sourceRow + 54, 'AK')),
         numeric(cell(sheet, sourceRow + 54, 'AN')),
@@ -411,7 +461,26 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
     }
   }
   if (deals.size !== event.rounds) throw new Error('Hands 圈次與 R 表不符');
-  event.maxBoardNumber = event.boards.length;
+  if (deferred.size !== requested.size)
+    throw new ImportScheduleError('指定的暫定或留空場次不存在。', {
+      decisionDifferences: [...requested.keys()].filter(
+        (ref) => ![...deferred.values()].some((match) => ref === `R${match.round}T${match.table}`),
+      ),
+    });
+  event.maxBoardNumber =
+    options.maxBoardNumber ?? Math.max(...boardMapping.map((item) => item.original));
+  const boardDisplayMapping = boardMapping.map((item) => ({
+    ...item,
+    displayed: displayedBoardNumber(item.board, event),
+  }));
+  const invalidBoardDisplay = boardDisplayMapping.filter(
+    (item) => item.displayed !== item.original,
+  );
+  if (invalidBoardDisplay.length)
+    throw new ImportScheduleError('顯示牌號與原牌號不一致，停止匯入。', {
+      maxBoardNumber: event.maxBoardNumber,
+      boardDisplayDifferences: invalidBoardDisplay,
+    });
   event.movementDescription = [...schedule.rounds.keys()]
     .map(
       (round) =>
@@ -434,10 +503,18 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
   );
   if (!robin.size) unmapped.push('RoundRobin 缺少工作表，未核對大循環總表');
   else if (robinRows.size !== teams.size) throw new Error('RoundRobin 缺少隊伍');
+  const skippedCop = new Map<number, number>();
+  const deferredTeams = new Set([...deferred.values()].flatMap((match) => match.teams));
   for (const [team, row] of robinRows) {
     const cop = numeric(cell(robin, row, 'U'));
-    if (cop !== null && cop < 0) event.penalties![teamId(team)] = -cop;
-    if ((cop !== null && cop > 0) || (cop === null && label(robin, row, 'U'))) {
+    if (deferredTeams.has(team) && cop !== null && cop !== 0) {
+      skippedCop.set(team, cop);
+      compare({ source: 'RoundRobin', team }, 'COP', cop, null, 0, 'expected-by-decision');
+    } else if (cop !== null && cop < 0) event.penalties![teamId(team)] = -cop;
+    if (
+      !skippedCop.has(team) &&
+      ((cop !== null && cop > 0) || (cop === null && label(robin, row, 'U')))
+    ) {
       unmapped.push(`RoundRobin 隊 ${team} COP 無法對應為罰分`);
       compare({ source: 'RoundRobin', team }, 'COP', cop ?? 'non-numeric', null);
     }
@@ -463,11 +540,16 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
   }
   function compareMatch(
     location: Location,
+    matchId: string,
     match: NonNullable<ReturnType<typeof matchFor>>,
     won: number | null,
     lost: number | null,
     vp: number | null,
   ) {
+    if (deferred.has(matchId)) {
+      compare(location, 'match VP', vp, match.vp, 0.01, 'expected-by-decision');
+      return;
+    }
     compare(location, 'match IMP won', won, match.won);
     compare(location, 'match IMP lost', lost, match.lost);
     compare(location, 'match VP', vp, match.vp, 0.01);
@@ -490,6 +572,49 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
         won: 0,
         lost: 0,
       });
+  const primarySwiss = schedule.summaries[0];
+  const decisionValues = [...deferred].map(([id, fixture]) => {
+    const rounds = primarySwiss.rounds.get(fixture.round)!;
+    const rows = fixture.teams.map((team) => rounds.get(team)!.row);
+    const fileVp = rows.map((row) =>
+      numeric(cell(primarySwiss.sheet, row, roundColumn(fixture.round, 3))),
+    );
+    const fileImp = rows.map((row) =>
+      numeric(cell(primarySwiss.sheet, row, roundColumn(fixture.round, 2))),
+    );
+    return { ...fixture, id, fileVp, fileImp };
+  });
+  function decisionDelta(team: number, throughRound = event.rounds) {
+    const delta = { vp: -(skippedCop.get(team) ?? 0), won: 0, lost: 0 };
+    for (const match of decisionValues) {
+      const index = match.teams.indexOf(team);
+      if (match.round > throughRound || (index !== 0 && index !== 1)) continue;
+      delta.vp += (match.vp?.[index] ?? 0) - (match.fileVp[index] ?? 0);
+      delta.won -= match.fileImp[index] ?? 0;
+      delta.lost -= match.fileImp[1 - index] ?? 0;
+    }
+    return delta;
+  }
+  const scoreCategory = (file: number | null, actual: number | null, delta: number) =>
+    file !== null &&
+    actual !== null &&
+    delta !== 0 &&
+    Math.abs(file + delta - actual) <= 0.010000001
+      ? ('expected-by-decision' as const)
+      : ('scoring' as const);
+  const baselineRanks = (standings: typeof projection.standings, round: number) => {
+    const scores = standings.map(
+      (standing) => (standing.score ?? 0) - decisionDelta(teamNumber(standing.id), round).vp,
+    );
+    return new Map(
+      standings.map((standing, index) => [
+        standing.id,
+        1 + scores.filter((score) => score > scores[index] + 1e-8).length,
+      ]),
+    );
+  };
+  const finalBaselineRanks = baselineRanks(projection.standings, event.rounds);
+  const finalStandings = new Map<number, { rank: number | null; vp: number | null }>();
   function compareStanding(
     sheet: Sheet,
     row: number,
@@ -498,10 +623,47 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
   ) {
     const standing = projection.standings.find((value) => value.id === teamId(location.team!))!;
     const totals = totalFor(location.team!);
-    compare(location, 'total VP', numeric(cell(sheet, row, score)), standing.score, 0.01);
-    compare(location, 'rank', numeric(cell(sheet, row, rank)), standing.rank);
-    compare(location, 'total IMP won', numeric(cell(sheet, row, won)), totals.won);
-    compare(location, 'total IMP lost', numeric(cell(sheet, row, lost)), totals.lost);
+    const fileVp = numeric(cell(sheet, row, score));
+    const fileRank = numeric(cell(sheet, row, rank));
+    const fileWon = numeric(cell(sheet, row, won));
+    const fileLost = numeric(cell(sheet, row, lost));
+    const delta = decisionDelta(location.team!);
+    if (!finalStandings.has(location.team!))
+      finalStandings.set(location.team!, { rank: fileRank, vp: fileVp });
+    compare(
+      location,
+      'total VP',
+      fileVp,
+      standing.score,
+      0.01,
+      scoreCategory(fileVp, standing.score, delta.vp),
+    );
+    compare(
+      location,
+      'rank',
+      fileRank,
+      standing.rank,
+      0,
+      deferred.size && finalBaselineRanks.get(standing.id) === fileRank
+        ? 'expected-by-decision'
+        : 'scoring',
+    );
+    compare(
+      location,
+      'total IMP won',
+      fileWon,
+      totals.won,
+      0,
+      scoreCategory(fileWon, totals.won, delta.won),
+    );
+    compare(
+      location,
+      'total IMP lost',
+      fileLost,
+      totals.lost,
+      0,
+      scoreCategory(fileLost, totals.lost, delta.lost),
+    );
   }
   const robinColumns = [...(robin.get(1) ?? [])].flatMap(([col, value]) => {
     const team = numeric(value);
@@ -526,6 +688,7 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
         .map(numeric);
       compareMatch(
         { ...location, round: fixture.round, table: Number(fixture.table) },
+        fixture.matchId,
         match,
         won ?? null,
         lost ?? null,
@@ -566,22 +729,26 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
       }
       const rawScores = [...rawCumulativeVp.values()];
       const complete = rawScores.every((score): score is number => score !== null);
+      const priorRanks = baselineRanks([...roundStandings.get(round)!.values()], round);
       for (const [team, { row, fixture }] of fixtures) {
         const location = { source, team, round, table: fixture?.table };
         if (fixture) {
-          const match = matchFor(team, openByRoundTable.get(`${round}:${fixture.table}`)!.matchId);
-          compare(
-            location,
-            'match IMP won',
-            numeric(cell(sheet, row, roundColumn(round, 2))),
-            match.won,
-          );
+          const id = openByRoundTable.get(`${round}:${fixture.table}`)!.matchId;
+          const match = matchFor(team, id);
+          if (!deferred.has(id))
+            compare(
+              location,
+              'match IMP won',
+              numeric(cell(sheet, row, roundColumn(round, 2))),
+              match.won,
+            );
           compare(
             location,
             'match VP',
             numeric(cell(sheet, row, roundColumn(round, 3))),
             match.vp,
             0.01,
+            deferred.has(id) ? 'expected-by-decision' : 'scoring',
           );
         } else {
           const bye = projection.byes?.find(
@@ -596,12 +763,14 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
           );
         }
         const standing = roundStandings.get(round)!.get(teamId(team))!;
+        const fileCumulative = numeric(cell(sheet, row, roundColumn(round, 4)));
         compare(
           location,
           'cumulative VP',
-          numeric(cell(sheet, row, roundColumn(round, 4))),
+          fileCumulative,
           standing.score,
           0.01,
+          scoreCategory(fileCumulative, standing.score, decisionDelta(team, round).vp),
         );
         const fileRank = numeric(cell(sheet, row, roundColumn(round, 5)));
         const rawScore = rawCumulativeVp.get(team);
@@ -620,7 +789,11 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
           fileRank,
           standing.rank,
           0,
-          matchesConvention ? 'ranking-convention' : 'scoring',
+          deferred.size && priorRanks.get(standing.id) === fileRank
+            ? 'expected-by-decision'
+            : matchesConvention
+              ? 'ranking-convention'
+              : 'scoring',
         );
       }
     }
@@ -631,6 +804,10 @@ export function buildImport(zip: Buffer, options: Options, identity: Identity) {
   }
   return {
     rankingConvention,
+    decisionValues,
+    skippedCop,
+    finalStandings,
+    boardDisplayMapping,
     format: schedule.format,
     scheduleSources: schedule.summaries.map((summary) => summary.source),
     competition,

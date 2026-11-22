@@ -1,9 +1,9 @@
 # 匯入隊制賽 XLSX
 
-匯入會建立一個新賽事與一個已結束的隊制賽段，使用 VALET 的 IMP→VP 計分。先在本機以不帶連線設定的環境試跑。
+匯入會建立一個新賽事與一個隊制賽段，使用 VALET 的 IMP→VP 計分。先在本機以不帶連線設定的環境試跑。
 
 ```sh
-VALET_IMPORT_XLSX=1 npm run import:xlsx -- /path/to/scores.xlsx --dry-run
+VALET_IMPORT_XLSX=1 npm run import:xlsx -- /path/to/scores.xlsx --dry-run --date 2026-11-21
 ```
 
 正式匯入時，從執行環境提供 `DATABASE_URL`，並移除 `--dry-run`。需要已完成正規化部署的資料庫。匯入以單一 transaction 新增賽事、賽段與子列。兩個 ID 在每次執行時重新產生。成功後會印出 ID。
@@ -12,12 +12,17 @@ VALET_IMPORT_XLSX=1 npm run import:xlsx -- /path/to/scores.xlsx --dry-run
 | --- | --- |
 | `--dry-run` | 只讀取 XLSX、建構賽段及驗算。完全不讀取資料庫連線環境變數。 |
 | `--format <round-robin\|swiss\|auto>` | 預設 `auto`。明確指定的賽制與推斷衝突時，列出推斷依據並以非零結束。 |
-| `--public` | 解除預設的賽事及賽段封存。 |
+| `--archived` | 封存賽事及賽段。省略時直接公開。 |
+| `--date YYYY-MM-DD` | 賽事日期。正式匯入必填，dry-run 省略時會提示。 |
+| `--end-date YYYY-MM-DD` | 選填結束日期，不可早於開始日期。 |
+| `--max-board-number <n>` | 顯示牌號的循環上限，預設取原牌號最大值。0 表示直接顯示重編牌號。任一顯示牌號與原牌號不符即停止。 |
+| `--provisional-vp R<輪>T<桌>=<A隊VP>:<B隊VP>` | 暫定該場 VP。A 隊是開室 NS，B 隊是開室 EW，各隊可給 0–20 VP。可重複指定不同場次。 |
+| `--leave-blank R<輪>T<桌>` | 保留同樣的空成績場次及編排，暫不給 VP。可重複指定不同場次。 |
 | `--boards-private` | 將牌型設為未公開。預設已結束賽段的牌型設為公開。 |
 | `--organizer-id <id>` | 為賽段指定現有主辦單位的 ID。省略時留空。 |
 | `--show-names` | 在報告額外顯示球員姓名與各室座位。預設只顯示人數與隊號。 |
 | `--allow-duplicate-name` | 允許新增同名賽事。 |
-| `--accept-mismatches` | 接受成績與驗算差異。請先核對差異及公布的結果。 |
+| `--accept-mismatches` | 接受 `scoring` 類驗算差異。請先核對差異及公布的結果。 |
 
 每次執行均需 `VALET_IMPORT_XLSX=1`。CLI 只從環境取得正式連線設定，連線錯誤會以固定文案呈現。請把含個資的工作簿與顯示姓名的輸出留在版本庫之外，並限制存取。即使預設報告遮蔽姓名，正式匯入仍會儲存名單和上場座位。
 
@@ -33,7 +38,7 @@ VALET_IMPORT_XLSX=1 npm run import:xlsx -- /path/to/scores.xlsx --dry-run
 | --- | --- |
 | `Players` | B1 賽事名稱，資料列 B–J 的隊號、隊名、隊長與賽員。場館留空。 |
 | `R1` 起的連續圈次表 | 按 Swiss 的對陣定位每桌兩個隊伍視角。兩個視角會交換兩室欄位。以隊伍的 NS 開室表頭辨認實際開室，閉室換邊。每對依來源順序填 N/S 或 E/W。逐副讀取發牌人、身價、合約、分數與 IMP。 |
-| `Hands` | 每圈左右並排的牌型。轉換 Symbol 花色記號與數字牌點，驗證四家各 13 張、共 52 張不重複。依圈次重編賽段唯一牌號。原牌號對照保留於報告與賽段賽程說明。VALET 的 Board.group 可用來標記牌組，成績鍵及儲存主鍵仍使用數字牌號。 |
+| `Hands` | 每圈左右並排的牌型。轉換 Symbol 花色記號與數字牌點，驗證四家各 13 張、共 52 張不重複。依圈次重編賽段唯一牌號。報告保留重編牌號 → 顯示牌號 → 原牌號。賽段賽程說明保留原牌號與重編牌號。VALET 的 Board.group 可用來標記牌組，成績鍵及儲存主鍵仍使用數字牌號。 |
 | `RoundRobin` | 可選交叉驗證表。核對單次相遇場次的雙方 VP、贏輸 IMP，及每隊總 VP、名次、贏輸 IMP。負 COP 假設為 VP 罰分，例如 −10 記為罰 10 VP。 |
 | `Swiss R`、`Swiss T` | 每輪對手與桌次為編排來源。核對每場贏 IMP、VP、逐輪累計 VP 與名次，以及有提供的最終總 VP、名次與贏輸 IMP。 |
 | `D*`、各隊明細、`ButlerP`、`ButlerI`、`Freq`、`FreqD` | 保留在來源工作簿。 |
@@ -48,10 +53,17 @@ VALET 的投影把 `average` 視為取消。整場逐副皆取消時，VALET 的
 
 | `category` | 判定方式 |
 | --- | --- |
+| `expected-by-decision` | Edgar 指定的暫定或留空場次及其影響，包括略過的 COP、場次 VP、累計 VP 或名次差異。 |
 | `source-internal` | 來源表或雙視角的值彼此不一致，例如同一副牌在第二視角留空。`file` 與 `expected` 都是來源資料或版面預期值。 |
 | `ranking-convention` | 逐輪名次與 VALET 有差異，但符合依檔案逐輪勝分加總、未扣 COP 的累計 VP 排序。同分採並列、跳號名次，例如 1、2、3、3、5。 |
 | `scoring` | 檔案與 VALET 的 IMP、VP、總分等差異，或無法以未扣 COP 慣例解釋的名次差異。 |
 
-報告列出每類筆數。任何可接受的驗算差異都需要明確指定 `--accept-mismatches` 才能寫入，對陣衝突仍會直接停止。正式寫入前會唯讀確認儲存開關為 `normalized`。若指定主辦單位，也會確認該單位存在且狀態為 `active`。
+報告列出每類筆數。只有 `scoring` 類差異需要明確指定 `--accept-mismatches` 才能寫入。對陣衝突仍會直接停止。正式寫入前會唯讀確認儲存開關為 `normalized`。若指定主辦單位，也會確認該單位存在且狀態為 `active`。
 
-「2026 新竹11月例賽」第 9 輪第 1 桌（隊 1 對隊 2）六副皆為 `A`。VALET 目前視為取消，該場不發 VP。來源記為 10:10 VP。此規則待 Edgar 決定。
+### 暫定或留空場次
+
+指定的場次保留對陣、房間、座位及牌型，兩室都留空待補登，並略過兩隊在 RoundRobin 的 COP。場次設定保存在 `bridge_stages.settings.provisionalVp`，以 match ID 作鍵，`vp` 是開室 NS/EW 的 VP 二元組，留空時為 `null`。匯入報告列出略過的 COP、略過的成績、原表與 VALET 的最終名次與 VP。
+
+含暫定或留空場次的賽段以「進行中」開放補登。其他賽段維持「已結束」。裁判可選擇該輪、該桌及房間逐副收分，兩室所有牌都有紀錄（含取消）後，暫定 VP 自動退場，以實際 VP 接替。全段收齊後依既有流程進入成績覆核，再由裁判結束賽段。裁判也可在收分畫面移除該場暫定 VP。套用、移除與補登取代皆有稽核紀錄。
+
+「2026 新竹11月例賽」第 9 輪第 1 桌（隊 1 對隊 2）六副皆為 `A`，原表為 10:10 VP。依 Edgar 決定，以 `--provisional-vp R9T1=10:10` 匯入，兩室共 12 筆成績留空，公開對戰顯示 10:10（暫定），名次表的兩隊總分標示「含暫定」。

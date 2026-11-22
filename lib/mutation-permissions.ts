@@ -52,6 +52,7 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
       command.neuberg !== undefined ||
       command.name !== undefined ||
       command.maxBoardNumber !== undefined ||
+      command.removeProvisionalVp !== undefined ||
       command.audienceRefreshSeconds !== undefined ||
       command.danmakuDefaultEnabled !== undefined ||
       command.showScoreCandles !== undefined ||

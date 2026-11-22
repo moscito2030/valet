@@ -1,4 +1,9 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { resultKey, mutationSchema } from '../lib/model';
+import { canMutate } from '../lib/mutation-permissions';
+import { applyMutation } from '../lib/mutations/apply';
+import { audienceEvent } from '../lib/read-models/public-event';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,7 +14,7 @@ import { makeBoard } from '../lib/domain/board-factory';
 import { column, parseContract, parseDeals } from '../lib/import/xlsx/bridge';
 import { buildImport } from '../lib/import/xlsx/import';
 import { readWorkbook } from '../lib/import/xlsx/workbook';
-import { contractScore, imps, vp } from '../lib/scoring';
+import { contractScore, imps, project, vp } from '../lib/scoring';
 import { swissRoundComplete } from '../lib/swiss';
 import { createNormalizedRepository } from '../lib/storage/normalized';
 import { runImport } from '../scripts/import-xlsx';
@@ -62,6 +67,7 @@ function fixtureScore(text: string) {
 function fixture(
   fault?:
     'scoring' | 'deal' | 'swiss' | 'round-mismatch' | 'summary-mismatch' | 'double-round-robin',
+  boardsPerRound = 2,
 ) {
   const sheets: Record<string, Cells> = {
     Players: {},
@@ -122,13 +128,13 @@ function fixture(
     const handsStart = 1 + round * 54;
     hands[`A${handsStart}`] = round + 1;
     const contracts = ['3NXN4', '2DS-1'];
-    for (let i = 0; i < 2; i++) {
-      const offset = i * 42,
-        row = handsStart + 2;
+    for (let i = 0; i < boardsPerRound; i++) {
+      const offset = (i % 2) * 42,
+        row = handsStart + 2 + Math.floor(i / 2) * 13;
       const set = (x: number, y: number, value: FixtureCell) => {
         hands[`${column(x + offset)}${row + y}`] = value;
       };
-      const deal = makeBoard(round * 2 + i + 1).deal;
+      const deal = makeBoard(round * boardsPerRound + i + 1).deal;
       set(1, 0, '#');
       set(2, 0, i + 1);
       for (const [seat, col, delta] of [
@@ -170,7 +176,7 @@ function fixture(
         set('AJ', 0, lineup(opponent, viewIndex !== 0));
         set('AJ', 1, lineup(opponent, viewIndex === 0));
         const [won, lost] = viewIndex === 0 ? [boardIMP, 0] : [0, boardIMP];
-        for (let board = 0; board < 2; board++) {
+        for (let board = 0; board < boardsPerRound; board++) {
           const offset = 6 + board * 3;
           set('A', offset, board + 1);
           set('C', offset, board ? 'E' : 'N');
@@ -194,25 +200,25 @@ function fixture(
           );
           set('AN', offset, lost);
         }
-        set('AK', 54, 2 * won);
-        set('AN', 54, 2 * lost);
+        set('AK', 54, boardsPerRound * won);
+        set('AN', 54, boardsPerRound * lost);
         const opponentCol = column(1 + opponent);
         const robinRow = 1 + 2 * team;
-        const matchVP = vp(2 * (won - lost), 2);
+        const matchVP = vp(boardsPerRound * (won - lost), boardsPerRound);
         robin[opponentCol + robinRow] =
           fault === 'scoring' && round === 0 && table === 1 && viewIndex === 0
             ? matchVP - 0.25
             : matchVP;
-        robin[opponentCol + (robinRow + 1)] = `${2 * won}:${2 * lost}`;
+        robin[opponentCol + (robinRow + 1)] = `${boardsPerRound * won}:${boardsPerRound * lost}`;
         totals[team].vp += matchVP;
-        totals[team].won += 2 * won;
-        totals[team].lost += 2 * lost;
+        totals[team].won += boardsPerRound * won;
+        totals[team].lost += boardsPerRound * lost;
         for (const name of ['Swiss R', 'Swiss T']) {
           const swiss = sheets[name],
             swissRow = team + 2,
             base = 2 + 6 * round;
           swiss[`A${swissRow}`] = team;
-          [opponent, table, 2 * won, matchVP].forEach((value, i) => {
+          [opponent, table, boardsPerRound * won, matchVP].forEach((value, i) => {
             swiss[column(base + i) + swissRow] = value;
           });
         }
@@ -305,6 +311,7 @@ function fixture(
   return zip(files);
 }
 
+const dateArgs = ['--date', '2026-01-01'];
 const identity = {
   competitionId: 'competition',
   stageId: 'stage',
@@ -359,11 +366,7 @@ test('validates decks, renumbers original boards and checks IMP and VP', () => {
       ),
     ),
   );
-  const data = buildImport(
-    bytes,
-    { boardsPrivate: true, public: true, organizerId: 'organizer' },
-    identity,
-  );
+  const data = buildImport(bytes, { boardsPrivate: true, organizerId: 'organizer' }, identity);
   assert.deepEqual(data.differences, []);
   assert.deepEqual(data.format, {
     requested: 'auto',
@@ -437,7 +440,12 @@ test('guards CLI and dry-run, imports atomically, and preserves every pre-existi
     assert.doesNotMatch(output.at(-1)!, /甲一/);
     await runImport([file, '--dry-run', '--show-names'], dryEnv, print, connect);
     assert.match(output.at(-1)!, /甲一/);
-    await assert.rejects(runImport([bad], dryEnv, print, connect), /--accept-mismatches/);
+    assert.match(output.at(-1)!, /缺少 --date/);
+    await assert.rejects(runImport([bad], dryEnv, print, connect), /必須指定 --date/);
+    await assert.rejects(
+      runImport([bad, ...dateArgs], dryEnv, print, connect),
+      /--accept-mismatches/,
+    );
     assert.equal(connections, 0);
 
     const repository = createNormalizedRepository(db.sql);
@@ -484,7 +492,7 @@ test('guards CLI and dry-run, imports atomically, and preserves every pre-existi
         },
       });
       await assert.rejects(
-        runImport([file, ...args], env, print, async () => readOnlySql),
+        runImport([file, ...dateArgs, ...args], env, print, async () => readOnlySql),
         expected,
       );
       assert.equal(transactions, 0);
@@ -499,7 +507,7 @@ test('guards CLI and dry-run, imports atomically, and preserves every pre-existi
       ('active', '{"status":"active"}'::jsonb)`;
     await assertNoWrites(['--organizer-id', 'inactive'], /主辦單位不存在或未啟用/);
     const before = await snapshot();
-    await runImport([bad, '--accept-mismatches'], env, print, connect);
+    await runImport([bad, ...dateArgs, '--accept-mismatches'], env, print, connect);
     const ids = JSON.parse(output.at(-1)!);
     const after = await snapshot();
     assert.equal(after.bridge_competitions.length, before.bridge_competitions.length + 1);
@@ -521,10 +529,18 @@ test('guards CLI and dry-run, imports atomically, and preserves every pre-existi
         assert.deepEqual(rows, before[name], name);
       }
     }
-    await assert.rejects(runImport([file], env, print, connect), /已有同名賽事/);
+    await assert.rejects(runImport([file, ...dateArgs], env, print, connect), /已有同名賽事/);
     assert.deepEqual(await snapshot(), after);
     await runImport(
-      [file, '--allow-duplicate-name', '--public', '--boards-private', '--organizer-id', 'active'],
+      [
+        file,
+        ...dateArgs,
+        '--allow-duplicate-name',
+        '--archived',
+        '--boards-private',
+        '--organizer-id',
+        'active',
+      ],
       env,
       print,
       connect,
@@ -532,14 +548,19 @@ test('guards CLI and dry-run, imports atomically, and preserves every pre-existi
     const publicIds = JSON.parse(output.at(-1)!);
     const stages = await repository.listEvents();
     const imported = stages.find((row) => row.event.id === publicIds.stageId)!;
-    assert.equal(imported.event.stageArchived, false);
+    assert.equal(imported.event.stageArchived, true);
     assert.equal(imported.event.organizerId, 'active');
     assert.equal(imported.event.parentEventId, publicIds.competitionId);
     assert.ok(imported.event.boards.every((board) => !board.published));
 
     const swiss = join(dir, 'swiss.xlsx');
     await writeFile(swiss, fixture('swiss'));
-    await runImport([swiss, '--allow-duplicate-name', '--format', 'swiss'], env, print, connect);
+    await runImport(
+      [swiss, ...dateArgs, '--allow-duplicate-name', '--format', 'swiss'],
+      env,
+      print,
+      connect,
+    );
     const swissIds = JSON.parse(output.at(-1)!);
     const saved = await repository.getEvent(swissIds.stageId);
     assert.ok(swissRoundComplete(saved.event, 2));
@@ -604,7 +625,7 @@ test('stops for explicit format conflicts and schedule disagreements before open
       const reports: string[] = [];
       await assert.rejects(
         runImport(
-          [file, ...flags],
+          [file, ...dateArgs, ...flags],
           {
             VALET_IMPORT_XLSX: '1',
             get DATABASE_URL(): string {
@@ -620,6 +641,156 @@ test('stops for explicit format conflicts and schedule disagreements before open
     }
     assert.equal(connections, 0);
   } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('imports provisional VP and replaces it after both rooms submit all 12 scores', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'valet-provisional-xlsx-'));
+  const db = await createTestDb();
+  try {
+    const file = join(dir, 'synthetic.xlsx');
+    await writeFile(file, fixture(undefined, 6));
+    const env = { VALET_IMPORT_XLSX: '1', DATABASE_URL: 'injected-test-factory' };
+    const out: string[] = [];
+    const print = (message: string) => out.push(message);
+    const connect = async () => db.sql;
+    await assert.rejects(
+      runImport([file, ...dateArgs, '--dry-run', '--max-board-number', '30'], env, print, connect),
+      /顯示牌號與原牌號不一致/,
+    );
+    await assert.rejects(
+      runImport(
+        [file, ...dateArgs, '--dry-run', '--provisional-vp', 'R9T1=10:10'],
+        env,
+        print,
+        connect,
+      ),
+      /場次不存在/,
+    );
+    await assert.rejects(
+      runImport(
+        [file, ...dateArgs, '--dry-run', '--provisional-vp', 'R1T1=21:10'],
+        env,
+        print,
+        connect,
+      ),
+      /VP 不在/,
+    );
+    await runImport([file, ...dateArgs, '--provisional-vp', 'R1T1=8:12'], env, print, connect);
+    const ids = JSON.parse(out.at(-1)!);
+    const repository = createNormalizedRepository(db.sql);
+    const original = await repository.getEvent(ids.stageId);
+    assert.equal(original.event.status, 'live');
+    assert.equal(original.event.date, '2026-01-01');
+    assert.equal(original.event.stageArchived, false);
+    assert.equal(original.event.competition?.archived, false);
+    assert.deepEqual(original.event.provisionalVp?.r1m1, { vp: [8, 12] });
+    assert.match(original.event.audit[0].detail!, /套用暫定 VP 8:12/);
+    assert.equal(original.event.penalties?.t1, undefined);
+    const deferred = original.event.assignments.filter((a) => a.matchId === 'r1m1');
+    assert.ok(
+      deferred.every((a) =>
+        a.boards.every((board) => !original.event.results[resultKey(a.id, board)]),
+      ),
+    );
+    const publicView = audienceEvent(original.event, original.projection);
+    const provisional = publicView.projection.matches.find((match) => match.id === 'r1m1')!;
+    assert.deepEqual([provisional.vpA, provisional.vpB, provisional.provisional], [8, 12, true]);
+    assert.equal(publicView.projection.received, 60);
+    assert.equal(
+      publicView.projection.standings.find((standing) => standing.id === 't1')?.provisional,
+      true,
+    );
+
+    const remove = mutationSchema.parse({
+      action: 'settings',
+      status: 'live',
+      removeProvisionalVp: 'r1m1',
+      reason: '移除暫定 VP',
+      revision: original.event.revision,
+      requestId: randomUUID(),
+    });
+    assert.equal(canMutate('admin', remove), false);
+    assert.equal(canMutate('director', remove), true);
+    const removed = applyMutation(original, remove);
+    assert.equal(removed.projection.matches.find((match) => match.id === 'r1m1')?.vpA, null);
+    assert.match(removed.event.audit.at(-1)!.detail!, /移除 r1m1 暫定 VP/);
+
+    const { status, style, ...pass } = parseContract('P')!;
+    const entries = deferred.flatMap((a) =>
+      a.boards.map((board) => ({ assignmentId: a.id, board, ...pass })),
+    );
+    assert.equal(entries.length, 12);
+    const oneRoomCancelled = Object.fromEntries(
+      entries
+        .slice(0, 6)
+        .map((row) => [
+          resultKey(row.assignmentId, row.board),
+          { ...row, status: 'cancelled' as const, nsScore: 0, updatedAt: original.event.updatedAt },
+        ]),
+    );
+    assert.equal(
+      project({
+        ...original.event,
+        results: { ...original.event.results, ...oneRoomCancelled },
+      }).matches.find((match) => match.id === 'r1m1')?.provisional,
+      true,
+    );
+    let saved = original;
+    for (const results of [entries.slice(0, 11), entries.slice(11)]) {
+      saved = await repository.mutateEvent(
+        ids.stageId,
+        mutationSchema.parse({
+          action: 'results',
+          revision: saved.event.revision,
+          requestId: randomUUID(),
+          results,
+        }),
+      );
+      assert.equal(
+        saved.projection.matches.find((match) => match.id === 'r1m1')?.provisional,
+        results.length === 11 ? true : undefined,
+      );
+    }
+    const settled = saved.projection.matches.find((match) => match.id === 'r1m1')!;
+    assert.deepEqual([settled.vpA, settled.vpB], [10, 10]);
+    assert.equal(saved.event.provisionalVp?.r1m1?.vp, null);
+    assert.deepEqual(
+      [
+        audienceEvent(saved.event).projection.matches.find((match) => match.id === 'r1m1')?.vpA,
+        audienceEvent(saved.event).projection.standings.find((standing) => standing.id === 't1')
+          ?.provisional,
+      ],
+      [10, undefined],
+    );
+    assert.match(saved.event.audit.at(-1)!.detail!, /以補登成績取代暫定 VP/);
+    assert.equal(saved.event.status, 'review');
+    saved = await repository.mutateEvent(
+      ids.stageId,
+      mutationSchema.parse({
+        action: 'settings',
+        status: 'finished',
+        revision: saved.event.revision,
+        requestId: randomUUID(),
+        reason: '完成覆核',
+      }),
+    );
+    assert.equal(saved.event.status, 'finished');
+
+    await runImport(
+      [file, '--dry-run', '--leave-blank', 'R1T1', '--leave-blank', 'R2T1'],
+      env,
+      print,
+      connect,
+    );
+    const blank = JSON.parse(out.at(-1)!);
+    assert.equal(blank.results, 48);
+    assert.equal(blank.provisionalMatches.length, 2);
+    assert.equal(blank.provisionalMatches[0].storage.value.vp, null);
+    assert.equal(blank.mismatchCountByCategory.scoring, 0);
+  } finally {
+    await db.close();
     await rm(dir, { recursive: true, force: true });
   }
 });

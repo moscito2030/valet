@@ -108,6 +108,15 @@ export function applyMutation(
     e.roundPhase = 'break';
     detail = [detail, '全部圈次完成，進入成績覆核中'].filter(Boolean).join('；');
   }
+  const projection = project(e);
+  if (changes.length && e.provisionalVp) {
+    const previouslyProvisional = new Set(stored.projection.matches.filter(match => match.provisional).map(match => match.id));
+    const settled = projection.matches.filter(match => previouslyProvisional.has(match.id) && !match.provisional);
+    if (settled.length) {
+      for (const match of settled) e.provisionalVp[match.id].vp = null;
+      detail = [detail, `以補登成績取代暫定 VP（${settled.map(match => match.id).join('、')}）`].filter(Boolean).join('；');
+    }
+  }
   e.revision++;
   e.updatedAt = at;
   e.audit.push({
@@ -160,6 +169,6 @@ export function applyMutation(
     requests: durableRequests
       ? [...stored.requests, command.requestId]
       : [...stored.requests, command.requestId].slice(-500),
-    projection: project(e),
+    projection,
   };
 }

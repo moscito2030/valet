@@ -3,6 +3,7 @@ import { bamBoardPoints, type TeamScoring } from './team-method';
 import {
   BridgeEvent,
   Projection,
+  MatchScore,
   Result,
   ResultInput,
   Standing,
@@ -176,6 +177,7 @@ type ProjectionInput = Pick<
   | 'neuberg'
   | 'trim'
   | 'penalties'
+  | 'provisionalVp'
   | 'byeVp'
   | 'swiss'
   | 'knockout'
@@ -222,7 +224,7 @@ export function project(e: ProjectionInput): Projection {
     for (const open of e.assignments.filter((a) => a.room === 'open')) {
       const closed = e.assignments.find((a) => a.matchId === open.matchId && a.room === 'closed');
       if (!closed) continue;
-      const match = {
+      const match: MatchScore = {
         id: open.matchId,
         round: Math.max(open.round, closed.round),
         a: open.ns,
@@ -238,10 +240,12 @@ export function project(e: ProjectionInput): Projection {
         vpA: null as number | null,
         vpB: null as number | null,
       };
+      const pending = e.provisionalVp?.[match.id];
       let cancelled = 0;
       for (const board of open.boards) {
         const x = e.results[resultKey(open.id, board)],
           y = e.results[resultKey(closed.id, board)];
+        if (pending && (!x || !y)) continue;
         if (x?.status === 'cancelled' || y?.status === 'cancelled') {
           cancelled++;
           match.completed++;
@@ -262,7 +266,15 @@ export function project(e: ProjectionInput): Projection {
         match.completed++;
       }
       for (const id of [match.a, match.b]) byId[id].played += match.completed;
-      if (!isImpKnockout(e) && match.completed === match.total && cancelled < match.total) {
+      const provisionalVp = pending?.vp;
+      if (provisionalVp && match.completed < match.total) {
+        [match.vpA, match.vpB] = provisionalVp;
+        match.provisional = true;
+        byId[match.a].score! += match.vpA;
+        byId[match.b].score! += match.vpB;
+        byId[match.a].provisional = true;
+        byId[match.b].provisional = true;
+      } else if (!isImpKnockout(e) && match.completed === match.total && cancelled < match.total) {
         match.vpA =
           e.teamMethod === 'bam'
             ? Math.round(match.bamA! * 100) / 100

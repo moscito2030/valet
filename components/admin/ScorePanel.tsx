@@ -69,6 +69,15 @@ export function ScorePanel({
 
   return (
     <>
+      {event.canDirect && selected && event.projection.matches.some(match => match.id === selected.matchId && match.provisional) && (
+        <button type="button" className="button danger" disabled={busy}
+          onClick={() => save({
+            action: 'settings', status: event.status, reason: '移除暫定 VP',
+            removeProvisionalVp: selected.matchId,
+          })}>
+          移除本場暫定 VP
+        </button>
+      )}
       <form
         onSubmit={async (e) => {
           e.preventDefault();
