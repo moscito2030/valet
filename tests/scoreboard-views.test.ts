@@ -157,6 +157,114 @@ test('private board results are scoped to the selected event, board and director
   assert.deepEqual(event, snapshot, 'preview rendering never writes into the public snapshot');
 });
 
+function boardViewProps(raw: ReturnType<typeof fixture>) {
+  return {
+    event: audienceEvent(raw, project(raw)),
+    board: 1,
+    director: false,
+    privateDeal: null,
+    previewing: false,
+    previewDeal: async () => {},
+    awayPerspective: false,
+    resultSelection: 0,
+    resultSort: 'table-asc',
+    selectedResult: '',
+    travellerSide: 'ns' as const,
+    setAwayPerspective: noop,
+    setBoard: noop,
+    setPrivateDeal: noop,
+    setResultSelection: noop,
+    setResultSort: noop,
+    setSelectedResult: noop,
+    setTravellerSide: noop,
+  };
+}
+
+test('team board comparison keeps rooms in order and scores for the first team', async () => {
+  const raw = createEvent({
+    name: '隊制逐副測試', kind: 'teams', names: ['甲隊', '乙隊'],
+    date: '2026-10-18', venue: '', rounds: 1, boardsPerRound: 2,
+  });
+  const open = raw.assignments.find((a) => a.room === 'open')!;
+  const closed = raw.assignments.find((a) => a.room === 'closed')!;
+  raw.boards[0].published = true;
+  raw.results[resultKey(open.id, 1)] = {
+    assignmentId: open.id, board: 1, level: 1, strain: 'NT', declarer: 'W',
+    doubled: 1, tricks: 8, lead: '', nsScore: -120, updatedAt: raw.updatedAt,
+  };
+  raw.results[resultKey(closed.id, 1)] = {
+    assignmentId: closed.id, board: 1, level: 3, strain: 'NT', declarer: 'W',
+    doubled: 1, tricks: 8, lead: '', nsScore: 100, updatedAt: raw.updatedAt,
+  };
+  const props = boardViewProps(raw);
+  for (const awayPerspective of [false, true]) {
+    const html = renderToStaticMarkup(createElement(BoardsView, { ...props, awayPerspective }));
+    const doc = JSDOM.fragment(html);
+    const headings = [...doc.querySelectorAll('.board-results th')];
+    assert.deepEqual(headings.map((cell) => cell.textContent), ['對戰', '公開室合約', '關閉室合約', 'IMP']);
+    assert.doesNotMatch(html, /我方合約|對方合約/);
+    const row = doc.querySelector('.board-results tbody tr')!;
+    assert.equal(row.querySelector('strong')!.textContent, awayPerspective ? '乙隊' : '甲隊');
+    const roomCells = [...row.querySelectorAll('td[role="button"]')];
+    assert.deepEqual(roomCells.map((cell) => cell.querySelector('.contract')!.textContent?.trim()),
+      ['1NT 西 +1', '3NT 西 -1']);
+    assert.deepEqual(roomCells.map((cell) => cell.querySelector('.team-raw-score')!.firstChild?.textContent),
+      awayPerspective ? ['+120', '+100'] : ['-120', '-100']);
+    assert.deepEqual(roomCells.map((cell) => cell.querySelector('.butler-imp')!.getAttribute('title')),
+      awayPerspective ? ['Butler IMP（EW 視角）', 'Butler IMP（NS 視角）'] : ['Butler IMP（NS 視角）', 'Butler IMP（EW 視角）']);
+    assert.equal(row.lastElementChild!.textContent, awayPerspective ? '+6' : '-6');
+    assert.equal(doc.querySelector('.board-results .footnote')!.textContent, awayPerspective
+      ? '目前為客隊視角：左欄第一支隊伍為公開室 EW、關閉室 NS。兩室分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。'
+      : '目前為主隊視角：左欄第一支隊伍為公開室 NS、關閉室 EW。兩室分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。');
+  }
+  await withRenderedView(async ({ render }) => {
+    const selections: string[] = [];
+    await render(createElement(BoardsView, {
+      ...props,
+      awayPerspective: true,
+      selectedResult: closed.id,
+      setSelectedResult: (update) => selections.push(typeof update === 'function' ? update('') : update),
+    }));
+    const row = document.querySelector('.board-results tbody tr')!;
+    const [openCell, closedCell] = [...row.querySelectorAll<HTMLElement>('td[role="button"]')];
+    assert.equal(row.getAttribute('aria-pressed'), 'true');
+    assert.equal(openCell.getAttribute('aria-label'), `選取第 ${open.table} 桌公開室合約，查看首攻`);
+    assert.equal(closedCell.getAttribute('aria-label'), `選取第 ${closed.table} 桌關閉室合約，查看首攻`);
+    assert.equal(openCell.tabIndex, 0);
+    assert.equal(closedCell.tabIndex, 0);
+    assert.equal(openCell.getAttribute('aria-pressed'), 'false');
+    assert.equal(closedCell.getAttribute('aria-pressed'), 'true');
+    await act(async () => {
+      openCell.click();
+      closedCell.click();
+      openCell.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      closedCell.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+      row.querySelector('strong')!.click();
+    });
+    assert.deepEqual(selections, [open.id, closed.id, open.id, closed.id, closed.id]);
+  });
+});
+
+test('pairs board traveller keeps its directional headings and raw score', () => {
+  const raw = createEvent({
+    name: '雙人賽介面測試', kind: 'pairs', pairMethod: 'mp', names: ['甲', '乙', '丙', '丁'],
+    date: '2026-10-18', venue: '', rounds: 1, boardsPerRound: 2,
+  });
+  raw.boards[0].published = true;
+  for (const assignment of raw.assignments) {
+    raw.results[resultKey(assignment.id, 1)] = {
+      assignmentId: assignment.id, board: 1, level: 1, strain: 'NT', declarer: 'W',
+      doubled: 1, tricks: 8, lead: '', nsScore: -120, updatedAt: raw.updatedAt,
+    };
+  }
+  const doc = JSDOM.fragment(renderToStaticMarkup(createElement(BoardsView, boardViewProps(raw))));
+  assert.equal(doc.querySelector('.board-results h3')!.textContent, '單副成績表');
+  assert.deepEqual([...doc.querySelectorAll('.board-results th')].map((cell) => cell.textContent),
+    ['桌/圈', 'NS / EW', '合約', 'NS 分', 'NS MP%']);
+  assert.match(doc.querySelector('.board-results tbody')!.textContent!, /1NT 西 \+1-120/);
+  assert.equal(doc.querySelector('.board-results .footnote'), null);
+});
+
 test('publication panel keeps director-only identity and deletion controls out of staff UI', () => {
   const raw = fixture(),
     event = audienceEvent(raw, project(raw));
