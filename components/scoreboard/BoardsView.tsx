@@ -378,8 +378,8 @@ export function BoardsView({
                 <thead>
                   <tr>
                     <th>對戰</th>
-                    <th>公開室合約</th>
-                    <th>關閉室合約</th>
+                    <th>南北合約</th>
+                    <th>東西合約</th>
                     <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP'}</th>
                   </tr>
                 </thead>
@@ -392,12 +392,10 @@ export function BoardsView({
                       )!;
                       const x = boardResults[resultKey(a.id, selectedBoard.number)],
                         y = boardResults[resultKey(closed.id, selectedBoard.number)];
-                      const openSide = awayPerspective ? 'ew' : 'ns';
-                      const closedSide = awayPerspective ? 'ns' : 'ew';
-                      const ownTable = awayPerspective ? closed : a;
-                      const rooms = [
-                        { table: a, label: '公開室', result: x, side: openSide },
-                        { table: closed, label: '關閉室', result: y, side: closedSide },
+                      const nsTable = awayPerspective ? closed : a;
+                      const contracts = [
+                        { table: nsTable, label: '南北', result: awayPerspective ? y : x, side: 'ns' },
+                        { table: awayPerspective ? a : closed, label: '東西', result: awayPerspective ? x : y, side: 'ew' },
                       ] as const;
                       return (
                         <tr
@@ -409,15 +407,15 @@ export function BoardsView({
                           }
                           tabIndex={0}
                           role="button"
-                          aria-pressed={selectedResult === ownTable.id}
-                          onClick={() => chooseResult(ownTable.id)}
+                          aria-pressed={selectedResult === nsTable.id}
+                          onClick={() => chooseResult(nsTable.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              chooseResult(ownTable.id);
+                              chooseResult(nsTable.id);
                             }
                           }}
-                          aria-label={`選取第 ${ownTable.table} 桌，查看首攻`}
+                          aria-label={`選取第 ${nsTable.table} 桌，查看首攻`}
                         >
                           <td>
                             <strong
@@ -433,7 +431,7 @@ export function BoardsView({
                               vs {name(awayPerspective ? a.ns : a.ew)}
                             </small>
                           </td>
-                          {rooms.map(({ table, label, result, side }) => {
+                          {contracts.map(({ table, label, result, side }) => {
                             const awarded = awardedResult(result, side);
                             return (
                               <td
@@ -583,9 +581,9 @@ export function BoardsView({
           </div>
           {event.kind === 'teams' && (
             <p className="footnote">
-              {event.teamMethod === 'bam' ? 'BAM：以左欄第一支隊伍兩室實得分數合計比較，依每牌勝/和/負給予 VP。' : awayPerspective
-                ? '目前為客隊視角：左欄第一支隊伍為公開室 EW、關閉室 NS。兩室分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。'
-                : '目前為主隊視角：左欄第一支隊伍為公開室 NS、關閉室 EW。兩室分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。'}
+              {event.teamMethod === 'bam'
+                ? 'BAM：以左欄第一支隊伍兩桌實得分數合計比較，依每牌勝／和／負給予 VP。'
+                : `目前為${awayPerspective ? '客隊' : '主隊'}視角：南北合約為左欄第一支隊伍坐南北的那一桌，東西合約為該隊坐東西的那一桌。兩桌分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。`}
             </p>
           )}
         </section>
