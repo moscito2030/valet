@@ -46,11 +46,14 @@ export async function saveStage(
   await commitSql(sql, cap.batches);
 }
 
-export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: StagePrior, preserveBoards = false) {
+export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: StagePrior, preserveBoards = false, insertOnly = false) {
   const event = stored.event;
   const { prefix: _legacyPrefix, ...settings }: Partial<BridgeEvent> & { prefix?: unknown } = event;
   for (const key of splitKeys) delete settings[key];
-  if (!prior)
+  if (insertOnly)
+    sql`INSERT INTO bridge_stages (id, revision, competition_id, settings, projection, updated_at)
+      VALUES (${event.id}, ${event.revision}, ${stageCompetitionId(event)}, ${JSON.stringify(settings)}::jsonb, ${JSON.stringify(stored.projection)}::jsonb, now())`;
+  else if (!prior)
     sql`INSERT INTO bridge_stages (id, revision, competition_id, settings, projection, updated_at)
       VALUES (${event.id}, ${event.revision}, ${stageCompetitionId(event)}, ${JSON.stringify(settings)}::jsonb, ${JSON.stringify(stored.projection)}::jsonb, now())
       ON CONFLICT (id) DO UPDATE SET revision = EXCLUDED.revision, competition_id = EXCLUDED.competition_id,
@@ -63,42 +66,42 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       RETURNING 1
     ) SELECT 1 / (SELECT count(*)::int FROM upd)`;
   }
-  sql`DELETE FROM bridge_participants WHERE event_id = ${event.id}`;
+  if (!insertOnly) sql`DELETE FROM bridge_participants WHERE event_id = ${event.id}`;
   if (event.participants.length)
     sql`INSERT INTO bridge_participants (event_id, participant_id, ordinal, document)
       SELECT ${event.id}, document->>'id', ordinal, document
       FROM jsonb_to_recordset(${JSON.stringify(event.participants.map((document, ordinal) => ({ ordinal, document })))}::jsonb)
         AS x(ordinal int, document jsonb)`;
-  sql`DELETE FROM bridge_assignments WHERE event_id = ${event.id}`;
+  if (!insertOnly) sql`DELETE FROM bridge_assignments WHERE event_id = ${event.id}`;
   if (event.assignments.length)
     sql`INSERT INTO bridge_assignments (event_id, assignment_id, ordinal, document)
       SELECT ${event.id}, document->>'id', ordinal, document
       FROM jsonb_to_recordset(${JSON.stringify(event.assignments.map((document, ordinal) => ({ ordinal, document })))}::jsonb)
         AS x(ordinal int, document jsonb)`;
   if (!preserveBoards) {
-    sql`DELETE FROM bridge_boards WHERE event_id = ${event.id}`;
+    if (!insertOnly) sql`DELETE FROM bridge_boards WHERE event_id = ${event.id}`;
     if (event.boards.length)
       sql`INSERT INTO bridge_boards (event_id, board_number, ordinal, document_json)
         SELECT ${event.id}, board_number, ordinal, document_json
         FROM jsonb_to_recordset(${JSON.stringify(event.boards.map((document, ordinal) => ({ ordinal, board_number: document.number, document_json: boardJson(document) })))}::jsonb)
           AS x(board_number int, ordinal int, document_json text)`;
   }
-  queueResults(sql, event, writes, prior);
-  sql`DELETE FROM bridge_penalties WHERE event_id = ${event.id}`;
+  queueResults(sql, event, writes, prior, insertOnly);
+  if (!insertOnly) sql`DELETE FROM bridge_penalties WHERE event_id = ${event.id}`;
   const penalties = Object.entries(event.penalties ?? {});
   if (penalties.length)
     sql`INSERT INTO bridge_penalties (event_id, participant_id, amount)
       SELECT ${event.id}, participant_id, amount
       FROM jsonb_to_recordset(${JSON.stringify(penalties.map(([participant_id, amount]) => ({ participant_id, amount })))}::jsonb)
         AS x(participant_id text, amount jsonb)`;
-  sql`DELETE FROM bridge_audit WHERE event_id = ${event.id}`;
+  if (!insertOnly) sql`DELETE FROM bridge_audit WHERE event_id = ${event.id}`;
   if (event.audit.length)
     sql`INSERT INTO bridge_audit (event_id, seq, document)
       SELECT ${event.id}, seq, document
       FROM jsonb_to_recordset(${JSON.stringify(event.audit.map((document, seq) => ({ seq, document })))}::jsonb)
         AS x(seq int, document jsonb)`;
   const requestRows = JSON.stringify(stored.requests.map((request_id, ordinal) => ({ request_id, ordinal })));
-  sql`DELETE FROM bridge_requests WHERE event_id = ${event.id}
+  if (!insertOnly) sql`DELETE FROM bridge_requests WHERE event_id = ${event.id}
     AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(${requestRows}::jsonb) AS ids(request_id text, ordinal int) WHERE ids.request_id = bridge_requests.request_id)`;
   if (stored.requests.length)
     sql`INSERT INTO bridge_requests (event_id, request_id, ordinal)
@@ -106,9 +109,9 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       ON CONFLICT (event_id, request_id) DO UPDATE SET ordinal = EXCLUDED.ordinal`;
 }
 
-function queueResults(sql: Sql, event: BridgeEvent, writes: ResultWrites, prior?: StagePrior) {
+function queueResults(sql: Sql, event: BridgeEvent, writes: ResultWrites, prior?: StagePrior, insertOnly = false) {
   if (!prior) {
-    sql`DELETE FROM bridge_results WHERE event_id = ${event.id}`;
+    if (!insertOnly) sql`DELETE FROM bridge_results WHERE event_id = ${event.id}`;
     const rows = Object.values(event.results);
     if (rows.length)
       sql`INSERT INTO bridge_results (event_id, assignment_id, board, revision, written_at_event_revision, document)
@@ -265,9 +268,12 @@ export async function deleteStageRows(sql: Sql, id: string) {
   await commitSql(sql, cap.batches);
 }
 
-export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRevision?: number) {
+export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRevision?: number, insertOnly = false) {
   const { audit, prefix: _legacyPrefix, ...document } = stored.competition as StoredCompetition['competition'] & { prefix?: unknown };
-  if (expectedRevision === undefined)
+  if (insertOnly)
+    sql`INSERT INTO bridge_competitions (id, revision, document, updated_at)
+      VALUES (${stored.competition.id}, ${stored.competition.revision}, ${JSON.stringify(document)}::jsonb, now())`;
+  else if (expectedRevision === undefined)
     sql`INSERT INTO bridge_competitions (id, revision, document, updated_at)
       VALUES (${stored.competition.id}, ${stored.competition.revision}, ${JSON.stringify(document)}::jsonb, now())
       ON CONFLICT (id) DO UPDATE SET revision = EXCLUDED.revision, document = EXCLUDED.document, updated_at = now()`;
@@ -278,14 +284,14 @@ export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRe
       RETURNING 1
     ) SELECT 1 / (SELECT count(*)::int FROM upd)`;
   }
-  sql`DELETE FROM bridge_competition_audit WHERE competition_id = ${stored.competition.id}`;
+  if (!insertOnly) sql`DELETE FROM bridge_competition_audit WHERE competition_id = ${stored.competition.id}`;
   if (audit.length)
     sql`INSERT INTO bridge_competition_audit (competition_id, seq, document)
       SELECT ${stored.competition.id}, seq, document
       FROM jsonb_to_recordset(${JSON.stringify(audit.map((entry, seq) => ({ seq, document: entry })))}::jsonb)
         AS x(seq int, document jsonb)`;
   const requestRows = JSON.stringify(stored.requests.map((request_id, ordinal) => ({ request_id, ordinal })));
-  sql`DELETE FROM bridge_competition_requests WHERE competition_id = ${stored.competition.id}
+  if (!insertOnly) sql`DELETE FROM bridge_competition_requests WHERE competition_id = ${stored.competition.id}
     AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(${requestRows}::jsonb) AS ids(request_id text, ordinal int) WHERE ids.request_id = bridge_competition_requests.request_id)`;
   if (stored.requests.length)
     sql`INSERT INTO bridge_competition_requests (competition_id, request_id, ordinal)
