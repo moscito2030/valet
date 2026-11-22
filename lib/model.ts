@@ -2,7 +2,7 @@ import { knockoutNodeSchema, type Knockout } from './knockout-schema';
 import { MAX_PLAYER_BOARDS, playerBoardError } from './schedule-limits';
 import { z } from 'zod';
 import { recordedHcpSchema } from './recorded-hcp';
-const dateSchema = z
+export const dateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine(
@@ -131,6 +131,7 @@ export type BridgeEvent = {
   rounds: number;
   boardsPerRound: number;
   maxBoardNumber?: number;
+  provisionalVp?: Record<string, { vp: [number, number] | null }>;
   awardPlaces?: number;
   awardPlacesNS?: number;
   awardPlacesEW?: number;
@@ -621,6 +622,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       neuberg: z.boolean().optional(),
       trim: z.enum(['none', 'one', 'ten-percent']).optional(),
       maxBoardNumber: z.number().int().min(0).optional(),
+      removeProvisionalVp: z.string().min(1).max(100).optional(),
       awardPlacesNS: z.number().int().min(0).max(32).optional(),
       awardPlacesEW: z.number().int().min(0).max(32).optional(),
       awardPlaces: z.number().int().min(0).max(32).optional(),
@@ -687,6 +689,7 @@ export type Standing = {
   played: number;
   total: number;
   penalty?: number;
+  provisional?: true;
 };
 export type MatchScore = {
   id: string;
@@ -702,6 +705,7 @@ export type MatchScore = {
   split: boolean;
   completed: number;
   total: number;
+  provisional?: true;
   vpA: number | null;
   vpB: number | null;
 };

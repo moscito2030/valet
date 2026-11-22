@@ -128,6 +128,12 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
   // Reuse only when the stored projection sees exactly the same results as the audience.
   // Any hidden result forces a fresh public projection; no cross-request/private cache is used.
   const allResultsVisible = Object.keys(results).length === Object.keys(data.results).length;
+  const publicScoring = { ...event, results };
+  if (!allResultsVisible && event.provisionalVp) {
+    const active = new Set((projection ?? project(event)).matches.filter(match => match.provisional).map(match => match.id));
+    publicScoring.provisionalVp = Object.fromEntries(Object.entries(event.provisionalVp).map(([id, item]) =>
+      [id, active.has(id) ? item : { vp: null }]));
+  }
   return {
     ...safe,
     boards,
@@ -138,7 +144,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     // are public; the projection below still scores the filtered results.
     receivedByParticipant: receivedByParticipant(event),
     collectionProgress: roundProgress(event),
-    projection: allResultsVisible && projection && !event.knockout ? projection : project({ ...event, results }),
+    projection: allResultsVisible && projection && !event.knockout ? projection : project(publicScoring),
   };
 }
 

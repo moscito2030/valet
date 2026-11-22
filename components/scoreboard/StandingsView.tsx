@@ -180,6 +180,7 @@ export function StandingsView({
                     >
                       <ScoreValue value={s.score} decimals={pairMethod === 'butler' && event.kind === 'pairs' && Number.isInteger(s.score) ? 0 : 2} unit={event.kind === 'pairs' && pairMethod === 'mp' ? '%' : ''} />
                     </button>
+                    {s.provisional && <small className="muted">（含暫定）</small>}
                     <div id={`standing-${s.id}`} popover="auto" className="player-detail-popover">
                       <div>
                         {event.kind === 'teams'

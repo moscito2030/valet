@@ -60,6 +60,13 @@ export function applySettingsCommand(
     )
       throw new DomainError('請先結算所有圈次');
     e.status = command.status;
+    if (command.removeProvisionalVp !== undefined) {
+      const id = command.removeProvisionalVp;
+      const entry = e.provisionalVp?.[id];
+      if (!entry?.vp) throw new DomainError('找不到可移除的暫定 VP');
+      detail = `移除 ${id} 暫定 VP ${entry.vp.join(':')}`;
+      entry.vp = null;
+    }
     if (command.showScoreCandles !== undefined) e.showScoreCandles = command.showScoreCandles;
     if (command.danmakuDefaultEnabled !== undefined) e.danmakuDefaultEnabled = command.danmakuDefaultEnabled;
     if (command.audienceRefreshSeconds !== undefined) e.audienceRefreshSeconds = command.audienceRefreshSeconds;

@@ -25,7 +25,8 @@
     "test:visual": "playwright test",
     "test:knockout": "playwright test --config playwright.ko.config.ts",
     "test:visual:update": "playwright test --update-snapshots",
-    "db:convert-venue-prefix": "tsx scripts/convert-venue-prefix.ts"
+    "db:convert-venue-prefix": "tsx scripts/convert-venue-prefix.ts",
+    "import:xlsx": "tsx scripts/import-xlsx.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

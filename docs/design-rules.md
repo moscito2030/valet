@@ -45,6 +45,8 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 
 ## 數字與單位
 
+- 隊制暫定 VP 在對戰與逐場成績旁標示「暫定」，已計入的隊伍總分旁標示「含暫定」。逐副成績推估的「暫計 VP」維持原用語與計分行為。
+
 - 成績元件共用 components/score-value.tsx 與 lib/score-format.ts；緊湊小數由 components/compact-imp.tsx 呈現：小數縮小、加底線，視覺隱藏小數點；輔助閱讀仍讀到正常數值。
 - 格式化只影響顯示，不改計算精度。
 - K 棒適用於所有雙人賽編排，包含 Howell、Mitchell、匯入與任意賽程。累積依該對出牌順序排列：先圈次，同圈再依牌號。影線與全場起伏都以該副全部桌次計算，各桌可在不同圈打這副牌。隊制賽不顯示。

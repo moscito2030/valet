@@ -110,6 +110,7 @@ npm run dev:local
 Valet 使用 Next.js、React 與 TypeScript，可部署至 Vercel，搭配 Neon PostgreSQL 保存賽事資料。Neon 僅使用正規化賽事儲存，部署前須依 [儲存維護手冊](docs/storage-migration.md) 確認開關為 `normalized`。
 
 - [部署與備份](docs/deployment.md)
+- [匯入隊制賽 XLSX](docs/xlsx-import.md)
 - [賽事與賽段](docs/competitions.md)
 - [雙人賽手機收分流程](docs/club-mode.md)
 - [賽程編排與 Deal Source 支援範圍](docs/movement-and-dealer.md)

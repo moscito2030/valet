@@ -1,7 +1,7 @@
 import { knockoutExemptAssignments } from './knockout-status';
 import { resultKey, type BridgeEvent } from './model';
 
-type InPlayEvent = Pick<BridgeEvent, 'assignments' | 'results' | 'club' | 'knockout'>;
+type InPlayEvent = Pick<BridgeEvent, 'assignments' | 'results' | 'club' | 'knockout' | 'provisionalVp'>;
 
 // One definition of "this board number is still being played".
 // Phone scoring finishes a table when its round is settled, the table is published,
@@ -20,7 +20,8 @@ export function boardsStillInPlay(event: InPlayEvent) {
     return waiting;
   }
   for (const assignment of event.assignments) {
-    if (exempt.has(assignment.id)) continue;
+    // These assignments are historical imports deliberately left open for correction.
+    if (exempt.has(assignment.id) || event.provisionalVp?.[assignment.matchId]) continue;
     for (const board of assignment.boards)
       if (!event.results[resultKey(assignment.id, board)]) waiting.add(board);
   }

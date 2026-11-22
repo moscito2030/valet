@@ -10,6 +10,7 @@ export function MatchVpScale({ event, match }: { event: PublicEvent; match: Matc
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   if (event.knockout && event.teamMethod !== 'bam') return <span>純 IMP</span>;
+  if (match.provisional) return <span>VP <b>{number(match.vpA)} : {number(match.vpB)}</b>（暫定）</span>;
   const bam = event.teamMethod === 'bam';
   const assignments = event.assignments.filter((a) => a.matchId === match.id);
   const open = assignments.find((a) => a.room === 'open');
