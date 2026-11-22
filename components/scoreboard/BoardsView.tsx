@@ -378,8 +378,8 @@ export function BoardsView({
                 <thead>
                   <tr>
                     <th>對戰</th>
-                    <th>我方合約 (NS)</th>
-                    <th>對方合約 (EW)</th>
+                    <th>南北合約</th>
+                    <th>東西合約</th>
                     <th>{event.teamMethod === 'bam' ? 'VP' : 'IMP'}</th>
                   </tr>
                 </thead>
@@ -392,10 +392,11 @@ export function BoardsView({
                       )!;
                       const x = boardResults[resultKey(a.id, selectedBoard.number)],
                         y = boardResults[resultKey(closed.id, selectedBoard.number)];
-                      const own = awardedResult(awayPerspective ? y : x, 'ns');
-                      const opponent = awardedResult(awayPerspective ? x : y, 'ew');
-                      const ownTable = awayPerspective ? closed : a;
-                      const opponentTable = awayPerspective ? a : closed;
+                      const nsTable = awayPerspective ? closed : a;
+                      const contracts = [
+                        { table: nsTable, label: '南北', result: awayPerspective ? y : x, side: 'ns' },
+                        { table: awayPerspective ? a : closed, label: '東西', result: awayPerspective ? x : y, side: 'ew' },
+                      ] as const;
                       return (
                         <tr
                           key={a.id}
@@ -406,15 +407,15 @@ export function BoardsView({
                           }
                           tabIndex={0}
                           role="button"
-                          aria-pressed={selectedResult === ownTable.id}
-                          onClick={() => chooseResult(ownTable.id)}
+                          aria-pressed={selectedResult === nsTable.id}
+                          onClick={() => chooseResult(nsTable.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              chooseResult(ownTable.id);
+                              chooseResult(nsTable.id);
                             }
                           }}
-                          aria-label={`選取第 ${a.table} 桌我方合約`}
+                          aria-label={`選取第 ${nsTable.table} 桌，查看首攻`}
                         >
                           <td>
                             <strong
@@ -430,44 +431,39 @@ export function BoardsView({
                               vs {name(awayPerspective ? a.ns : a.ew)}
                             </small>
                           </td>
-                          <td>
-                            <Contract result={own} />
-                            <small className="block mono team-raw-score">
-                              {own?.status === 'average'
-                                ? '取消'
-                                : own && own.status !== 'cancelled'
-                                  ? signed(own.nsScore)
-                                  : '—'}
-                              {butlerHint(own, 'ns')}
-                            </small>
-                          </td>
-                          <td
-                            tabIndex={0}
-                            role="button"
-                            aria-label={`選取第 ${a.table} 桌對方合約，查看首攻`}
-                            aria-pressed={selectedResult === opponentTable.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              chooseResult(opponentTable.id);
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                chooseResult(opponentTable.id);
-                              }
-                            }}
-                          >
-                            <Contract result={opponent} />
-                            <small className="block mono team-raw-score">
-                              {opponent?.status === 'average'
-                                ? '取消'
-                                : opponent && opponent.status !== 'cancelled'
-                                  ? signed(opponent.nsScore)
-                                  : '—'}
-                              {butlerHint(opponent, 'ew')}
-                            </small>
-                          </td>
+                          {contracts.map(({ table, label, result, side }) => {
+                            const awarded = awardedResult(result, side);
+                            return (
+                              <td
+                                key={table.id}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={`選取第 ${table.table} 桌${label}合約，查看首攻`}
+                                aria-pressed={selectedResult === table.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  chooseResult(table.id);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    chooseResult(table.id);
+                                  }
+                                }}
+                              >
+                                <Contract result={awarded} />
+                                <small className="block mono team-raw-score">
+                                  {awarded?.status === 'average'
+                                    ? '取消'
+                                    : awarded && awarded.status !== 'cancelled'
+                                      ? signed(side === 'ns' ? awarded.nsScore : -awarded.nsScore)
+                                      : '—'}
+                                  {butlerHint(result, side)}
+                                </small>
+                              </td>
+                            );
+                          })}
                           <td className="accent mono">
                             {x?.status === 'cancelled' || y?.status === 'cancelled'
                               ? '取消'
@@ -585,9 +581,9 @@ export function BoardsView({
           </div>
           {event.kind === 'teams' && (
             <p className="footnote">
-              {event.teamMethod === 'bam' ? 'BAM：以目前視角比較兩室原始分，依每牌勝/和/負給予 VP。' : awayPerspective
-                ? '目前為客隊視角：IMP 以左列第一支隊伍為正，閉室 NS 分減去開室 NS 分後換算。'
-                : '目前為主隊視角：IMP 以左列第一支隊伍為正，開室 NS 分減去閉室 NS 分後換算。'}
+              {event.teamMethod === 'bam'
+                ? 'BAM：以左欄第一支隊伍兩桌實得分數合計比較，依每牌勝／和／負給予 VP。'
+                : `目前為${awayPerspective ? '客隊' : '主隊'}視角：南北合約為左欄第一支隊伍坐南北的那一桌，東西合約為該隊坐東西的那一桌。兩桌分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。`}
             </p>
           )}
         </section>

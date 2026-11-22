@@ -12,6 +12,7 @@ import { PlayersView } from '../components/scoreboard/PlayersView';
 import { RoundsView } from '../components/scoreboard/RoundsView';
 import { StandingsView } from '../components/scoreboard/StandingsView';
 import { audienceEvent } from '../lib/club-view';
+import { directionalDatum } from '../lib/datum';
 import { applyMutation, createEvent } from '../lib/events';
 import { mutationSchema, resultKey, type Mutation, type StoredEvent } from '../lib/model';
 import { project } from '../lib/scoring';
@@ -155,6 +156,200 @@ test('private board results are scoped to the selected event, board and director
   assert.doesNotMatch(render(true, { ...privateDeal, eventId: 'another-event' }), /更新私下成績/);
   assert.doesNotMatch(render(true, { ...privateDeal, board: raw.boards[1] }), /更新私下成績/);
   assert.deepEqual(event, snapshot, 'preview rendering never writes into the public snapshot');
+});
+
+function boardViewProps(raw: ReturnType<typeof fixture>) {
+  return {
+    event: audienceEvent(raw, project(raw)),
+    board: 1,
+    director: false,
+    privateDeal: null,
+    previewing: false,
+    previewDeal: async () => {},
+    awayPerspective: false,
+    resultSelection: 0,
+    resultSort: 'table-asc',
+    selectedResult: '',
+    travellerSide: 'ns' as const,
+    setAwayPerspective: noop,
+    setBoard: noop,
+    setPrivateDeal: noop,
+    setResultSelection: noop,
+    setResultSort: noop,
+    setSelectedResult: noop,
+    setTravellerSide: noop,
+  };
+}
+
+// Use the same board across different round numbers to exercise the interleaved traveller.
+function teamBoardViewProps(raw: StoredEvent['event'], interleaved: boolean) {
+  const props = boardViewProps(raw);
+  if (interleaved) {
+    props.event = {
+      ...props.event,
+      teamMovement: 'interleaved',
+      assignments: props.event.assignments.map((a) =>
+        a.room === 'closed' ? { ...a, round: a.round + 1 } : a,
+      ),
+    };
+  }
+  return props;
+}
+
+test('team board comparison orders contracts by the first team’s seating direction', async () => {
+  const raw = createEvent({
+    name: '隊制逐副測試', kind: 'teams', names: ['甲隊', '乙隊'],
+    date: '2026-10-18', venue: '', rounds: 1, boardsPerRound: 2,
+  });
+  const open = raw.assignments.find((a) => a.room === 'open')!;
+  const closed = raw.assignments.find((a) => a.room === 'closed')!;
+  raw.boards[0].published = true;
+  raw.results[resultKey(open.id, 1)] = {
+    assignmentId: open.id, board: 1, level: 1, strain: 'NT', declarer: 'W',
+    doubled: 1, tricks: 8, lead: '', nsScore: -120, updatedAt: raw.updatedAt,
+  };
+  raw.results[resultKey(closed.id, 1)] = {
+    assignmentId: closed.id, board: 1, level: 3, strain: 'NT', declarer: 'W',
+    doubled: 1, tricks: 8, lead: '', nsScore: 100, updatedAt: raw.updatedAt,
+  };
+  for (const interleaved of [false, true]) {
+    const props = teamBoardViewProps(raw, interleaved);
+    for (const awayPerspective of [false, true]) {
+      const perspectiveProps = { ...props, awayPerspective };
+      const html = renderToStaticMarkup(createElement(BoardsView, perspectiveProps));
+      const doc = JSDOM.fragment(html);
+      assert.equal(doc.querySelector('.board-results h3')!.textContent,
+        interleaved ? '跨圈兩桌逐副比較' : '開閉兩室逐副比較');
+      assert.deepEqual([...doc.querySelectorAll('.board-results th')].map((cell) => cell.textContent),
+        ['對戰', '南北合約', '東西合約', 'IMP']);
+      assert.doesNotMatch(doc.querySelector('.board-results')!.textContent!,
+        /我方|對方|公開室|關閉室|第一桌|第二桌/);
+      const row = doc.querySelector('.board-results tbody tr')!;
+      assert.equal(row.querySelector('strong')!.textContent, awayPerspective ? '乙隊' : '甲隊');
+      const cells = [...row.querySelectorAll('td[role="button"]')];
+      assert.deepEqual(cells.map((cell) => cell.querySelector('.contract')!.textContent?.trim()),
+        awayPerspective ? ['3NT 西 -1', '1NT 西 +1'] : ['1NT 西 +1', '3NT 西 -1']);
+      assert.deepEqual(cells.map((cell) => cell.querySelector('.team-raw-score')!.firstChild?.textContent),
+        awayPerspective ? ['+100', '+120'] : ['-120', '-100']);
+      assert.equal(row.lastElementChild!.textContent, awayPerspective ? '+6' : '-6');
+      assert.equal(doc.querySelector('.board-results .footnote')!.textContent,
+        `目前為${awayPerspective ? '客隊' : '主隊'}視角：南北合約為左欄第一支隊伍坐南北的那一桌，東西合約為該隊坐東西的那一桌。兩桌分數均為該隊實得分數，合計後換算 IMP，正數表示該隊得分。`);
+
+      const [nsTable, ewTable] = awayPerspective ? [closed, open] : [open, closed];
+      await withRenderedView(async ({ render }) => {
+        const selections: string[] = [];
+        await render(createElement(BoardsView, {
+          ...perspectiveProps,
+          selectedResult: nsTable.id,
+          setSelectedResult: (update) => selections.push(typeof update === 'function' ? update('') : update),
+        }));
+        const row = document.querySelector('.board-results tbody tr')!;
+        const [nsCell, ewCell] = [...row.querySelectorAll<HTMLElement>('td[role="button"]')];
+        assert.equal(row.getAttribute('aria-pressed'), 'true');
+        assert.equal(nsCell.getAttribute('aria-label'), `選取第 ${nsTable.table} 桌南北合約，查看首攻`);
+        assert.equal(ewCell.getAttribute('aria-label'), `選取第 ${ewTable.table} 桌東西合約，查看首攻`);
+        assert.equal(nsCell.tabIndex, 0);
+        assert.equal(ewCell.tabIndex, 0);
+        assert.equal(nsCell.getAttribute('aria-pressed'), 'true');
+        assert.equal(ewCell.getAttribute('aria-pressed'), 'false');
+        await act(async () => {
+          nsCell.click();
+          ewCell.click();
+          nsCell.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          ewCell.dispatchEvent(new window.KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+          row.querySelector('strong')!.click();
+        });
+        assert.deepEqual(selections, [nsTable.id, ewTable.id, nsTable.id, ewTable.id, nsTable.id]);
+      });
+
+      const bam = JSDOM.fragment(renderToStaticMarkup(createElement(BoardsView, {
+        ...perspectiveProps,
+        event: { ...props.event, teamMethod: 'bam' },
+      })));
+      assert.deepEqual([...bam.querySelectorAll('.board-results th')].map((cell) => cell.textContent),
+        ['對戰', '南北合約', '東西合約', 'VP']);
+      assert.equal(bam.querySelector('.board-results .footnote')!.textContent,
+        'BAM：以左欄第一支隊伍兩桌實得分數合計比較，依每牌勝／和／負給予 VP。');
+    }
+  }
+});
+
+test('team board Butler brackets use the datum in each displayed score’s direction', () => {
+  const raw = createEvent({
+    name: '隊制 Butler 測試', kind: 'teams',
+    names: ['甲隊', '乙隊', '丙隊', '丁隊', '戊隊', '己隊', '庚隊', '辛隊', '壬隊', '癸隊'],
+    date: '2026-10-18', venue: '', rounds: 1, boardsPerRound: 2,
+  });
+  const openScores = [-120, -120, -120, -600, -600];
+  const closedScores = [100, -120, -150, 100, -170];
+  const openNsImps = [+2, +2, +2, -9, -9];
+  const closedNsImps = [+7, +2, +1, +7, 0];
+  const open = raw.assignments.filter((a) => a.room === 'open')
+    .sort((a, b) => String(a.table).localeCompare(String(b.table), 'en', { numeric: true }));
+  assert.equal(open.length, 5);
+  raw.boards[0].published = true;
+  for (const [i, a] of open.entries()) {
+    const closed = raw.assignments.find((c) => c.matchId === a.matchId && c.room === 'closed')!;
+    for (const [assignment, nsScore] of [[a, openScores[i]], [closed, closedScores[i]]] as const) {
+      raw.results[resultKey(assignment.id, 1)] = {
+        assignmentId: assignment.id, board: 1, level: 1, strain: 'NT', declarer: 'W',
+        doubled: 1, tricks: 8, lead: '', nsScore, updatedAt: raw.updatedAt,
+      };
+    }
+  }
+  const datums = directionalDatum(Object.values(raw.results));
+  assert.equal(datums.ns.datum, -180);
+  assert.equal(datums.ew.datum, +180);
+
+  for (const interleaved of [false, true]) {
+    const props = teamBoardViewProps(raw, interleaved);
+    for (const awayPerspective of [false, true]) {
+      const doc = JSDOM.fragment(renderToStaticMarkup(createElement(BoardsView, { ...props, awayPerspective })));
+      const rows = [...doc.querySelectorAll('.board-results tbody tr')];
+      assert.equal(rows.length, 5);
+      for (const [i, row] of rows.entries()) {
+        const scores = awayPerspective ? [closedScores[i], -openScores[i]] : [openScores[i], -closedScores[i]];
+        const brackets = awayPerspective ? [closedNsImps[i], -openNsImps[i]] : [openNsImps[i], -closedNsImps[i]];
+        const cells = [...row.querySelectorAll('.team-raw-score')];
+        assert.equal(cells.length, 2);
+        for (const [column, direction] of (['ns', 'ew'] as const).entries()) {
+          const cell = cells[column];
+          const hint = cell.querySelector('.butler-imp')!;
+          const score = Number(cell.firstChild!.textContent);
+          const bracket = Number(hint.textContent!.slice(1, -1));
+          assert.equal(score, scores[column]);
+          assert.equal(bracket, brackets[column] || 0);
+          assert.equal(hint.getAttribute('title'), `Butler IMP（${direction.toUpperCase()} 視角）`);
+          const difference = score - datums[direction].datum!;
+          // The IMP scale awards zero for differences below 20 points.
+          assert.equal(Math.sign(bracket), Math.abs(difference) < 20 ? 0 : Math.sign(difference));
+        }
+      }
+      if (awayPerspective) {
+        assert.match(rows[0].querySelectorAll('.team-raw-score')[1].textContent!, /^\+120\(-2\)$/);
+      }
+    }
+  }
+});
+
+test('pairs board traveller keeps its directional headings and raw score', () => {
+  const raw = createEvent({
+    name: '雙人賽介面測試', kind: 'pairs', pairMethod: 'mp', names: ['甲', '乙', '丙', '丁'],
+    date: '2026-10-18', venue: '', rounds: 1, boardsPerRound: 2,
+  });
+  raw.boards[0].published = true;
+  for (const assignment of raw.assignments) {
+    raw.results[resultKey(assignment.id, 1)] = {
+      assignmentId: assignment.id, board: 1, level: 1, strain: 'NT', declarer: 'W',
+      doubled: 1, tricks: 8, lead: '', nsScore: -120, updatedAt: raw.updatedAt,
+    };
+  }
+  const doc = JSDOM.fragment(renderToStaticMarkup(createElement(BoardsView, boardViewProps(raw))));
+  assert.equal(doc.querySelector('.board-results h3')!.textContent, '單副成績表');
+  assert.deepEqual([...doc.querySelectorAll('.board-results th')].map((cell) => cell.textContent),
+    ['桌/圈', 'NS / EW', '合約', 'NS 分', 'NS MP%']);
+  assert.match(doc.querySelector('.board-results tbody')!.textContent!, /1NT 西 \+1-120/);
+  assert.equal(doc.querySelector('.board-results .footnote'), null);
 });
 
 test('publication panel keeps director-only identity and deletion controls out of staff UI', () => {
