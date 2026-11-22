@@ -21,6 +21,7 @@ Avoid unnecessary secondary labels and descriptions. Let the layout do the expla
 - 色票集中於 public/theme-colors.css；元件以用途變數取色，不散落主題色碼。
 - 主題名稱：生成式藝術（forest）、傷眼睛（light）、租屋補助（sepia）、知識藍（nord）、ドパガキ（dracula）。主題名稱下的描述只簡短列主要配色。
 - 外部牌桌的顏色由 app/styles/viewer-theme.css 轉接；花色主題規則另見 app/styles/theme-integration.css。新增規則前先查現有選擇器，避免持續堆疊覆寫。
+- 「貼上賽段」依賽事列出來源，顯示一行賽制摘要。預設帶入設定／移位和名單；勾選成績時，同時勾選並鎖定設定／移位、名單和牌。
 - 一般操作沿用共用按鈕；留言的回覆、刪除、管理採暱稱後的點分隔文字操作。沒有權限的操作不顯示。
 
 ## 花色依使用位置決定

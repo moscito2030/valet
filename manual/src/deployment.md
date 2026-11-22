@@ -67,4 +67,4 @@ Vercel 使用系統提供的 `VERCEL_GIT_COMMIT_SHA` 與 `VERCEL_GIT_COMMIT_MESS
 
 留言、關閉設定、瀏覽器身分封鎖及限流紀錄與賽段文件分開儲存，留言不增加賽段版本、不觸發成績重算。Neon 模式使用資料庫版本檢查避免併發覆寫；本機模式使用資料目錄下的 `discussions` 子目錄，展示模式不提供留言。正式站限流使用 Vercel 提供的來源 IP 並以 HMAC 雜湊儲存，不記錄原始 IP；本機請求共用來源額度。
 
-資料庫備份請包含 `bridge_discussion_threads`、`bridge_discussion_comments` 與 `bridge_discussions`，本機備份請包含 `discussions`。賽段 JSON 匯出、複製賽段不包含留言。刪除賽段後留言無法再透過原 API 存取，獨立留言資料仍保留於備份/資料庫，需另外清理。討論 API 一律不快取；發文失敗不影響登分。限流與裁判管理可以減輕灌文，但並非完整的 DDoS 防護。
+資料庫備份請包含 `bridge_discussion_threads`、`bridge_discussion_comments` 與 `bridge_discussions`，本機備份請包含 `discussions`。賽段 JSON 匯出和貼上賽段均不包含留言。刪除賽段後留言無法再透過原 API 存取，獨立留言資料仍保留於備份/資料庫，需另外清理。討論 API 一律不快取；發文失敗不影響登分。限流與裁判管理可以減輕灌文，但並非完整的 DDoS 防護。

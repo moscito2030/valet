@@ -268,9 +268,9 @@ export async function deleteStageRows(sql: Sql, id: string) {
   await commitSql(sql, cap.batches);
 }
 
-export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRevision?: number, insertOnly = false) {
+export function queueCompetition(sql: Sql, stored: StoredCompetition, expectedRevision?: number | null, insertOnly = false) {
   const { audit, prefix: _legacyPrefix, ...document } = stored.competition as StoredCompetition['competition'] & { prefix?: unknown };
-  if (insertOnly)
+  if (insertOnly || expectedRevision === null)
     sql`INSERT INTO bridge_competitions (id, revision, document, updated_at)
       VALUES (${stored.competition.id}, ${stored.competition.revision}, ${JSON.stringify(document)}::jsonb, now())`;
   else if (expectedRevision === undefined)

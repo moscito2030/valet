@@ -5,7 +5,7 @@ import { createEvent, applyMutation } from '../lib/events';
 import { mutationSchema, resultKey, type BridgeEvent, type Result } from '../lib/model';
 import { project } from '../lib/scoring';
 import { audienceEvent } from '../lib/read-models/public-event';
-import { duplicateStage } from '../lib/domain/duplicate-stage';
+import { pasteStage } from '../lib/domain/paste-stage';
 import { winAwardStats } from '../lib/win-awards';
 function fixture(kind: 'teams' | 'pairs' = 'pairs') {
   const e = createEvent({
@@ -158,7 +158,7 @@ test('win award settings persist, clone and validate without changing rankings',
   const saved = applyMutation({ event: e, projection, requests: [] }, cmd);
   assert.deepEqual(saved.projection.standings, projection.standings);
   assert.deepEqual(audienceEvent(saved.event).winAward, cmd.winAward);
-  assert.deepEqual(duplicateStage(saved.event, 'copy').winAward, cmd.winAward);
+  assert.deepEqual(pasteStage(saved.event, { name: '貼上', sameCompetition: true, include: { setup: true, roster: true, boards: false, results: false } }).winAward, cmd.winAward);
   for (const value of [-1, Infinity, NaN, 10001])
     assert.equal(
       mutationSchema.safeParse({ ...cmd, winAward: { ...cmd.winAward, win: value } }).success,

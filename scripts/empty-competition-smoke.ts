@@ -7,6 +7,7 @@ import { createServer } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { createEvent, applyMutation } from '../lib/events';
 import { project } from '../lib/scoring';
+import { makeBoard } from '../lib/domain/board-factory';
 
 // Runs exclusively against an isolated local data directory. Never issues device links.
 async function main() {
@@ -19,10 +20,14 @@ const makeStage = (name: string) => {
   return applyMutation(stored, { action: 'results', revision: 1, requestId: randomUUID(), reason: '測試', results: [{ assignmentId: a.id, board: a.boards[0], level: 1, strain: 'NT', declarer: 'N', doubled: 1, tricks: 7, lead: '' }] });
 };
 const legacy = makeStage('舊賽事'), sibling = makeStage('舊決賽'), legacyEdit = makeStage('舊單段賽事');
+const pasteTarget = makeStage('貼上目標賽事');
+pasteTarget.event.organizerId = 'fixture-organizer';
 Object.assign(legacy.event, { prefix: '舊前綴' });
 sibling.event.parentEventId = legacy.event.id;
+sibling.event.stageArchived = true;
+sibling.event.boards[0] = { ...makeBoard(1), published: true };
 sibling.event.club = { enabled: true, tokens: { p1: 'non-authentic-fixture-hash' }, confirmations: {}, finalized: [] };
-await writeFile(file, JSON.stringify([legacy, sibling, legacyEdit]));
+await writeFile(file, JSON.stringify([legacy, sibling, legacyEdit, pasteTarget]));
 const socket = createServer();
 await new Promise<void>(resolve => socket.listen(0, '127.0.0.1', resolve));
 const port = (socket.address() as { port: number }).port;
@@ -38,6 +43,8 @@ async function req(url: string, method = 'GET', body?: unknown, expected = 200, 
   const response = await fetch(origin + url, { method, headers: { Origin: origin, Cookie: auth, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const data = await response.json();
   assert.equal(response.status, expected, `${method} ${url}: ${JSON.stringify(data)}`);
+  if (expected === 201 && url.endsWith('/stages/paste'))
+    assert.equal(response.headers.get('cache-control'), 'no-store');
   return data;
 }
 async function login(password: string) {
@@ -118,19 +125,54 @@ try {
   c = await catalog(id);
   await req('/api/competitions/'+id,'PATCH',{...archive,archived:false,revision:c.revision,requestId:randomUUID()});
   assert.equal((await req('/api/events/'+second.id,'GET',undefined,200,'')).competition.archived,false);
-  const sourceForCopy = await req('/api/admin/events/'+second.id);
-  const copyBody = {name:'完整副本',revision:sourceForCopy.revision};
-  await req('/api/admin/events/'+second.id+'/duplicate','POST',copyBody,401,'');
-  await req('/api/admin/events/'+second.id+'/duplicate','POST',copyBody,403,staff);
-  await req('/api/admin/events/'+second.id+'/duplicate','POST',{...copyBody,revision:999999},409);
-  const copied = await req('/api/admin/events/'+second.id+'/duplicate','POST',copyBody,201);
-  const copyEvent = await req('/api/admin/events/'+copied.id);
-  assert.equal(copyEvent.parentEventId,id);
-  assert.equal(copyEvent.stageName,'完整副本');
-  assert.deepEqual(copyEvent.assignments,sourceForCopy.assignments);
-  assert.deepEqual(copyEvent.results,sourceForCopy.results);
-  assert.equal((await req('/api/admin/events/'+second.id)).revision,sourceForCopy.revision);
-  await removeStage(copied.id);
+  const sourceId = second.id;
+  const source = await req('/api/admin/events/' + sourceId);
+  const target = await catalog(pasteTarget.event.id);
+  const pasteUrl = `/api/competitions/${target.id}/stages/paste`;
+  const pasteBody = {
+    sourceId, sourceRevision: source.revision, name: '跨賽事賽段', revision: target.revision,
+    include: { setup: true, roster: true, boards: true, results: true },
+  };
+  assert.equal((await req(pasteUrl, 'POST', pasteBody, 401, '')).error, '貼上賽段僅限裁判');
+  assert.equal((await req(pasteUrl, 'POST', pasteBody, 403, staff)).error, '貼上賽段僅限裁判');
+  assert.equal((await req(pasteUrl, 'POST', { ...pasteBody, sourceRevision: 999999 }, 409)).error,
+    '來源賽段已更新，請重新載入後再貼上');
+  await req(pasteUrl, 'POST', { ...pasteBody, include: { ...pasteBody.include, boards: false } }, 400);
+  const pasted = await req(pasteUrl, 'POST', pasteBody, 201);
+  const pastedEvent = await req('/api/admin/events/' + pasted.id);
+  assert.equal(pastedEvent.parentEventId, target.id);
+  assert.equal(pastedEvent.organizerId, 'fixture-organizer');
+  assert.equal(pastedEvent.venueOverride, undefined);
+  assert.equal(pastedEvent.stageName, '跨賽事賽段');
+  assert.deepEqual(pastedEvent.assignments, source.assignments);
+  assert.deepEqual(pastedEvent.results, source.results);
+  assert.deepEqual(pastedEvent.boards, source.boards);
+  const sourceAfter = await req('/api/admin/events/' + sourceId);
+  assert.equal(sourceAfter.revision, source.revision);
+  assert.deepEqual(sourceAfter.boards, source.boards);
+  await removeStage(pasted.id);
+
+  const empty = await req('/api/competitions', 'POST', { name: '空白貼上目標' }, 201);
+  const sourceWithDeal = await req('/api/admin/events/' + sibling.event.id);
+  assert.equal(sourceWithDeal.stageArchived, true);
+  for (const auth of ['', staff]) {
+    const list = await req('/api/competitions', 'GET', undefined, 200, auth);
+    assert.ok(!list.competitions.flatMap((c: { stages: { id: string }[] }) => c.stages)
+      .some((stage: { id: string }) => stage.id === sourceWithDeal.id));
+  }
+  const emptyTarget = await catalog(empty.id);
+  assert.deepEqual(emptyTarget.stages, []);
+  const intoEmpty = await req(`/api/competitions/${empty.id}/stages/paste`, 'POST', {
+    ...pasteBody, sourceId: sourceWithDeal.id, sourceRevision: sourceWithDeal.revision, revision: emptyTarget.revision,
+  }, 201);
+  const eventInEmpty = await req('/api/admin/events/' + intoEmpty.id);
+  assert.equal(eventInEmpty.parentEventId, empty.id);
+  assert.equal(eventInEmpty.stageArchived, false);
+  assert.deepEqual(eventInEmpty.boards, sourceWithDeal.boards);
+  assert.deepEqual(eventInEmpty.results, sourceWithDeal.results);
+  assert.deepEqual(eventInEmpty.club.tokens, {});
+  assert.deepEqual((await req('/api/admin/events/' + sourceWithDeal.id)).boards, sourceWithDeal.boards);
+  await removeStage(intoEmpty.id);
   await removeStage(first.id);
   assert.equal((await catalog(id)).stages.length, 1);
   await req('/api/events/' + second.id);
@@ -163,7 +205,7 @@ try {
   const saved = JSON.parse(await readFile(file, 'utf8'));
   assert.ok(saved.some((d: { competition?: { id: string } }) => d.competition?.id === legacy.event.id));
   assert.equal((await fetch(origin + '/?competition=' + legacy.event.id)).status, 200);
-  console.log('Empty competition production-build smoke passed: permissions, CAS/idempotency, empty lifecycle, venues, dates, first/last deletion, legacy migration and preservation of scores/links.');
+  console.log('Empty competition production-build smoke passed: permissions, CAS/idempotency, empty lifecycle, venues, dates, first/last deletion, legacy migration, stage paste and source preservation.');
 } finally {
   child.kill();
   await new Promise<void>(resolve => child.exitCode !== null ? resolve() : child.once('exit', () => resolve()));
