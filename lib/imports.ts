@@ -84,6 +84,7 @@ export function exportResultsCsv(e: BridgeEvent) {
     resultsCsvHeader + (hasSplit ? ',splitNS,splitEW' : '') + (hasHcp ? ',hcpN,hcpE,hcpS,hcpW' : '') +
     '\n' +
     Object.values(e.results)
+      .filter((r) => r.status !== 'adjusted')
       .map((r) =>
         [
           r.assignmentId,

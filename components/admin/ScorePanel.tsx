@@ -9,7 +9,9 @@ import {
   storedContract,
   type ScoreFormState,
 } from '@/lib/contract-choice';
-import { resultKey } from '@/lib/model';
+import { adjustedGrades, resultKey } from '@/lib/model';
+import { adjustedLabel } from '@/lib/adjusted-score';
+import { clubAssignmentFinalized } from '@/lib/club-confirmation';
 import { dealHcp } from '@/lib/recorded-hcp';
 import { participantNumber } from '@/lib/participant-number';
 import { contractScore } from '@/lib/scoring';
@@ -60,6 +62,9 @@ export function ScorePanel({
   const selected = event.assignments.find((a) => a.id === assignment),
     existing = event.results[resultKey(assignment, board)];
   const name = (id: string) => event.participants.find((p) => p.id === id)?.name ?? id;
+  const adjusted = existing?.status === 'adjusted';
+  const adjustmentLocked = busy || event.status === 'finished' || !!existing?.split ||
+    (!!selected && clubAssignmentFinalized(event, selected));
   const mini = event.gameMode === 'minibridge';
   const form = { ...input, assignmentId: assignment, board, miniBridge: mini };
   const fields = storedContract(form.choice, { passDefaults: form.passDefaults, miniBridge: mini });
@@ -82,7 +87,7 @@ export function ScorePanel({
         onSubmit={async (e) => {
           e.preventDefault();
           const result = parsedResult({ ...input, assignmentId: assignment, board, miniBridge: event.gameMode === 'minibridge' });
-          if (!result) return;
+          if (!result || adjusted) return;
           await save({ action: 'results', results: [result] });
         }}
       >
@@ -207,6 +212,7 @@ export function ScorePanel({
             </select>
           </label>
         </div>
+        {!adjusted && <>
         {mini && (
           <>
             <HcpFields
@@ -295,6 +301,8 @@ export function ScorePanel({
             >清除此副成績，回到未收分</button>
           )}
         </div>
+        </>}
+        {adjusted && <p>{adjustedLabel(existing)}</p>}
         {existing && event.club?.finalized.includes(selected?.round ?? 0) && (
           <p className="footnote">本圈已結算，不開放清除單副成績。</p>
         )}
@@ -302,7 +310,47 @@ export function ScorePanel({
           <p className="footnote">賽段已結束，成績已定案，不再接受更正。</p>
         )}
       </form>
+      {event.canDirect && selected?.boards.includes(board) && (
+        <form
+          key={`${assignment}:${board}:${event.revision}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const submitter = (e.nativeEvent as SubmitEvent).submitter;
+            const form = new FormData(e.currentTarget);
+            const clear = submitter instanceof HTMLButtonElement && submitter.value === 'clear';
+            const reason = String(form.get('reason') ?? '').trim();
+            if (adjustmentLocked || reason.length < 2) return;
+            void save({
+              action: 'adjusted-score', assignmentId: assignment, board, reason,
+              award: clear ? null : { ns: form.get('ns'), ew: form.get('ew') },
+            });
+          }}
+        >
+          <fieldset disabled={adjustmentLocked}>
+            <legend>調整分</legend>
+            <div className="form-grid">
+              {(['ns', 'ew'] as const).map((side) => (
+                <label key={side} className="field">
+                  {side.toUpperCase()}
+                  <select name={side} defaultValue={existing?.adjusted?.[side] ?? 'A'}>
+                    {adjustedGrades.map((grade) => <option key={grade}>{grade}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <label className="field">
+              裁定理由
+              <input name="reason" minLength={2} maxLength={200} required />
+            </label>
+            <div className="button-row">
+              <button className="button subtle">儲存調整分</button>
+              {adjusted && <button className="button danger" value="clear">撤銷調整分</button>}
+            </div>
+          </fieldset>
+        </form>
+      )}
       {event.canDirect &&
+        !adjusted &&
         event.kind === 'teams' &&
         existing &&
         existing.status !== 'cancelled' &&

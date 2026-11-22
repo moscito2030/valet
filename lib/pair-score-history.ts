@@ -1,3 +1,4 @@
+import { isPlayed } from './result-status';
 import type { PublicEvent } from './model';
 import { resultKey } from './model';
 import { directionalDatum } from './datum';
@@ -6,7 +7,7 @@ import { awardedResult, imps } from './scoring';
 export function boardButlerVolume(event: PublicEvent, board: number) {
   const assignments = event.assignments.filter(a => a.boards.includes(board));
   const results = assignments.map(a => event.results[resultKey(a.id, board)]);
-  const valid = results.filter(r => r && r.status !== 'cancelled' && r.status !== 'average');
+  const valid = results.filter(r => isPlayed(r));
   const datum = directionalDatum(valid, event.pairMethod === 'butler' ? event.trim : 'none');
   const value = valid.length ? valid.reduce((total, result) => total + (
     Math.abs(imps(awardedResult(result, 'ns')!.nsScore - datum.ns.datum!)) +

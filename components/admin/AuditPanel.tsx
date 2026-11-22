@@ -1,3 +1,4 @@
+import { adjustedLabel } from '@/lib/adjusted-score';
 import { awardedResult } from '@/lib/scoring';
 import { EditorPopover } from '../editor-popover';
 import { AdminEvent, displayContract, resultText, signed } from '../scoreboard-shared';
@@ -48,13 +49,13 @@ export function AuditPanel({ event }: Props) {
                     {c.before
                       ? c.before.status === 'cancelled'
                         ? 'Cancelled'
-                        : `${displayContract(c.before)} ${c.before.declarer} ${resultText(c.before)} (${c.before.nsScore})`
+                        : adjustedLabel(c.before) ?? `${displayContract(c.before)} ${c.before.declarer} ${resultText(c.before)} (${c.before.nsScore})`
                       : '未收分'}{' '}
                     →{' '}
                     {c.after
                       ? c.after.status === 'cancelled'
                         ? 'Cancelled'
-                        : `${displayContract(c.after)} ${c.after.declarer} ${resultText(c.after)} (${c.after.nsScore})`
+                        : adjustedLabel(c.after) ?? `${displayContract(c.after)} ${c.after.declarer} ${resultText(c.after)} (${c.after.nsScore})`
                       : '刪除'}
                   </p>
                 ))}

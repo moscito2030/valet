@@ -1,4 +1,5 @@
 'use client';
+import { isPlayed } from '@/lib/result-status';
 import type { BridgeEvent } from '@/lib/model';
 import { emptyScoreForm, scoreFormFromResult, type ScoreFormState } from '@/lib/contract-choice';
 import { resultKey } from '@/lib/model';
@@ -59,7 +60,7 @@ export function AdminPanel({
   useEffect(() => {
     const r = event?.results[resultKey(assignment, board)];
     setInput(
-      r && r.status !== 'cancelled' && r.status !== 'average'
+      isPlayed(r)
         ? { ...scoreFormFromResult(r), miniBridge: event?.gameMode === 'minibridge' }
         : emptyScoreForm(assignment, board, event?.gameMode === 'minibridge'),
     );

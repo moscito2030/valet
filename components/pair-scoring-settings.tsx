@@ -9,7 +9,7 @@ export function PairScoringSettings({
   busy,
   save,
 }: {
-  event: Pick<BridgeEvent, 'kind' | 'pairMethod' | 'trim' | 'neuberg' | 'results' | 'status'>;
+  event: Pick<BridgeEvent, 'kind' | 'pairMethod' | 'trim' | 'neuberg' | 'adjustedSession' | 'results' | 'status'>;
   busy: boolean;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 }) {
@@ -29,6 +29,7 @@ export function PairScoringSettings({
           status: event.status,
           pairMethod,
           trim: pairMethod === 'mp' ? 'none' : (String(form.get('trim')) as Trim),
+          adjustedSession: form.get('adjustedSession') === 'true',
           neuberg: pairMethod === 'mp' && form.get('neuberg') === 'true',
           reason: '設定雙人計分方式',
         });
@@ -61,6 +62,13 @@ export function PairScoringSettings({
           </select>
         </label>
       )}
+      <label className="field">
+        調整分依賽段成績修正（12C2(c)）
+        <select name="adjustedSession" defaultValue={String(event.adjustedSession !== false)} disabled={locked || busy}>
+          <option value="true">開啟</option>
+          <option value="false">關閉</option>
+        </select>
+      </label>
       {locked ? <p className="footnote">已有成績，計分規則已鎖定。</p> : <button className="button subtle" disabled={busy}>儲存雙人計分</button>}
     </form>
   );

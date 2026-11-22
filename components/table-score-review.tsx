@@ -1,3 +1,4 @@
+import { isPlayed } from '@/lib/result-status';
 import type { Assignment } from '@/lib/model';
 import { clubAccepted } from '@/lib/club-confirmation';
 import { collectionScoreLabel } from '@/lib/collection-score';
@@ -13,7 +14,7 @@ export function TableScoreReview({ event, assignment: a }: { event: AdminEvent; 
     <p className="footnote">{clubAccepted(event, a) ? '本桌已認可' : '本桌尚未確認'} · 僅供後台核對，不會發布成績。</p>
     <div className="table-score-review-list">{a.boards.map(board => {
       const r = event.results[`${a.id}:${board}`];
-      const played = r && r.status !== 'cancelled' && r.status !== 'average';
+      const played = isPlayed(r);
       return <article className="table-score-review-board" key={board}>
         <strong>第 {board} 副</strong>
         <div><Contract result={r} />{played && <>

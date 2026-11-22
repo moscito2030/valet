@@ -99,6 +99,20 @@ test('agent access codes enforce roles, event and organizer scope, and expiry', 
   expectError(await f.call('mutations', { secret: absent.secret, id: 'absent', body, key: 'key' }), 404, 'EVENT_NOT_FOUND');
   expectError(await f.call('preview', { secret: read.secret, body }), 403, 'FORBIDDEN_ROLE');
   expectError(await f.call('mutations', { secret: read.secret, body, key: 'key' }), 403, 'FORBIDDEN_ROLE');
+  const scoring = await f.code('scoring');
+  const requestId = randomUUID();
+  const adjustment = {
+    requestId,
+    command: {
+      action: 'adjusted-score', revision: f.event.revision, requestId, reason: '裁定理由',
+      assignmentId: f.event.assignments[0].id, board: 1, award: { ns: 'A+', ew: 'A−' },
+    },
+  };
+  for (const secret of [undefined, scoring.secret, read.secret]) {
+    expectError(await f.call('preview', { secret, body: adjustment }), 403, 'FORBIDDEN_ROLE');
+    expectError(await f.call('mutations', { secret, body: adjustment, key: 'adjusted-test' }), 403, 'FORBIDDEN_ROLE');
+  }
+  assert.deepEqual((await f.repo.getEvent(f.event.id)).event.results, {});
   const status = await f.call('status', { secret: read.secret });
   assert.equal(status.status, 200);
   assert.deepEqual(status.data, {

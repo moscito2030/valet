@@ -2,6 +2,7 @@ import type { Mutation } from './model';
 import type { SessionRole } from './session-token';
 // Every mutation must declare its role requirement; new actions fail type checking until classified.
 const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
+  'adjusted-score': 'director',
   'knockout-adjust': 'director',
   'knockout-overtime': 'director',
   'knockout-forfeit': 'director',
@@ -50,6 +51,7 @@ export function canMutate(role: SessionRole | null, command: Mutation) {
       command.pairMethod !== undefined ||
       command.trim !== undefined ||
       command.neuberg !== undefined ||
+      command.adjustedSession !== undefined ||
       command.name !== undefined ||
       command.maxBoardNumber !== undefined ||
       command.removeProvisionalVp !== undefined ||

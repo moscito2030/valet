@@ -74,6 +74,7 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     status: event.status === 'live' && allRoundsComplete(event) ? 'review' as const : event.status,
     pairMethod: event.pairMethod,
     neuberg: event.neuberg,
+    adjustedSession: event.adjustedSession,
     trim: event.trim,
     penalties: event.penalties,
     demo: event.demo,

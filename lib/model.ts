@@ -69,11 +69,15 @@ export const resultSchema = z
     'Pass out 必須是 0 墩、未加倍',
   );
 export type ResultInput = z.infer<typeof resultSchema>;
+export const adjustedGrades = ['A+', 'A', 'A−'] as const;
+export type AdjustedGrade = (typeof adjustedGrades)[number];
+export type AdjustedAward = Record<'ns' | 'ew', AdjustedGrade>;
 export type Result = ResultInput & {
   split?: { ns: ResultInput & { nsScore: number }; ew: ResultInput & { nsScore: number } };
   nsScore: number;
   updatedAt: string;
-  status?: 'played' | 'cancelled' | 'average';
+  status?: 'played' | 'cancelled' | 'average' | 'adjusted';
+  adjusted?: AdjustedAward;
 };
 export type Audit = {
   at: string;
@@ -152,6 +156,7 @@ export type BridgeEvent = {
   status: 'live' | 'review' | 'finished';
   pairMethod?: PairMethod;
   neuberg?: boolean;
+  adjustedSession?: boolean;
   trim?: Trim;
   penalties?: Record<string, number>;
   demo: boolean;
@@ -185,6 +190,7 @@ export const createSchema = z
       .optional(),
     pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
     neuberg: z.boolean().optional(),
+    adjustedSession: z.boolean().optional(),
     trim: z.enum(['none', 'one', 'ten-percent']).optional(),
     date: dateSchema,
     endDate: dateSchema.optional(),
@@ -203,6 +209,8 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: 'BAM 計分僅適用隊制賽' });
     if (v.bam && v.teamMethod !== 'bam')
       ctx.addIssue({ code: 'custom', message: '請選擇 Board-A-Match 計分' });
+    if (v.adjustedSession !== undefined && v.kind !== 'pairs')
+      ctx.addIssue({ code: 'custom', path: ['adjustedSession'], message: '調整分的賽段成績修正僅適用雙人賽' });
     if (v.neuberg && (v.kind !== 'pairs' || (v.pairMethod ?? 'mp') !== 'mp'))
       ctx.addIssue({ code: 'custom', path: ['neuberg'], message: 'Neuberg 僅適用雙人賽 MP 計分' });
     if (v.rankingMode && (v.kind !== 'pairs' || v.movementPlan || v.rounds))
@@ -235,6 +243,15 @@ export const createSchema = z
       ctx.addIssue({ code: 'custom', message: '雙人賽至少四對' });
   });
 export const mutationSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('adjusted-score'),
+    revision: z.number().int().min(1),
+    requestId: z.string().uuid(),
+    reason: z.string().trim().min(2).max(200),
+    assignmentId: z.string().min(1).max(100),
+    board: z.number().int().min(1),
+    award: z.object({ ns: z.enum(adjustedGrades), ew: z.enum(adjustedGrades) }).strict().nullable(),
+  }).strict(),
   z.object({ action: z.literal('knockout-adjust'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), nodeId: z.string().min(1).max(40), a: z.number().min(-10000).max(10000).multipleOf(0.01), b: z.number().min(-10000).max(10000).multipleOf(0.01) }).strict(),
   z.object({ action: z.literal('knockout-overtime'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), nodeId: z.string().min(1).max(40), boards: z.number().int().min(1).max(16) }).strict(),
   z.object({ action: z.literal('knockout-forfeit'), revision: z.number().int().min(1), requestId: z.string().uuid(), reason: z.string().trim().min(2).max(200), nodeId: z.string().min(1).max(40), loser: z.string().min(1).max(80), withdraw: z.boolean() }).strict(),
@@ -620,6 +637,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       bam: bamSchema.optional(),
       pairMethod: z.enum(['mp', 'crossimp', 'butler']).optional(),
       neuberg: z.boolean().optional(),
+      adjustedSession: z.boolean().optional(),
       trim: z.enum(['none', 'one', 'ten-percent']).optional(),
       maxBoardNumber: z.number().int().min(0).optional(),
       removeProvisionalVp: z.string().min(1).max(100).optional(),

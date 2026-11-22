@@ -291,7 +291,7 @@ export function ImportPanel({
         {preview && <pre className="import-preview">{preview}</pre>}
         <p className="footnote">
           {importType === 'results'
-            ? '可下載成績 CSV 修改後匯入；保留 assignmentId 與 board。status 可填 played 或 cancelled；取消牌不計分，合約欄可全部留空。匯入 played 會恢復該筆取消成績，請先核對預覽。'
+            ? '可下載成績 CSV 修改後匯入；保留 assignmentId 與 board。status 可填 played 或 cancelled；取消牌不計分，合約欄可全部留空。匯入 played 會恢復該筆取消成績，請先核對預覽。調整分請至裁判更正成績操作。'
             : importType === 'rosters'
               ? '每隊一列，以 teamId 對應現有隊伍，teamName 僅供辨識。賽員以頓號或分號（;/；）分隔；取代所列隊伍的完整名單與隊長，留白表示清空。未列出的隊伍保持不變；仍在入座名單中的賽員不可移除。'
               : importType === 'lineups'

@@ -39,6 +39,7 @@ export function createEvent(
     status: 'live',
     pairMethod: data.pairMethod ?? 'mp',
     neuberg: data.neuberg ?? false,
+    ...(data.adjustedSession !== undefined ? { adjustedSession: data.adjustedSession } : {}),
     trim: data.kind === 'pairs' && (data.pairMethod ?? 'mp') !== 'mp' ? (data.trim ?? 'none') : 'none',
     penalties: {},
     demo: false,

@@ -19,7 +19,7 @@ import { DomainError } from '../domain-error';
 import { seedEvents } from '../domain/demo-events';
 import { eventIndex, type EventIndex } from '../event-index';
 import { BridgeEvent, Mutation, StoredEvent } from '../model';
-import { commitDocumentMutation, type ResultWrites } from './cell-write';
+import { commitDocumentMutation, isAdjustedScoreWrite, type ResultWrites } from './cell-write';
 import { project } from '../scoring';
 import { hydrateEvent } from './hydrate-event';
 import type { EventRepository } from './repository';
@@ -130,7 +130,17 @@ export function createLocalRepository(directory: string): EventRepository {
       if (index < 0) throw new DomainError('找不到賽事', 404);
       const current = data[index] as StoredEvent & { resultWrites?: ResultWrites };
       const next = commitDocumentMutation(present(current), command, current.resultWrites);
-      data[index] = { ...next.stored, resultWrites: next.writes } as StoredDocument;
+      const saved = isAdjustedScoreWrite(command)
+        ? {
+            ...next.stored,
+            event: {
+              ...next.stored.event,
+              boards: current.event.boards,
+              ...('publishBoards' in current.event ? { publishBoards: current.event.publishBoards } : {}),
+            },
+          }
+        : next.stored;
+      data[index] = { ...saved, resultWrites: next.writes } as StoredDocument;
       await localSave(data);
       return present(next.stored);
     });

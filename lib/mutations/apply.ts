@@ -20,7 +20,7 @@ export function applyMutation(
     throw new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision');
   // Final scores are immutable, including alternate import/reset/schedule paths.
   if (stored.event.status === 'finished' && (
-    ['results', 'results-import', 'clear-result', 'clear-results', 'ruling',
+    ['results', 'results-import', 'clear-result', 'clear-results', 'ruling', 'adjusted-score',
       'split-contract', 'penalty', 'movement', 'movement-plan', 'participants-setup',
       'round-control', 'swiss-config', 'swiss-publish', 'knockout-config',
       'knockout-publish', 'knockout-decide', 'knockout-reopen',
@@ -28,7 +28,7 @@ export function applyMutation(
       'club-play', 'club-finalize', 'club-complete-table'].includes(command.action) ||
     (command.action === 'settings' && (command.status !== 'finished' ||
       command.teamMethod !== undefined || command.bam !== undefined ||
-      command.pairMethod !== undefined || command.trim !== undefined || command.neuberg !== undefined))
+      command.pairMethod !== undefined || command.trim !== undefined || command.neuberg !== undefined || command.adjustedSession !== undefined))
   )) throw new DomainError('賽段已結束，成績已定案，不可更正或重新開放賽事。');
   const e = structuredClone(stored.event),
     at = new Date().toISOString();
@@ -47,7 +47,7 @@ export function applyMutation(
       'movement',
       'pbn',
       'clear-result',
-      'ruling',
+      'ruling', 'adjusted-score',
       'split-contract',
     ].includes(command.action) ||
       (command.action === 'settings' && command.status !== 'live'))
@@ -65,7 +65,7 @@ export function applyMutation(
   // Check only on writes that can complete a table, never on reads or a polling job.
   // Settlement and the final confirmation share one revision, projection and storage transaction.
   if (e.status === 'live' && e.club?.enabled &&
-    ['club-play', 'club-complete-table', 'results', 'results-import', 'ruling', 'split-contract'].includes(command.action)) {
+    ['club-play', 'club-complete-table', 'results', 'results-import', 'ruling', 'adjusted-score', 'split-contract'].includes(command.action)) {
     const round = 'round' in command ? command.round : (e.currentRound ?? 0);
     if (round > 0 && clubRoundReady(e, round)) {
       e.club.finalized.push(round);
@@ -78,7 +78,7 @@ export function applyMutation(
   if (
     e.status === 'live' &&
     !e.club?.enabled &&
-    ['results', 'results-import', 'ruling', 'split-contract', 'round-control'].includes(
+    ['results', 'results-import', 'ruling', 'adjusted-score', 'split-contract', 'round-control'].includes(
       command.action,
     )
   ) {
@@ -156,6 +156,7 @@ export function applyMutation(
       'round-times-import': '匯入各圈時間區間',
       'clear-result': '清除此副成績',
       ruling: '裁判取消/恢復',
+      'adjusted-score': command.action === 'adjusted-score' && command.award ? '裁定調整分' : '撤銷調整分',
       'split-contract': '不平衡合約',
       penalty: '判罰扣分',
     }[command.action],

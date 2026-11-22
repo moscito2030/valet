@@ -19,7 +19,7 @@ export async function reviewUrl(board: Board, destination: URL, event?: ReviewCo
   const id = `board:${board.number}`;
   const results = event ? event.assignments.filter(a => a.boards.includes(board.number)).flatMap(a => {
     const r = event.results[resultKey(a.id, board.number)];
-    if (!r) return [];
+    if (!r || r.status === 'adjusted') return [];
     return [{
       id: resultKey(a.id, board.number), boardId: id, assignmentId: a.id, board: board.number,
       table: `第 ${a.round} 圈 · 第 ${a.table} 桌${a.room === 'pairs' ? '' : a.room === 'open' ? ' · 開室' : ' · 閉室'}`,

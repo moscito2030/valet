@@ -1,4 +1,6 @@
 'use client';
+import { adjustedLabel } from '@/lib/adjusted-score';
+import { isPlayed } from '@/lib/result-status';
 import { PairDisplayName } from '@/components/pair-display-name';
 import { MiniScoreReference } from '@/components/mini-score-reference';
 import { DeclarerWarning, HcpFields, HcpSummary } from '@/components/hcp-fields';
@@ -146,10 +148,10 @@ export default function ClubPage() {
           </div>
           <p className="club-entry-hint">{data.status === 'finished' ? '賽段已結束，成績已定案。' : data.status === 'review' ? '成績覆核中，如有疑義請向裁判提出更正。' : data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
-            <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} / EW {describeContract(b.result.split.ew)}</> : describeContract(b.result)}</span>
-            {b.result && b.result.status !== 'cancelled' && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
+            <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} / EW {describeContract(b.result.split.ew)}</> : (adjustedLabel(b.result) ?? describeContract(b.result))}</span>
+            {isPlayed(b.result) && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
             {b.result && <HcpSummary hcp={b.result.hcp} />}
-            {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || b.result?.status === 'cancelled' || !!b.result?.split} title={draft?.board === b.number ? b.result ? '關閉更正介面' : '關閉輸入介面' : undefined} aria-expanded={draft?.board === b.number} aria-controls={draft?.board === b.number ? 'club-score-editor' : undefined} onClick={() => draft?.board === b.number ? setDraft(null) : edit(b.number)}>{draft?.board === b.number ? '關閉' : b.result ? '更正' : '輸入'}</button>}
+            {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || (b.result && !isPlayed(b.result)) || !!b.result?.split} title={draft?.board === b.number ? b.result ? '關閉更正介面' : '關閉輸入介面' : undefined} aria-expanded={draft?.board === b.number} aria-controls={draft?.board === b.number ? 'club-score-editor' : undefined} onClick={() => draft?.board === b.number ? setDraft(null) : edit(b.number)}>{draft?.board === b.number ? '關閉' : b.result ? '更正' : '輸入'}</button>}
           </div>)}</div>
           <p>輸入：<PairDisplayName name={roleName(data.roles?.inputPair)} /> / 確認：<PairDisplayName name={roleName(data.roles?.confirmPair)} /> · {data.accepted ? '已認可' : missing ? '待輸入完成' : '待對方確認'}</p>
         </> : <p>{data.round ? data.mode === 'table' ? '本桌本圈尚無可收分安排，請等待裁判。' : '本圈輪空，無需輸入或確認。' : '等待裁判指定目前圈數。'}</p>}

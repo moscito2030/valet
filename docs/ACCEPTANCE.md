@@ -31,4 +31,4 @@ GitHub Actions 已加入安裝、測試、建置及型別檢查；尚未在遠�
 
 ## 使用邊界
 
-目前適用固定賽程、隊制 IMP/連續 20–0 VP、雙人 MP 合併排名。裁判調整分、罰分、Neuberg、Swiss、自動 Mitchell/Howell、多人角色權限及選手自行收分尚未提供。完整限制見 README。
+目前支援固定賽程、Swiss、自動 Mitchell/Howell、隊制 IMP/連續 20–0 VP、BAM，以及雙人 MP、CrossIMP、ButlerIMP。已提供裁判調整分、判罰扣分、Neuberg 修正、分層通行碼及裝置收分。計分與裁定規則見 [計分與裁判操作](ADVANCED_SCORING.md)，收分流程見使用手冊。
