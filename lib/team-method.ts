@@ -1,3 +1,4 @@
+import { adjustedBam, matchAward } from './adjusted-score';
 import type { BridgeEvent, Result } from './model';
 export const defaultBam = { win: 2, draw: 1, loss: 0 };
 export type TeamScoring = Pick<BridgeEvent, 'teamMethod' | 'bam' | 'knockout' | 'teamFormat'>;
@@ -7,6 +8,8 @@ export function bamBoardPoints(
   scoring: TeamScoring,
 ): [number, number] {
   const scale = scoring.bam ?? defaultBam;
+  const award = matchAward(open, closed);
+  if (award) return [adjustedBam(award.ns, scale), adjustedBam(award.ew, scale)];
   if ([open, closed].some((r) => r.status === 'cancelled' || r.status === 'average')) return [0, 0];
   const raw = (r: Result, side: 'ns' | 'ew') => r.split?.[side].nsScore ?? r.nsScore;
   const points = (difference: number) =>

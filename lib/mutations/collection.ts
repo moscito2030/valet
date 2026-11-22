@@ -141,6 +141,7 @@ export function applyCollectionCommand(
       const key = resultKey(a.id, b.number);
       if (e.results[key]?.split)
         throw new DomainError('請先由裁判撤銷不平衡合約，再更正原始成績', 403);
+      if (e.results[key]?.status === 'adjusted') throw new DomainError('請先由裁判撤銷調整分', 403);
       if (e.results[key]?.status === 'cancelled')
         throw new DomainError('取消的牌只能由裁判恢復', 403);
       const after = { ...scoredInput(r, e, b), status: 'played' as const, updatedAt: at };

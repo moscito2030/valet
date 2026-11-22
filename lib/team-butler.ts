@@ -1,3 +1,4 @@
+import { isPlayed } from './result-status';
 import { directionalDatum } from './datum';
 import type { BridgeEvent } from './model';
 import { resultKey } from './model';
@@ -115,7 +116,7 @@ export function teamButlerStats(event: Source) {
       const entries = tables
         .filter((a) => a.boards.includes(board))
         .map((a) => ({ a, r: event.results[resultKey(a.id, board)] }))
-        .filter(({ r }) => r && r.status !== 'cancelled' && r.status !== 'average');
+        .filter(({ r }) => isPlayed(r));
       if (entries.length < 2) continue;
       // Keep the same untrimmed, nearest-ten datum as the team board results.
       const datums = directionalDatum(entries.map(({ r }) => r));

@@ -10,3 +10,8 @@ export function normalizeResults(results: Record<string, Result>) {
     ]),
   );
 }
+
+
+export function isPlayed(result?: Result): result is Result {
+  return !!result && !isCancelled(result) && result.status !== 'adjusted';
+}

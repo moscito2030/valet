@@ -1,3 +1,4 @@
+import { isPlayed } from '@/lib/result-status';
 import { TeamImpColumns } from './team-imp-columns';
 import { boardRange } from '@/lib/board-groups';
 import { roundLabel } from '@/lib/team-movement';
@@ -93,8 +94,14 @@ export function InterleavedRound({
                       const cancelled = [x, y].some(
                         (r) => r?.status === 'cancelled' || r?.status === 'average',
                       );
+                      const points = x && y && !cancelled ? teamBoardPoints(x, y, event) : undefined;
+                      const ownIndex = teamId === m.a ? 0 : 1;
+                      const awarded: [number, number] | undefined =
+                        points && (x?.status === 'adjusted' || y?.status === 'adjusted')
+                          ? [points[ownIndex], points[1 - ownIndex]]
+                          : undefined;
                       const imp =
-                        x && y && !cancelled ? teamBoardPoints(x, y, event)[teamId === m.a ? 0 : 1] : null;
+                        points?.[ownIndex] ?? null;
                       return (
                         <tr key={board}>
                           <td>{board}</td>
@@ -112,7 +119,7 @@ export function InterleavedRound({
                                 >
                                   <Contract result={r} />
                                   <small className="block mono">
-                                    {!r || r.status === 'cancelled' || r.status === 'average'
+                                    {!isPlayed(r)
                                       ? '—'
                                       : signed(r.nsScore * (index === 0 ? 1 : -1))}
                                   </small>
@@ -120,7 +127,7 @@ export function InterleavedRound({
                               </td>
                             );
                           })}
-                          <td>{event.teamMethod === 'bam' ? (imp === null ? '—' : imp) : <TeamImpColumns value={imp} />}</td>
+                          <td>{event.teamMethod === 'bam' ? (imp === null ? '—' : imp) : <TeamImpColumns value={imp} awarded={awarded} />}</td>
                         </tr>
                       );
                     })}

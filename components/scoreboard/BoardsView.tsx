@@ -1,3 +1,4 @@
+import { isPlayed } from '@/lib/result-status';
 import { DiscussionProvider } from '../board-discussion-context';
 import { PairScoreValue } from '../score-value';
 import { BoardDanmaku } from '../board-danmaku';
@@ -120,8 +121,7 @@ export function BoardsView({
                     boardRound?.round)),
           )
           .map((a) => boardResults[resultKey(a.id, selectedBoard.number)])
-          .filter((r) => r && r.status !== 'cancelled' && r.status !== 'average')
-          .map((r) => r)
+          .filter(isPlayed)
       : [];
   const boardDatums = directionalDatum(
     completedBoardScores,
@@ -130,7 +130,7 @@ export function BoardsView({
   const pairMethod = event?.pairMethod ?? 'mp';
   const displayBoardNumber = (n: number) => displayedBoardNumber(n, event ?? undefined);
   const butlerHint = (r: Result | undefined, side: 'ns' | 'ew') =>
-    r && r.status !== 'cancelled' && r.status !== 'average' && boardDatums[side].datum !== null ? (
+    isPlayed(r) && boardDatums[side].datum !== null ? (
       <span className="muted butler-imp" title={`Butler IMP（${side.toUpperCase()} 視角）`}>
         (
         {signed(
@@ -179,7 +179,7 @@ export function BoardsView({
                       : null
                     : score;
               }
-              return awardedResult(r, scoreSide)!.nsScore * sideSign;
+              return isPlayed(r) ? awardedResult(r, scoreSide)!.nsScore * sideSign : null;
             };
             const x = value(a),
               y = value(b);
@@ -308,10 +308,10 @@ export function BoardsView({
               key={`${event.id}:${selectedBoard.number}`}
               board={displayBoard}
               miniBridge={event.gameMode === 'minibridge'}
-              result={activeResult}
+              result={activeResult?.status === 'adjusted' ? undefined : activeResult}
               playerNames={activeNames}
               resultSelection={resultSelection}
-              tableSelected={!!activeAssignment}
+              tableSelected={!!activeAssignment && activeResult?.status !== 'adjusted'}
               onManualTrial={() => setSelectedResult('')}
               navigation={boardNavigation}
               averageScore={boardDatums[scoreSide].datum}
@@ -456,7 +456,7 @@ export function BoardsView({
                                 <small className="block mono team-raw-score">
                                   {awarded?.status === 'average'
                                     ? '取消'
-                                    : awarded && awarded.status !== 'cancelled'
+                                    : isPlayed(awarded)
                                       ? signed(side === 'ns' ? awarded.nsScore : -awarded.nsScore)
                                       : '—'}
                                   {butlerHint(result, side)}
@@ -562,7 +562,7 @@ export function BoardsView({
                             <Contract result={r} />
                           </td>
                           <td className={`mono${pairMethod !== 'mp' ? ` ${scoreTone}` : ''}`}>
-                            {r && r.status !== 'cancelled'
+                            {isPlayed(r)
                               ? signed(awardedResult(r, scoreSide)!.nsScore * sideSign)
                               : '—'}
                           </td>

@@ -2,6 +2,11 @@ import { DomainError } from '../domain-error';
 import { resultKey, type BridgeEvent, type Mutation, type StoredEvent } from '../model';
 import { applyMutation } from '../mutations/apply';
 
+export function isAdjustedScoreWrite(command: Mutation) {
+  return command.action === 'adjusted-score' ||
+    (command.action === 'settings' && command.adjustedSession !== undefined);
+}
+
 export type ResultWrites = Record<string, number>;
 
 // Null means the command still uses the stage revision. An array means only those

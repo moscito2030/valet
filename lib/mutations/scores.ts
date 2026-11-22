@@ -13,13 +13,47 @@ export function applyScoresCommand(
     Mutation,
     {
       action:
-        'clear-result' | 'clear-results' | 'results' | 'results-import' | 'penalty' | 'split-contract' | 'ruling';
+        'adjusted-score' | 'clear-result' | 'clear-results' | 'results' | 'results-import' | 'penalty' | 'split-contract' | 'ruling';
     }
   >,
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
-  if (command.action === 'clear-result') {
+  if (command.action === 'adjusted-score') {
+    const { assignmentId, board, award } = command;
+    const selected = e.assignments.find((a) => a.id === assignmentId && a.boards.includes(board));
+    if (!selected || !e.boards.some((b) => b.number === board))
+      throw new DomainError('桌次與牌號不符合賽程');
+    const other = e.kind === 'teams' ? e.assignments.find((a) =>
+      a.matchId === selected.matchId && a.room !== selected.room && a.boards.includes(board)) : undefined;
+    if (e.kind === 'teams' && !other) throw new DomainError('找不到本副的另一室桌次');
+    for (const a of other ? [selected, other] : [selected]) {
+      if (clubAssignmentFinalized(e, a)) throw new DomainError('本圈已結算，不開放更改調整分');
+      const key = resultKey(a.id, board);
+      const before = e.results[key] ?? null;
+      if (before?.split) throw new DomainError('請先撤銷不平衡合約');
+      let after: Result | null;
+      if (award) {
+        after = {
+          assignmentId: a.id, board, status: 'adjusted',
+          adjusted: a === selected ? award : { ns: award.ew, ew: award.ns },
+          level: 0, strain: 'NT', doubled: 1, declarer: 'N', tricks: 0,
+          lead: '', nsScore: 0, updatedAt: at,
+        };
+      } else {
+        if (before?.status !== 'adjusted') throw new DomainError('此副尚未裁定調整分');
+        const original = e.audit.findLast((audit) => audit.changes?.some((change) =>
+          change.key === key && change.after?.status === 'adjusted' && change.before?.status !== 'adjusted',
+        ))?.changes?.find((change) => change.key === key)?.before;
+        after = original ? { ...original, updatedAt: at } : null;
+      }
+      changes.push({ key, before, after });
+      if (after) e.results[key] = after;
+      else delete e.results[key];
+      if (e.club) delete e.club.confirmations[clubConfirmationKey(e, a)];
+    }
+    detail = award ? `${assignmentId} · B${board} · NS ${award.ns} / EW ${award.ew}` : `${assignmentId} · B${board}`;
+  } else if (command.action === 'clear-result') {
     if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
     const a = e.assignments.find(a => a.id === command.assignmentId);
     if (!a || !a.boards.includes(command.board)) throw new DomainError('桌次與牌號不符合賽程');
@@ -27,6 +61,7 @@ export function applyScoresCommand(
     const key = resultKey(a.id, command.board);
     const before = e.results[key];
     if (!before) throw new DomainError('此副尚未收分');
+    if (before.status === 'adjusted') throw new DomainError('請先由裁判撤銷調整分', 403);
     if (before.split) throw new DomainError('請先由裁判撤銷不平衡合約，再清除成績');
     changes.push({ key, before, after: null });
     delete e.results[key];
@@ -61,6 +96,7 @@ export function applyScoresCommand(
         b = e.boards.find((b) => b.number === r.board);
       if (!a || !b || !a.boards.includes(r.board)) throw new DomainError('桌次與牌號不符合賽程。');
       const key = resultKey(a.id, b.number);
+      if (e.results[key]?.status === 'adjusted') throw new DomainError('請先由裁判撤銷調整分', 403);
       if (e.results[key]?.split)
         throw new DomainError('請先由裁判撤銷不平衡合約，再更正原始成績', 403);
       if (e.results[key]?.status === 'cancelled' && command.action !== 'results-import')
@@ -90,7 +126,7 @@ export function applyScoresCommand(
     if (!a || !b || !a.boards.includes(b.number)) throw new DomainError('桌次與牌號不符合賽程');
     const key = resultKey(a.id, b.number);
     const before = e.results[key];
-    if (!before || before.status === 'cancelled' || before.status === 'average')
+    if (!before || before.status === 'cancelled' || before.status === 'average' || before.status === 'adjusted')
       throw new DomainError('請先登記或恢復本桌實際合約');
     const after: Result = { ...before, updatedAt: at };
     if (command.contracts) {
@@ -112,6 +148,7 @@ export function applyScoresCommand(
     const b = e.boards.find((b) => b.number === command.board);
     if (!a || !b || !a.boards.includes(b.number)) throw new DomainError('桌次與牌號不符合賽程');
     const key = resultKey(a.id, b.number);
+    if (e.results[key]?.status === 'adjusted') throw new DomainError('請先由裁判撤銷調整分', 403);
     if (e.results[key]?.split) throw new DomainError('請先撤銷不平衡合約，再取消此副');
     if (!command.cancelled && !command.result) {
       const before = e.results[key];

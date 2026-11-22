@@ -17,7 +17,7 @@ import { DomainError } from '../domain-error';
 import { eventIndex, type EventIndex } from '../event-index';
 import type { BridgeEvent, Mutation, StoredEvent } from '../model';
 import { project } from '../scoring';
-import { commitDocumentMutation, seedResultWrites } from './cell-write';
+import { commitDocumentMutation, isAdjustedScoreWrite, seedResultWrites } from './cell-write';
 import { captureSql, commitSql, isConflict } from './batch';
 import { hydrateEvent } from './hydrate-event';
 import { readOrganizerNames } from './organizer-names';
@@ -241,9 +241,9 @@ export function createNormalizedRepository(query: Sql) {
       if (stored.requests.includes(command.requestId)) return stored;
       const next = commitDocumentMutation(stored, command, loaded.writes, true);
       try {
-        if (agent) {
+        if (agent || isAdjustedScoreWrite(command)) {
           const cap = captureSql();
-          agent.queue(cap.sql, stored, next.stored);
+          agent?.queue(cap.sql, stored, next.stored);
           const rawEvent = loaded.stored.event;
           const nextEvent = { ...next.stored.event };
           if ('publishBoards' in rawEvent) Object.assign(nextEvent, { publishBoards: rawEvent.publishBoards });

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import { act, createElement, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -270,6 +271,43 @@ test('team board comparison orders contracts by the first team’s seating direc
         ['對戰', '南北合約', '東西合約', 'VP']);
       assert.equal(bam.querySelector('.board-results .footnote')!.textContent,
         'BAM：以左欄第一支隊伍兩桌實得分數合計比較，依每牌勝／和／負給予 VP。');
+    }
+  }
+});
+
+test('team board comparison shows artificial awards in seat order without raw scores or Butler hints', () => {
+  const raw = fixture();
+  const closed = raw.assignments.find((a) => a.room === 'closed')!;
+  raw.boards[0].published = true;
+  for (const a of raw.assignments.filter((a) => a.matchId !== closed.matchId)) {
+    raw.results[resultKey(a.id, 1)] = {
+      assignmentId: a.id, board: 1, level: 1, strain: 'NT', declarer: 'N',
+      doubled: 1, tricks: 7, lead: '', nsScore: 90, updatedAt: raw.updatedAt,
+    };
+  }
+  const { event } = applyMutation(
+    { event: raw, projection: project(raw), requests: [] },
+    mutationSchema.parse({
+      action: 'adjusted-score', revision: raw.revision, requestId: randomUUID(),
+      reason: '裁定理由', assignmentId: closed.id, board: 1, award: { ns: 'A+', ew: 'A−' },
+    }),
+  );
+  for (const awayPerspective of [false, true]) {
+    for (const teamMethod of ['imp', 'bam'] as const) {
+      const props = boardViewProps({ ...event, teamMethod });
+      const doc = JSDOM.fragment(renderToStaticMarkup(createElement(BoardsView, {
+        ...props, awayPerspective,
+      })));
+      const rows = [...doc.querySelectorAll('.board-results tbody tr')];
+      const row = rows.find((candidate) => candidate.textContent?.includes('調整分'))!;
+      const labels = ['調整分 NS A+ / EW A−', '調整分 NS A− / EW A+'];
+      assert.deepEqual([...row.querySelectorAll('td[role="button"]')].map((cell) => cell.firstElementChild?.textContent),
+        awayPerspective ? labels : labels.toReversed());
+      assert.deepEqual([...row.querySelectorAll('.team-raw-score')].map((cell) => cell.textContent), ['—', '—']);
+      assert.ok(rows.some((candidate) => candidate !== row && candidate.querySelector('.butler-imp')));
+      assert.equal(row.lastElementChild?.textContent, teamMethod === 'bam'
+        ? (awayPerspective ? '+2' : '0')
+        : (awayPerspective ? '+3' : '-3'));
     }
   }
 });

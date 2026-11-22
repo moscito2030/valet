@@ -123,6 +123,12 @@ export function applySettingsCommand(
       e.trim = method === 'mp' ? 'none' : (command.trim ?? e.trim ?? 'none');
       detail = `雙人計分改為 ${method}`;
     }
+    if (command.adjustedSession !== undefined) {
+      if (e.kind !== 'pairs') throw new DomainError('本賽段計分方式不適用調整分的賽段成績修正');
+      if (Object.keys(e.results).length) throw new DomainError('已有成績，不能變更計分規則');
+      detail = [detail, `調整分賽段成績修正：${e.adjustedSession !== false ? '開啟' : '關閉'} → ${command.adjustedSession ? '開啟' : '關閉'}`].filter(Boolean).join('；');
+      e.adjustedSession = command.adjustedSession;
+    }
     if (command.awardPlaces !== undefined) e.awardPlaces = command.awardPlaces;
     if (command.winAward !== undefined) e.winAward = command.winAward;
     if (command.awardDescription !== undefined) e.awardDescription = command.awardDescription;

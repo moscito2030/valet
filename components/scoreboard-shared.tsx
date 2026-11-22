@@ -1,4 +1,5 @@
 'use client';
+import { adjustedLabel } from '@/lib/adjusted-score';
 import { formatScore, pairScoreFormat } from '@/lib/score-format';
 import { SuitSymbol } from './suit-symbol';
 import type { Audit, Board, Kind, PublicEvent, Result, ResultInput, Seat } from '@/lib/model';
@@ -82,6 +83,8 @@ export function download(name: string, text: string, type = 'text/plain') {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export function Contract({ result }: { result?: Result }) {
+  const adjustment = adjustedLabel(result);
+  if (adjustment) return <span>{adjustment}</span>;
   if (result?.status === 'average') return <span className="cancelled-contract">取消</span>;
   if (result?.status === 'cancelled') return <span className="cancelled-contract">取消</span>;
   return result ? (

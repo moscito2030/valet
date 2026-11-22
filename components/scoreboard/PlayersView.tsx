@@ -1,3 +1,4 @@
+import { isPlayed } from '@/lib/result-status';
 import { useState } from 'react';
 import { PairScoreValue } from '../score-value';
 import { TeamImpColumns } from '../team-imp-columns';
@@ -111,15 +112,17 @@ export function PlayersView({
       );
       const openResult = event?.results[resultKey(a.id, b)];
       const closedResult = closed ? event?.results[resultKey(closed.id, b)] : undefined;
-      const impDiff =
-        !openResult ||
-        !closedResult ||
-        openResult.status === 'cancelled' ||
-        closedResult.status === 'cancelled'
-          ? null
-          : openResult.status === 'average' || closedResult.status === 'average'
-            ? 0
-            : teamBoardPoints(openResult, closedResult, event)[a.ns === playerId ? 0 : 1];
+      const points = openResult && closedResult &&
+        openResult.status !== 'cancelled' && closedResult.status !== 'cancelled'
+        ? teamBoardPoints(openResult, closedResult, event)
+        : undefined;
+      const ownIndex = a.ns === playerId ? 0 : 1;
+      const impDiff = points?.[ownIndex] ?? null;
+      const adjusted = openResult?.status === 'adjusted' || closedResult?.status === 'adjusted';
+      const awardedImps: [number, number] | undefined =
+        adjusted && points && event.teamMethod !== 'bam'
+          ? [points[ownIndex], points[1 - ownIndex]]
+          : undefined;
       const scores = (event?.assignments ?? [])
         .filter(
           (other) =>
@@ -127,16 +130,13 @@ export function PlayersView({
             (isInterleaved(event!.assignments) || other.round === a.round),
         )
         .map((other) => event?.results[resultKey(other.id, b)])
-        .filter((result) => result && result.status !== 'cancelled' && result.status !== 'average')
-        .map((result) => result!);
+        .filter(isPlayed);
       const datums = directionalDatum(scores);
       const calculateButlers = (opponent = false) =>
         [a, closed].map((assignment) => {
           const result = assignment ? event?.results[resultKey(assignment.id, b)] : undefined;
-          return result &&
+          return isPlayed(result) &&
             assignment &&
-            result.status !== 'cancelled' &&
-            result.status !== 'average' &&
             datums.ns.datum !== null
             ? (assignment.ns === playerId) !== opponent
               ? imps(awardedResult(result, 'ns')!.nsScore - datums.ns.datum!)
@@ -148,6 +148,7 @@ export function PlayersView({
         b,
         closed,
         impDiff,
+        awardedImps,
         datums,
         butlers: calculateButlers(),
         opponentButlers: calculateButlers(true),
@@ -382,7 +383,7 @@ export function PlayersView({
               </tr>
             </thead>
             <tbody>
-              {teamPlayerRows.map(({ a, b, closed, impDiff, butlers, datums }) => {
+              {teamPlayerRows.map(({ a, b, closed, impDiff, awardedImps, butlers, datums }) => {
                 const averageId = `team-board-average-${a.id}-${b}`;
                 const openBoard = (assignment?: Assignment) => {
                   setSelectedResult(assignment?.id ?? '');
@@ -404,7 +405,7 @@ export function PlayersView({
                           )
                         : undefined;
                       const ownScore =
-                        result && assignment
+                        isPlayed(result) && assignment
                           ? result.nsScore * (assignment.ns === playerId ? 1 : -1)
                           : null;
                       const butler = butlers[index];
@@ -442,7 +443,7 @@ export function PlayersView({
                         title="查看本牌 Datum" aria-label={`查看牌號 ${displayBoardNumber(b)} Datum`}
                         popoverTarget={averageId} onClick={(e) => positionDetail(e.currentTarget)}>
                         {impDiff === null ? '—' : signed(impDiff)}
-                      </button> : <TeamImpColumns value={impDiff} renderSide={(content, side) => (
+                      </button> : <TeamImpColumns value={impDiff} awarded={awardedImps} renderSide={(content, side) => (
                         <button type="button" className="contract-link team-imp-average-trigger"
                           title="查看本牌 Datum" aria-label={`查看牌號 ${displayBoardNumber(b)} Datum（${side === 0 ? '我方' : '對手'} IMP）`}
                           popoverTarget={averageId} onClick={(e) => positionDetail(e.currentTarget)}>
@@ -626,8 +627,7 @@ export function PlayersView({
                 const scores = event.assignments
                   .filter((other) => other.boards.includes(b))
                   .map((other) => event.results[resultKey(other.id, b)])
-                  .filter((result) => result && result.status !== 'cancelled')
-                  .map((result) => result);
+                  .filter(isPlayed);
                 const datum = directionalDatum(scores)[ns ? 'ns' : 'ew'].datum;
                 const popupId = `player-${a.id}-${b}`;
                 const openBoard = () => {
@@ -710,7 +710,7 @@ export function PlayersView({
                         title="查看本牌 Datum" popoverTarget={`${popupId}-average`}
                         onClick={(e) => positionDetail(e.currentTarget)}
                       >
-                        {r && r.status !== 'cancelled'
+                        {isPlayed(r)
                           ? signed(awardedResult(r, ns ? 'ns' : 'ew')!.nsScore * (ns ? 1 : -1))
                           : '—'}
                       </button>

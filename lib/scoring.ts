@@ -1,3 +1,4 @@
+import { adjustedImps, adjustedMatchpoints, matchAward, neubergMatchpoints } from './adjusted-score';
 import { isImpKnockout, knockoutExemptAssignments } from './knockout-status';
 import { bamBoardPoints, type TeamScoring } from './team-method';
 import {
@@ -20,6 +21,8 @@ export function awardedResult(result: Result | undefined, side: 'ns' | 'ew'): Re
     : result;
 }
 export function teamBoardImps(open: Result, closed: Result): [number, number] {
+  const award = matchAward(open, closed);
+  if (award) return [adjustedImps(award.ns), adjustedImps(award.ew)];
   if (
     open.status === 'cancelled' ||
     closed.status === 'cancelled' ||
@@ -175,6 +178,7 @@ type ProjectionInput = Pick<
   | 'bam'
   | 'pairMethod'
   | 'neuberg'
+  | 'adjustedSession'
   | 'trim'
   | 'penalties'
   | 'provisionalVp'
@@ -260,7 +264,7 @@ export function project(e: ProjectionInput): Projection {
         }
         match.marginA += imp;
         match.marginB += otherImp;
-        match.split ||= !!(x.split || y.split);
+        match.split ||= !!(x.split || y.split) || imp !== -otherImp;
         match.impsA += Math.max(0, imp);
         match.impsB += Math.max(0, otherImp);
         match.completed++;
@@ -301,11 +305,19 @@ export function project(e: ProjectionInput): Projection {
         scheduledCounts.set(board, (scheduledCounts.get(board) ?? 0) + 1);
     const neubergTarget =
       e.neuberg && (e.pairMethod ?? 'mp') === 'mp' ? Math.max(0, ...scheduledCounts.values()) : 0;
+    const adjustedTables: { a: BridgeEvent['assignments'][number]; r: Result; top: number; provisional: boolean }[] = [];
+    const method = e.pairMethod ?? 'mp';
     for (const board of e.boards) {
       const assignments = e.assignments.filter((a) => a.boards.includes(board.number));
-      const entries = assignments
+      const received = assignments
         .map((a) => ({ a, r: e.results[resultKey(a.id, board.number)] }))
-        .filter((x) => x.r && x.r.status !== 'cancelled');
+        .filter(({ r }) => r && r.status !== 'cancelled');
+      const entries = received.filter(({ r }) => r.status !== 'adjusted');
+      const adjusted = received.filter(({ r }) => r.status === 'adjusted' && r.adjusted);
+      const provisional = assignments.some((a) => !e.results[resultKey(a.id, board.number)]);
+      const target = method === 'mp'
+        ? adjusted.length ? Math.max(2, neubergTarget || received.length) : neubergTarget
+        : 0;
       for (const a of assignments)
         if (e.results[resultKey(a.id, board.number)]?.status === 'cancelled') {
           byId[a.ns].played++;
@@ -319,12 +331,13 @@ export function project(e: ProjectionInput): Projection {
           };
         }
       const rawTop = 2 * (entries.length - 1);
-      const top = neubergTarget ? 2 * (neubergTarget - 1) : rawTop;
+      const top = target ? 2 * (target - 1) : rawTop;
+      for (const entry of adjusted) adjustedTables.push({ ...entry, top, provisional });
       for (const [index, { a, r }] of entries.entries()) {
         byId[a.ns].played++;
         byId[a.ew].played++;
         let ns =
-          rawTop <= 0
+          rawTop <= 0 && !adjusted.length
             ? null
             : entries.reduce(
                 (mp, x) =>
@@ -336,7 +349,6 @@ export function project(e: ProjectionInput): Projection {
                       : 0),
                 -1,
               );
-        const method = e.pairMethod ?? 'mp';
         const imp =
           method === 'mp'
             ? undefined
@@ -369,15 +381,15 @@ export function project(e: ProjectionInput): Projection {
                   method,
                   e.trim ?? 'none',
                 ).value;
-        if (neubergTarget && ns !== null && ew !== null) {
-          ns = ((ns + 1) * neubergTarget) / entries.length - 1;
-          ew = ((ew + 1) * neubergTarget) / entries.length - 1;
+        if (target && ns !== null && ew !== null) {
+          ns = neubergMatchpoints(ns, entries.length, target);
+          ew = neubergMatchpoints(ew, entries.length, target);
         }
         projection.pairScores[resultKey(a.id, board.number)] = {
           ns,
           ew,
           top: Math.max(0, top),
-          provisional: assignments.some((a) => !e.results[resultKey(a.id, board.number)]),
+          provisional,
           datum: imp?.datum,
         };
         if (ns !== null && ew !== null) {
@@ -386,6 +398,23 @@ export function project(e: ProjectionInput): Projection {
           totals[a.ew].mp += ew;
           totals[a.ew].top += method === 'mp' ? top : 1;
         }
+      }
+    }
+    // Snapshot only comparison scores so one artificial award cannot feed another.
+    const session = Object.fromEntries(Object.entries(totals).map(([id, t]) => [
+      id, e.adjustedSession !== false && t.top ? t.mp / t.top : undefined,
+    ]));
+    for (const { a, r, top, provisional } of adjustedTables) {
+      const award = r.adjusted!;
+      const points = (side: 'ns' | 'ew') => method === 'mp'
+        ? adjustedMatchpoints(award[side], top, session[a[side]])
+        : adjustedImps(award[side], session[a[side]]);
+      const ns = points('ns'), ew = points('ew');
+      projection.pairScores[resultKey(a.id, r.board)] = { ns, ew, top: Math.max(0, top), provisional };
+      for (const side of ['ns', 'ew'] as const) {
+        byId[a[side]].played++;
+        totals[a[side]].mp += side === 'ns' ? ns : ew;
+        totals[a[side]].top += method === 'mp' ? top : 1;
       }
     }
     for (const row of standing) {

@@ -84,6 +84,7 @@ export function CreateDialog({
         gameMode,
         ...(kind === 'pairs' ? { rankingMode } : {}),
         pairMethod: kind === 'pairs' ? method : 'mp',
+        adjustedSession: kind === 'pairs' ? form.get('adjustedSession') !== 'false' : undefined,
         neuberg: kind === 'pairs' && method === 'mp' && form.get('neuberg') === 'true',
         trim: kind === 'pairs' && method !== 'mp' ? form.get('trim') : 'none',
         name: form.get('name'),
@@ -193,6 +194,13 @@ export function CreateDialog({
               </select>
               <small>各副比較桌數不同時修正 MP；不足兩筆有效成績不計分。</small>
             </label>}
+            <label className="field">
+              調整分依賽段成績修正（12C2(c)）
+              <select name="adjustedSession" defaultValue="true">
+                <option value="true">開啟</option>
+                <option value="false">關閉</option>
+              </select>
+            </label>
             <div
               id="create-scoring-help"
               popover="auto"
