@@ -2,6 +2,7 @@ import type { StoredCompetition } from '../competition-record';
 import type { StoredEvent } from '../model';
 import { captureSql, commitSql } from './batch';
 import type { Sql } from './neon';
+import { hasPerTableSchema, queuePerTableState } from './per-table-rows';
 import { queueCompetition, queueStage } from './rows';
 import { requireNormalizedStorage } from './switch';
 
@@ -47,6 +48,7 @@ export async function insertCompetitionWithStage(
   }
   queueCompetition(queue, competition, undefined, true);
   queueStage(queue, stage, {}, undefined, false, true);
+  if (await hasPerTableSchema(sql)) queuePerTableState(queue, stage.event);
   try {
     await commitSql(sql, batches);
   } catch (error) {

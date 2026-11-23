@@ -1,6 +1,34 @@
 // New tables only. Never alter or drop bridge_events, bridge_login_limits, or bridge_discussions.
 // Schema migration never changes the storage switch state.
 export const normalizedSchemaStatements = [
+  `CREATE TABLE IF NOT EXISTS bridge_table_state (
+    event_id text NOT NULL,
+    assignment_id text NOT NULL,
+    version integer NOT NULL DEFAULT 1 CHECK (version > 0),
+    confirmed_version integer,
+    confirmed_at timestamptz,
+    confirmed_forced boolean NOT NULL DEFAULT false,
+    content_hash text NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, assignment_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS bridge_rounds (
+    event_id text NOT NULL,
+    round integer NOT NULL CHECK (round > 0),
+    state text NOT NULL CHECK (state IN ('pending', 'open', 'closed', 'settled')),
+    settled_at timestamptz,
+    settled_forced boolean NOT NULL DEFAULT false,
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, round)
+  )`,
+  `CREATE TABLE IF NOT EXISTS bridge_migrations (
+    name text NOT NULL,
+    stage_id text NOT NULL,
+    stage_revision integer NOT NULL,
+    fingerprint text NOT NULL,
+    applied_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (name, stage_id)
+  )`,
   `CREATE TABLE IF NOT EXISTS bridge_storage_switch (
     id integer PRIMARY KEY CHECK (id = 1),
     mode text NOT NULL CHECK (mode IN ('legacy', 'normalized')),
