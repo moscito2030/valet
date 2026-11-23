@@ -9,6 +9,7 @@ import { guideCardNote, type ClubView } from '@/lib/club-view';
 import type { ResultInput } from '@/lib/model';
 import { collectionScoreSide, collectionScoreLabel } from '@/lib/collection-score';
 import { boardRange } from '@/lib/board-groups';
+import { displayedBoardNumber } from '@/lib/board-navigation';
 import { contractScore } from '@/lib/scoring';
 import { ContractEntry } from '@/components/contract-entry';
 import { MiniContractFields } from '@/components/mini-contract-fields';
@@ -93,6 +94,7 @@ export default function ClubPage() {
   }
   const active = !!data && data.status === 'live' && !data.locked && !data.finalized && data.phase !== 'break' && data.round > 0;
   const editable = active && (data?.role === 'input' || data?.role === 'shared') && !reviewing;
+  const displayBoardNumber = (number: number) => displayedBoardNumber(number, data ?? undefined);
   const board = data?.boards.find(b => b.number === draft?.board);
   const fields = draft ? storedContract(draft.choice, { passDefaults: draft.passDefaults, miniBridge: draft.miniBridge }) : null;
   const scored = draft && fields ? asResult(fields, draft) : null;
@@ -121,7 +123,7 @@ export default function ClubPage() {
     {!data ? <p>正在讀取專屬收分卡…</p> : <>
       {data.mode === 'table' && <p className="footnote">裝置留在本桌，換圈後自動載入本桌安排。請核對南北/東西與牌號，輸入完成後交給對方確認。</p>}
       {data.tableGuide && <section className="panel club-section" aria-label="本桌下一圈安排">
-        {data.tableGuide.kind === 'table' ? <><h2>下一圈 · 第 {data.tableGuide.roundLabel} 圈</h2><p>{data.tableGuide.label} · 南北 <PairDisplayName name={data.tableGuide.ns} /> / 東西 <PairDisplayName name={data.tableGuide.ew} /></p><p>牌號：{boardRange(data.tableGuide.boards)}</p><p>裝置留在本桌，等待裁判開放下一圈。</p></> : data.tableGuide.kind === 'complete' ? <><h2>沒有下一圈</h2><p>請依裁判指示結束。</p></> : <><h2>等待本桌下一圈安排</h2><p>尚無可顯示的對戰，公布後會自動更新；無須將裝置帶走。</p></>}
+        {data.tableGuide.kind === 'table' ? <><h2>下一圈 · 第 {data.tableGuide.roundLabel} 圈</h2><p>{data.tableGuide.label} · 南北 <PairDisplayName name={data.tableGuide.ns} /> / 東西 <PairDisplayName name={data.tableGuide.ew} /></p><p>牌號：{boardRange(data.tableGuide.boards.map(displayBoardNumber))}</p><p>裝置留在本桌，等待裁判開放下一圈。</p></> : data.tableGuide.kind === 'complete' ? <><h2>沒有下一圈</h2><p>請依裁判指示結束。</p></> : <><h2>等待本桌下一圈安排</h2><p>尚無可顯示的對戰，公布後會自動更新；無須將裝置帶走。</p></>}
       </section>}
       {data.guide && <section className="panel club-section" aria-label="下一圈 Guide card">
         <span className="eyebrow">GUIDE CARD</span>
@@ -129,7 +131,7 @@ export default function ClubPage() {
           <h2>第 {data.guide.round} 圈 · 前往第 {data.guide.table} 桌</h2>
           <p><strong>你的方向：{data.guide.direction === 'NS' ? '南北 NS' : '東西 EW'}</strong></p>
           <p>對手：<PairDisplayName name={data.guide.opponentName} />（{data.guide.opponentId.toUpperCase()}）</p>
-          <p>牌號：{boardRange(data.guide.boards)}</p>
+          <p>牌號：{boardRange(data.guide.boards.map(displayBoardNumber))}</p>
           <p className="footnote">{guideCardNote(data.round, data.phase)}</p>
         </> : data.guide.kind === 'bye' ? <>
           <h2>第 {data.guide.round} 圈輪空</h2><p>下一圈沒有對手與牌組，無需登分或確認。請依裁判指示休息。</p>
@@ -148,7 +150,7 @@ export default function ClubPage() {
           </div>
           <p className="club-entry-hint">{data.status === 'finished' ? '賽段已結束，成績已定案。' : data.status === 'review' ? '成績覆核中，如有疑義請向裁判提出更正。' : data.finalized ? '本圈已結算' : data.accepted ? '本桌成績已認可。若需更正，請聯絡裁判。' : data.phase === 'break' ? '圈間休息，暫停輸入與確認' : data.role === 'shared' ? reviewing ? '請由確認方核對上方全部成績，再確認鎖定。' : '請由指定方輸入，完成後將本裝置交給對方核對。' : data.role === 'input' ? '你是輸入方，請輸入全部成績，再由對方確認。' : '你是確認方，請核對全部成績；有誤請告知輸入方更正。'}</p>
           <div className="club-board-list">{data.boards.map(b => <div key={b.number} className="club-board-result">
-            <strong>牌 {b.number}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} / EW {describeContract(b.result.split.ew)}</> : (adjustedLabel(b.result) ?? describeContract(b.result))}</span>
+            <strong>牌 {displayBoardNumber(b.number)}</strong><span>{!b.result ? '未收分' : b.result.status === 'cancelled' ? '取消' : b.result.split ? <>裁判不平衡合約：NS {describeContract(b.result.split.ns)} / EW {describeContract(b.result.split.ew)}</> : (adjustedLabel(b.result) ?? describeContract(b.result))}</span>
             {isPlayed(b.result) && <small>{collectionScoreLabel(b.result, scoreSide)}</small>}
             {b.result && <HcpSummary hcp={b.result.hcp} />}
             {(data.role === 'input' || data.role === 'shared') && <button className="button subtle" disabled={!editable || busy || (b.result && !isPlayed(b.result)) || !!b.result?.split} title={draft?.board === b.number ? b.result ? '關閉更正介面' : '關閉輸入介面' : undefined} aria-expanded={draft?.board === b.number} aria-controls={draft?.board === b.number ? 'club-score-editor' : undefined} onClick={() => draft?.board === b.number ? setDraft(null) : edit(b.number)}>{draft?.board === b.number ? '關閉' : b.result ? '更正' : '輸入'}</button>}
@@ -157,7 +159,7 @@ export default function ClubPage() {
         </> : <p>{data.round ? data.mode === 'table' ? '本桌本圈尚無可收分安排，請等待裁判。' : '本圈輪空，無需輸入或確認。' : '等待裁判指定目前圈數。'}</p>}
       </section>
       {draft && editable && <form id="club-score-editor" className="panel club-section" onSubmit={e => { e.preventDefault(); void submit(false); }}>
-        <h2>牌 {draft.board} · {data.gameMode === 'minibridge' ? '迷你橋牌 · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
+        <h2>牌 {displayBoardNumber(draft.board)} · {data.gameMode === 'minibridge' ? '迷你橋牌 · 無身價' : board?.vulnerability === 'All' ? '雙方有身價' : board?.vulnerability === 'None' ? '雙方無身價' : `${board?.vulnerability} 有身價`}</h2>
         {data.gameMode === 'minibridge' && <div className="form-grid"><HcpFields value={miniFieldsValue(draft)} onChange={value => setDraft(applyHcp(draft, value))} dealer={board?.dealer ?? 'N'} expected={board?.hcp} /><MiniContractFields value={miniFieldsValue(draft)} onChange={value => setDraft(applyMiniContract(draft, value))} /></div>}
         <ContractEntry key={draft.board} value={draft.choice} onChange={choice => setDraft({ ...draft, choice })} showLevel={data.gameMode !== 'minibridge'} showStrain={data.gameMode !== 'minibridge'} showDoubled={data.gameMode !== 'minibridge'} />
         <label className="field">首引（選填，如 S2）<input maxLength={4} value={draft.choice.lead} autoCapitalize="characters" autoCorrect="off" spellCheck={false} onChange={e => setDraft({ ...draft, choice: { ...draft.choice, lead: e.target.value.toUpperCase() } })} /></label>
