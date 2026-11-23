@@ -23,6 +23,7 @@ import { hydrateEvent } from './hydrate-event';
 import { readOrganizerNames } from './organizer-names';
 import { resolveCompetitionOrganizer } from '../competitions';
 import type { Sql } from './neon';
+import { cachedPerTableSchema, hasPerTableSchema, queuePerTableState, type PerTableSchema } from './per-table-rows';
 import type { AgentWrite, EventRepository } from './repository';
 import {
   loadCompetitions,
@@ -44,6 +45,8 @@ function documentsOf(stages: LoadedStage[], competitions: StoredCompetition[]): 
 function priorOf(stage: LoadedStage): StagePrior {
   return {
     eventRevision: stage.stored.event.revision,
+    stored: stage.stored,
+    ordinals: stage.ordinals,
     writes: stage.writes,
     revisions: stage.revisions,
     results: stage.stored.event.results,
@@ -54,6 +57,7 @@ function queueSaved(
   sql: Sql,
   stages: LoadedStage[],
   documents: StoredDocument[],
+  shadow: boolean,
   competition?: { id: string; revision: number; existed: boolean },
 ) {
   for (const document of documents) {
@@ -75,12 +79,13 @@ function queueSaved(
       prior?.writes ?? seedResultWrites(document.event),
       prior ? priorOf(prior) : undefined,
     );
+    if (shadow) queuePerTableState(sql, document.event);
   }
 }
 
-async function writeOnce(sql: Sql, run: (cap: Sql) => void) {
+async function writeOnce(sql: Sql, run: (cap: Sql, shadow: PerTableSchema) => void) {
   const cap = captureSql();
-  run(cap.sql);
+  run(cap.sql, await cachedPerTableSchema(sql));
   try {
     await commitSql(sql, cap.batches);
     return false;
@@ -184,9 +189,9 @@ export function createNormalizedRepository(query: Sql) {
       data.filter((document) => !isStage(document) || document.event.id !== id),
       next,
     );
-    const conflict = await writeOnce(sql(), (cap) => {
-      queueDeleteStage(cap, id, revision);
-      queueSaved(cap, current.stages, saved, {
+    const conflict = await writeOnce(sql(), (cap, shadow) => {
+      queueDeleteStage(cap, id, revision, shadow);
+      queueSaved(cap, current.stages, saved, shadow.tables && shadow.rounds, {
         id: competitionId,
         revision: previous.competition.revision,
         existed: current.competitions.some((item) => item.competition.id === competitionId),
@@ -198,11 +203,11 @@ export function createNormalizedRepository(query: Sql) {
     const stages = await loadStages(sql());
     const competitions = await loadCompetitions(sql());
     const targets = deletionTargets(documentsOf(stages, competitions), input);
-    const conflict = await writeOnce(sql(), (cap) => {
+    const conflict = await writeOnce(sql(), (cap, shadow) => {
       for (const target of targets) {
         if (target.id.startsWith('competition:'))
           queueDeleteCompetition(cap, target.id.slice(competitionKey('').length), target.revision);
-        else queueDeleteStage(cap, target.id, target.revision);
+        else queueDeleteStage(cap, target.id, target.revision, shadow);
       }
     });
     if (conflict) throw new DomainError('賽事已更新，請重新載入清單後再刪除', 409);
@@ -212,15 +217,11 @@ export function createNormalizedRepository(query: Sql) {
     const stored = { event, projection: project(event), requests: [] as string[] };
     const metadata = findCompetition([stored], event.id);
     if ((await competitionCount(sql())) >= 50) throw new DomainError('最多 50 場賽事');
-    await commitSql(
-      sql(),
-      (() => {
-        const cap = captureSql();
-        queueCompetition(cap.sql, metadata);
-        queueStage(cap.sql, stored, seedResultWrites(event));
-        return cap.batches;
-      })(),
-    );
+    const cap = captureSql();
+    queueCompetition(cap.sql, metadata);
+    queueStage(cap.sql, stored, seedResultWrites(stored.event));
+    if (await hasPerTableSchema(sql())) queuePerTableState(cap.sql, stored.event);
+    await commitSql(sql(), cap.batches);
     return stored;
   }
   async function mutateEvent(id: string, command: Mutation, agent?: AgentWrite): Promise<StoredEvent> {
@@ -248,6 +249,7 @@ export function createNormalizedRepository(query: Sql) {
           const nextEvent = { ...next.stored.event };
           if ('publishBoards' in rawEvent) Object.assign(nextEvent, { publishBoards: rawEvent.publishBoards });
           queueStage(cap.sql, { ...next.stored, event: nextEvent }, next.writes, priorOf(loaded), true);
+          if (await hasPerTableSchema(sql())) queuePerTableState(cap.sql, nextEvent);
           await commitSql(sql(), cap.batches);
         } else {
           await saveStage(sql(), next.stored, next.writes, priorOf(loaded));
@@ -280,8 +282,8 @@ export function createNormalizedRepository(query: Sql) {
       const previous = findCompetition(data, id);
       const next = updateCompetition(previous, input, true);
       if (next === previous) return next;
-      const conflict = await writeOnce(sql(), (cap) =>
-        queueSaved(cap, current.stages, saveCompetitionRecord(data, next), {
+      const conflict = await writeOnce(sql(), (cap, shadow) =>
+        queueSaved(cap, current.stages, saveCompetitionRecord(data, next), shadow.tables && shadow.rounds, {
           id,
           revision: previous.competition.revision,
           existed: current.competitions.some((item) => item.competition.id === id),
@@ -302,7 +304,7 @@ export function createNormalizedRepository(query: Sql) {
         throw new DomainError('賽事或賽段已更新，或已達 32 個賽段上限，請重新載入', 409);
       const previous = findCompetition(data, parentId);
       const next = advanceCompetition(previous, revision, '新增賽段');
-      const conflict = await writeOnce(sql(), (cap) => {
+      const conflict = await writeOnce(sql(), (cap, shadow) => {
         const existing = current.competitions.length > 0;
         if (!existing) {
           // Fence the legacy metadata snapshot without changing the root stage.
@@ -312,6 +314,7 @@ export function createNormalizedRepository(query: Sql) {
         }
         queueCompetition(cap, next, existing ? revision : null);
         queueStage(cap, stored, seedResultWrites(child));
+        if (shadow.tables && shadow.rounds) queuePerTableState(cap, child);
       });
       if (!conflict) return stored;
     }

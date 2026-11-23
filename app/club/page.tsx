@@ -1,4 +1,5 @@
 'use client';
+import { CLUB_POLL_INTERVAL_MS } from '@/lib/club-poll';
 import { adjustedLabel } from '@/lib/adjusted-score';
 import { isPlayed } from '@/lib/result-status';
 import { PairDisplayName } from '@/components/pair-display-name';
@@ -53,7 +54,7 @@ export default function ClubPage() {
     }
     context.current = { id: new URLSearchParams(location.search).get('event') ?? '', token: location.hash.slice(1) };
     void read().catch(e => setError(e.message));
-    const timer = setInterval(() => { if (!finished.current) void read().catch(e => setError(e.message)); }, 10000);
+    const timer = setInterval(() => { if (!finished.current) void read().catch(e => setError(e.message)); }, CLUB_POLL_INTERVAL_MS);
     return () => clearInterval(timer);
   }, []);
   useEffect(() => { if (data && draftRound !== data.round) setDraft(null); }, [data?.round, draftRound]);

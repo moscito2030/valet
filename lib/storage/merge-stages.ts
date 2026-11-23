@@ -1,3 +1,4 @@
+import { hasPerTableSchema, queuePerTableState } from './per-table-rows';
 import { findCompetition, isStage, type StoredCompetition, type StoredDocument } from '../competition-record';
 import type { BridgeEvent, StoredEvent } from '../model';
 import { project } from '../scoring';
@@ -138,18 +139,22 @@ export async function commitStageMerge(sql: Sql) {
   const cap = captureSql();
   const touched = new Set<string>([stageMerge.competitionId, ...stageMerge.stages.map((item) => item.id)]);
   if (plan.changed) {
+    const shadow = await hasPerTableSchema(sql);
     for (const document of plan.documents) {
       if (isStage(document) && touched.has(document.event.id)) {
         const prior = stages.find((stage) => stage.stored.event.id === document.event.id);
         const guard: StagePrior | undefined = prior
           ? {
               eventRevision: prior.stored.event.revision,
+              stored: prior.stored,
+              ordinals: prior.ordinals,
               writes: prior.writes,
               revisions: prior.revisions,
               results: prior.stored.event.results,
             }
           : undefined;
         queueStage(cap.sql, document, prior?.writes ?? seedResultWrites(document.event), guard);
+        if (shadow) queuePerTableState(cap.sql, document.event);
       } else if (!isStage(document) && document.competition.id === stageMerge.competitionId) {
         const existed = competitions.some((item) => item.competition.id === stageMerge.competitionId);
         queueCompetition(
