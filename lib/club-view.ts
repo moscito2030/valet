@@ -81,6 +81,8 @@ export function clubView(event: BridgeEvent, pair: string) {
               }
             : { kind: 'pending' as const },
     id: event.id,
+    kind: event.kind,
+    maxBoardNumber: event.maxBoardNumber,
     gameMode: event.gameMode ?? 'bridge',
     name: event.stageName ?? event.name,
     pair,
