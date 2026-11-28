@@ -11,8 +11,6 @@ const schema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('complete-table'), assignmentId: z.string().min(1), round: z.number().int().min(1), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('input-rule'), inputRule: z.enum(['ns', 'ew', 'lower', 'higher']), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('input-table'), assignmentId: z.string().min(1), inputPair: z.string().min(1).nullable(), revision: z.number().int() }).strict(),
-  z.object({ action: z.literal('running-score'), enabled: z.boolean(), revision: z.number().int() }).strict(),
-  z.object({ action: z.literal('running-score-refresh'), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('enable'), enabled: z.boolean(), mode: z.enum(['pair','table']).optional(), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('issue'), pair: z.string().min(1), revision: z.number().int() }).strict(),
   z.object({ action: z.literal('issue-table'), deviceKey: z.string().min(1).max(300), revision: z.number().int() }).strict(),
@@ -29,15 +27,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     let token: string | undefined;
     if (input.action === 'complete-table') {
       await mutateEvent(id, { ...meta, action: 'club-complete-table', assignmentId: input.assignmentId, round: input.round, reason: '裁判取消本桌剩餘牌局並確認輸入' });
-    } else if (input.action === 'running-score-refresh') {
-      await mutateEvent(id, { ...meta, action: input.action, reason: '更新公開成績' });
     } else if (input.action === 'finalize') {
       await mutateEvent(id, { ...meta, action: 'club-finalize', round: input.round, force: input.force, advance: input.advance, reason: input.reason });
     } else {
       token = input.action === 'issue' || input.action === 'issue-table' ? randomBytes(32).toString('hex') : undefined;
       await mutateEvent(id, { ...meta, action: 'club-config', enabled: input.action === 'enable' ? input.enabled : !!event.club?.enabled,
         ...(input.action === 'enable' && input.mode ? { mode: input.mode } : {}),
-        ...(input.action === 'running-score' ? { runningScore: input.enabled } : {}),
         ...(input.action === 'issue-table' ? { deviceKey: input.deviceKey, tokenHash: createHash('sha256').update(token!).digest('hex') } : {}),
         ...(input.action === 'input-rule' ? { inputRule: input.inputRule } : {}),
         ...(input.action === 'input-table' ? { assignmentId: input.assignmentId, inputPair: input.inputPair } : {}),

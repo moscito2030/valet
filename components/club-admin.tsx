@@ -172,27 +172,6 @@ export function ClubAdmin({
           }
         />
       )}
-      {event.club?.enabled && <button
-        type="button"
-        className="butler-display-toggle"
-        role="switch"
-        aria-checked={!!event.club?.runningScore}
-        disabled={busy}
-        onClick={() => void act({ action: 'running-score', enabled: !event.club?.runningScore })}
-      >
-        <span className="butler-toggle-track" aria-hidden="true"><span /></span>
-        即時排名
-      </button>}
-      {event.club?.enabled && event.club.runningScore && (
-        <button
-          type="button"
-          className="button subtle"
-          disabled={busy || event.status === 'finished'}
-          onClick={() => void act({ action: 'running-score-refresh' })}
-        >
-          更新公開成績
-        </button>
-      )}
       {reviewAssignment && (
         <Modal
           title={`第 ${roundLabel(event, reviewAssignment.round)} 圈 · ${tableDeviceLabel(event, reviewAssignment)} 成績核對`}
