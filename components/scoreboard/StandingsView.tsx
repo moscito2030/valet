@@ -7,6 +7,7 @@ import type { PublicEvent, Standing } from '@/lib/model';
 import { participantNumber } from '@/lib/participant-number';
 import { Search, Star, Trophy } from 'lucide-react';
 import { number, Tab } from '../scoreboard-shared';
+import { standingsRefreshFooter } from './refresh-copy';
 
 type Props = {
   event: PublicEvent;
@@ -17,6 +18,8 @@ type Props = {
   setQuery: React.Dispatch<React.SetStateAction<string>>;
   setTab: React.Dispatch<React.SetStateAction<Tab>>;
   toggleFollow: (value: string) => void;
+  autoRefresh?: boolean;
+  autoRefreshDisabled?: boolean;
 };
 export function StandingsView({
   event,
@@ -27,6 +30,8 @@ export function StandingsView({
   setQuery,
   setTab,
   toggleFollow,
+  autoRefresh = false,
+  autoRefreshDisabled = false,
 }: Props) {
   if (isImpKnockout(event) && !event.knockout) return <section className="panel empty">待設定淘汰賽對戰表；請由裁判設定名單與對局。</section>;
   if (event.knockout)
@@ -227,7 +232,7 @@ export function StandingsView({
       <div className="table-footer">
         <span>
           <i className="live-dot" />
-          {event.status === 'finished' ? '賽段已結束 · 成績已定案' : event.status === 'review' ? '成績覆核中 · 如有疑義請向裁判提出更正 · 每 30 秒更新' : '成績每 30 秒更新'} · v{event.revision}
+          {standingsRefreshFooter(event.status, autoRefresh, autoRefreshDisabled, event.audienceRefreshSeconds ?? 30)} · v{event.revision}
         </span>
         <span>
           最後更新{' '}

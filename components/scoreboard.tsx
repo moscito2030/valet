@@ -10,7 +10,6 @@ import { dateRangeLabel } from '@/lib/date-range';
 import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
 import { roundLabel } from '@/lib/team-movement';
 import {
-  Activity,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -34,6 +33,7 @@ import { api, EventSummary, methodNames, Tab } from './scoreboard-shared';
 import { Stat } from './scoreboard-widgets';
 import { PlayersView } from './scoreboard/PlayersView';
 import { RoundsView } from './scoreboard/RoundsView';
+import { RefreshButton } from './scoreboard/RefreshButton';
 import { StandingsView } from './scoreboard/StandingsView';
 import { useEventResource } from './scoreboard/use-event-resource';
 import { usePrivatePreview } from './scoreboard/use-private-preview';
@@ -466,27 +466,14 @@ export default function Scoreboard() {
                       </div>
                     </div>
                     <div className="event-refresh-controls">
-                      <button
-                        className={`button subtle ${refreshing ? 'refreshing' : ''}`}
+                      <RefreshButton
+                        autoRefresh={autoRefresh}
+                        autoRefreshDisabled={autoRefreshDisabled}
                         disabled={refreshing || refreshCooldown}
-                        onClick={manualRefresh}
-                      >
-                        <Activity size={16} />
-                        {refreshing ? '更新中' : '更新成績'}
-                      </button>
-                      {tab !== 'admin' && (
-                        <button
-                          type="button"
-                          className="butler-display-toggle"
-                          role="switch"
-                          aria-checked={autoRefresh}
-                          disabled={autoRefreshDisabled}
-                          onClick={() => setAutoRefresh(!autoRefresh)}
-                        >
-                          <span className="butler-toggle-track" aria-hidden="true"><span /></span>
-                          自動更新
-                        </button>
-                      )}
+                        refreshing={refreshing}
+                        onRefresh={manualRefresh}
+                        onToggleAuto={() => setAutoRefresh(!autoRefresh)}
+                      />
                     </div>
                   </section>
                   {event.demo && (
@@ -683,6 +670,8 @@ export default function Scoreboard() {
                       setQuery={setQuery}
                       setTab={setTab}
                       toggleFollow={toggleFollow}
+                      autoRefresh={autoRefresh}
+                      autoRefreshDisabled={autoRefreshDisabled}
                     />
                   )}
                   {tab === 'rounds' && (

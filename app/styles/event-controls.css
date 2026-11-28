@@ -93,9 +93,18 @@
   align-self: center;
   margin-right: 12px;
 }
-.event-refresh-controls .butler-display-toggle:disabled {
-  opacity: .5;
-  cursor: default;
+.event-refresh-button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.event-refresh-mode {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: .65;
 }
 .event-heading .event-meta {
   grid-column: 1 / -1;
