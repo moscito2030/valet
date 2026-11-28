@@ -49,6 +49,7 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
     case 'settings':
       return applySettingsCommand(context, command);
     case 'board-publication':
+    case 'public-timing':
     case 'pbn':
       return applyDealsCommand(context, command);
     default: {

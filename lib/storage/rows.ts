@@ -212,11 +212,16 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
     const waiting = boardsStillInPlay(event);
     const previous = event.club?.enabled ? waiting : boardsStillInPlay(before);
     const published = new Set(materializeBoardPublication(event).boards.filter(b => b.published).map(b => b.number));
+    const { vp, contract, hands } = (event.kind === 'teams' && event.publicTiming) || {};
     if (changedCells.some(key => {
       const board = (event.results[key] ?? before.results[key]).board;
-      return published.has(board) && (!waiting.has(board) || !previous.has(board));
+      const roundVisible = !waiting.has(board) || !previous.has(board);
+      return (published.has(board) && (vp === 'manual' || contract === 'manual')) ||
+        (roundVisible && (vp === 'round' || contract === 'round')) ||
+        (waiting.has(board) !== previous.has(board) && hands === 'round') ||
+        (published.has(board) && roundVisible && (!vp || !contract || !hands));
     })) return true;
-    return !event.club?.enabled && !!event.provisionalVp &&
+    return !vp && !event.club?.enabled && !!event.provisionalVp &&
       canonical(audienceScoring(materializeBoardPublication(before)).provisionalVp) !==
       canonical(audienceScoring(materializeBoardPublication(event)).provisionalVp);
   }

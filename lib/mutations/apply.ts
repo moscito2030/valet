@@ -142,6 +142,7 @@ export function applyMutation(
       'swiss-config': '設定 Swiss',
       'swiss-publish': '公布 Swiss 對戰',
       'board-publication': '逐副公開設定',
+      'public-timing': '公開時機設定',
       'round-control': '設定目前圈數',
       'round-timing': '設定圈次時間',
       'round-times-import': '匯入各圈時間區間',

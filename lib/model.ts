@@ -99,7 +99,11 @@ export type SwissPublication = {
   scores: { id: string; score: number; ready: boolean }[];
 };
 export type SwissConfig = { mode: 'current' | 'delayed'; publications: SwissPublication[] };
+const publicTimingSchema = z.enum(['manual', 'round', 'board']);
+type PublicTiming = z.infer<typeof publicTimingSchema>;
+
 export type BridgeEvent = {
+  publicTiming?: { vp?: PublicTiming; contract?: PublicTiming; hands?: PublicTiming };
   stageArchived?: boolean;
   // Legacy root stages retain their IDs; independent competition records own shared metadata.
   parentEventId?: string;
@@ -561,6 +565,17 @@ export const mutationSchema = z.discriminatedUnion('action', [
     .strict(),
   z
     .object({
+      action: z.literal('public-timing'),
+      revision: z.number().int().min(1),
+      requestId: z.string().uuid(),
+      reason: z.string().trim().min(2).max(200),
+      vp: publicTimingSchema.optional(),
+      contract: publicTimingSchema.optional(),
+      hands: publicTimingSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
       action: z.literal('split-contract'),
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
@@ -743,7 +758,7 @@ export type Projection = {
   received: number;
   expected: number;
 };
-export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards'> & {
+export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards' | 'publicTiming'> & {
   clubEnabled?: boolean;
   // Boards with a stored result, keyed by assignment. Includes unconfirmed club
   // entries. Values are counts only; contracts stay in `results`.

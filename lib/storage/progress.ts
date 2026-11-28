@@ -1,15 +1,43 @@
 import { resultKey, type Assignment, type Result } from '../model';
 import { eventProgress } from '../round-progress';
 import type { Sql } from './neon';
-import { cacheProjection, checkStage } from './projection';
+import { captureSql, commitSql, queueDataVersion } from './batch';
+import { createNormalizedRepository } from './normalized';
+import { cacheProjection, checkStage, queuePublicSnapshot } from './projection';
 import { missingStorage } from './switch';
 
+const PUBLIC_REBUILD_MIN_SECONDS = 30;
+
 export async function readProgress(sql: Sql, id: string, validator: string | null, director: boolean): Promise<Response> {
-  const [head] = await sql`SELECT sw.mode, sw.per_table_at, s.id, s.current_round, s.public_version, c.revision, s.archived OR c.archived AS archived,
+  const readHead = () => sql`SELECT sw.mode, sw.per_table_at, s.id, s.current_round, s.public_version, c.revision, s.archived OR c.archived AS archived,
+      s.updated_at,
+      coalesce(s.settings->>'kind' = 'teams' AND 'board' IN (
+        s.settings->'publicTiming'->>'vp', s.settings->'publicTiming'->>'contract', s.settings->'publicTiming'->>'hands'
+      ), false) AS live_timing,
       (SELECT coalesce(max(version),0) FROM bridge_assignments WHERE event_id = s.id) AS version
     FROM bridge_storage_switch sw LEFT JOIN bridge_stages s ON s.id = ${id}
     LEFT JOIN bridge_competitions c ON c.id = s.competition_id WHERE sw.id = 1`.catch(missingStorage);
+  let [head] = await readHead();
   checkStage(head, director);
+  // CDN caching coalesces origin calls to one per 5 s per region. The floor allows at most two rebuilds per minute.
+  if (head.live_timing && Number(head.version) > Number(head.public_version) &&
+      Date.now() - new Date(String(head.updated_at)).getTime() >= PUBLIC_REBUILD_MIN_SECONDS * 1000) {
+    const { event } = await createNormalizedRepository(sql).getEvent(id, false, false);
+    const cap = captureSql();
+    queueDataVersion(cap.sql, id);
+    // Under the writer lock, keep a tablet write newer than the loaded event eligible for a later rebuild.
+    cap.sql`SELECT 1 / (coalesce(max(version), 0) <= ${event.revision})::int
+      FROM bridge_assignments WHERE event_id = ${id}`;
+    const previous = head.public_version == null ? null : Number(head.public_version);
+    queuePublicSnapshot(cap.sql, { ...event, updatedAt: new Date().toISOString() }, previous);
+    try {
+      await commitSql(sql, cap.batches);
+    } catch (error) {
+      if ((error as { code?: string }).code !== '22012') throw error;
+    }
+    [head] = await readHead();
+    checkStage(head, director);
+  }
   const version = Number(head.version);
   const publication = `${head.public_version}.${head.revision ?? head.public_version}`;
   const snapshotTag = `"${publication}"`;

@@ -1,7 +1,7 @@
 import { boardsStillInPlay } from '../board-in-play';
 import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
-import { presentBoards } from '../public-event';
+import { presentBoards, publicBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
 import { allRoundsComplete, eventProgress } from '../round-progress';
 import { project, teamMatchScores } from '../scoring';
@@ -37,8 +37,34 @@ export function audienceScoring(event: BridgeEvent, projection?: Projection) {
   return publicScoring;
 }
 
+function timedTeamSnapshot(event: BridgeEvent, timing: NonNullable<BridgeEvent['publicTiming']>) {
+  const { vp, contract, hands } = timing;
+  const waiting = [vp, contract, hands].includes('round') ? boardsStillInPlay(event) : undefined;
+  const incomparable = [vp, contract, hands].includes('board')
+    ? boardsStillInPlay({ ...event, club: undefined }) : undefined;
+  const published = new Set(event.boards.filter(board => board.published === true).map(board => board.number));
+  const eligible = (mode: NonNullable<typeof vp>, board: number) => {
+    if (mode === 'manual') return published.has(board);
+    if (mode === 'round') return !waiting!.has(board);
+    return !incomparable!.has(board);
+  };
+  const results = Object.entries(normalizeResults(event.results));
+  const filterResults = (mode: NonNullable<typeof vp>) =>
+    Object.fromEntries(results.filter(([, result]) => eligible(mode, result.board)));
+  const legacy = !vp || !contract ? audienceScoring(event) : undefined;
+  return {
+    results: contract ? filterResults(contract) : legacy!.results,
+    boards: hands
+      ? publicBoards({ ...event, boards: event.boards.map(board => ({ ...board, published: eligible(hands, board.number) })) })
+      : presentBoards(event),
+    projection: project(vp ? { ...event, results: filterResults(vp) } : legacy!),
+  };
+}
+
 export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
-  const publicScoring = audienceScoring(event, projection);
+  const timing = event.publicTiming;
+  const timed = event.kind === 'teams' && timing && (timing.vp || timing.contract || timing.hands)
+    ? timedTeamSnapshot(event, timing) : undefined;
   const { club } = event;
   const data = {
     clubEnabled: !!club?.enabled,
@@ -136,6 +162,8 @@ export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
     revision: event.revision,
     updatedAt: event.updatedAt,
   };
+  if (timed) return { ...data, ...timed };
+  const publicScoring = audienceScoring(event, projection);
   const { results } = publicScoring;
   const safe = { ...data, results };
   const boards = presentBoards(event);

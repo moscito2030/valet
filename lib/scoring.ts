@@ -182,6 +182,7 @@ type ProjectionInput = Pick<
   | 'trim'
   | 'penalties'
   | 'provisionalVp'
+  | 'publicTiming'
   | 'byeVp'
   | 'swiss'
   | 'knockout'
@@ -250,7 +251,11 @@ export function teamMatchScores(e: ProjectionInput) {
       match.completed++;
     }
     const provisionalVp = pending?.vp;
-    if (provisionalVp && match.completed < match.total) {
+    if (e.publicTiming?.vp === 'board' && match.completed > 0 && match.completed < match.total) {
+      match.vpA = vp(match.marginA, match.total);
+      match.vpB = vp(match.marginB, match.total);
+      match.provisional = true;
+    } else if (provisionalVp && match.completed < match.total) {
       [match.vpA, match.vpB] = provisionalVp;
       match.provisional = true;
     } else if (!isImpKnockout(e) && match.completed === match.total && cancelled < match.total) {

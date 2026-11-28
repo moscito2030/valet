@@ -140,6 +140,32 @@ export function PublicationPanel({
             每個按鈕一次公開或隱藏所列牌號的手牌與各桌成績。公開後這些牌計入排名。牌組由 PBN
             指定，未指定時依每圈牌數自動分組。已下載的牌型無法收回。
           </p>
+          {event.kind === 'teams' && <form className="import-export-section" onSubmit={(e) => {
+            e.preventDefault();
+            const form = new FormData(e.currentTarget);
+            void save({
+              action: 'public-timing',
+              vp: form.get('vp') || undefined,
+              contract: form.get('contract') || undefined,
+              hands: form.get('hands') || undefined,
+              reason: '設定公開時機',
+            });
+          }}>
+            <div className="form-grid">
+              {([['vp', 'VP'], ['contract', '合約'], ['hands', '牌型']] as const).map(([item, label]) => (
+                <label className="field" key={item}>
+                  {label}
+                  <select name={item} key={event.publicTiming?.[item]} defaultValue={event.publicTiming?.[item] ?? ''} disabled={busy}>
+                    <option value="">沿用現行規則</option>
+                    <option value="manual">手動公開</option>
+                    <option value="round">一圈打完公開</option>
+                    <option value="board">兩桌可比即公開</option>
+                  </select>
+                </label>
+              ))}
+            </div>
+            <button className="button subtle" disabled={busy}>儲存公開時機</button>
+          </form>}
           <div className="publication-grid">
             {boardGroups(event.boards, event.boardsPerRound).map((group) => {
               const b = group[0];

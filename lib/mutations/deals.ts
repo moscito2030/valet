@@ -6,10 +6,16 @@ import type { MutationContext } from './context';
 
 export function applyDealsCommand(
   context: MutationContext,
-  command: Extract<Mutation, { action: 'board-publication' | 'pbn' }>,
+  command: Extract<Mutation, { action: 'board-publication' | 'public-timing' | 'pbn' }>,
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
+  if (command.action === 'public-timing') {
+    if (e.kind !== 'teams') throw new DomainError('只有隊制賽可設定公開時機');
+    const { vp, contract, hands } = command;
+    e.publicTiming = vp || contract || hands ? { vp, contract, hands } : undefined;
+    return;
+  }
   if (command.action === 'board-publication') {
     // Each board already carries its own switch. Undefined stays hidden.
     e.boards = e.boards.map((b) => ({ ...b, published: b.published === true }));
