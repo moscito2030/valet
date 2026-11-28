@@ -13,7 +13,10 @@ export async function readProgress(sql: Sql, id: string, validator: string | nul
   const version = Number(head.version);
   const publication = `${head.public_version}.${head.revision ?? head.public_version}`;
   const snapshotTag = `"${publication}"`;
-  const headers = { ETag: `"${version}.${publication}"`, 'Cache-Control': 'private, no-cache' };
+  const headers = {
+    ETag: `"${version}.${publication}"`,
+    'Cache-Control': head.archived ? 'private, no-store' : 'public, s-maxage=5, stale-while-revalidate=10',
+  };
   if (headers.ETag === validator) return new Response(null, { status: 304, headers });
   const [cached] = await sql`SELECT projection FROM bridge_projection_cache
     WHERE event_id = ${id} AND audience = 'progress' AND data_version = ${version}`;

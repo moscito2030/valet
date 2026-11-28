@@ -348,22 +348,30 @@ export function createNormalizedRepository(query: Sql) {
 }
 
 
-export async function readScoreboard(sql: Sql, id: string, validator: string | null, director: boolean) {
-  const version = await scoreboardVersion(sql, id, director);
-  const headers = { ETag: version, 'Cache-Control': 'private, no-cache' };
-  if (validator === version) return new Response(null, { status: 304, headers });
-  const [row] = await sql`SELECT p.projection, s.public_version, s.archived OR c.archived AS archived,
+export async function readScoreboard(sql: Sql, id: string, validator: string | null, director: boolean, urlTag?: string) {
+  if (urlTag === undefined) {
+    const version = await scoreboardVersion(sql, id, director);
+    if (validator === version)
+      return new Response(null, { status: 304, headers: { ETag: version, 'Cache-Control': 'private, no-cache' } });
+  }
+  const [row] = await sql`SELECT sw.mode, sw.per_table_at, s.id, p.projection, s.public_version, s.archived OR c.archived AS archived,
       c.document AS competition, c.revision, o.document->>'name' AS organizer
-    FROM bridge_stages s JOIN bridge_projection_cache p ON p.event_id = s.id AND p.audience = 'public'
+    FROM bridge_storage_switch sw LEFT JOIN bridge_stages s ON s.id = ${id}
+    LEFT JOIN bridge_projection_cache p ON p.event_id = s.id AND p.audience = 'public'
     LEFT JOIN bridge_competitions c ON c.id = s.competition_id
     LEFT JOIN bridge_organizers o ON o.id = CASE WHEN c.id IS NULL THEN s.organizer_id ELSE c.organizer_id END
-    WHERE s.id = ${id}`;
-  if (!row || (row.archived && !director)) throw new DomainError('找不到賽事', 404);
+    WHERE sw.id = 1`.catch(missingStorage);
+  checkStage(row, director);
+  if (!row.projection) throw new DomainError('找不到賽事', 404);
   const snapshot = row.projection as PublicEvent;
   const root = row.competition as CompetitionInfo ?? { ...snapshot, hasStages: true };
   const competition = competitionInfo({ ...root, revision: Number(row.revision ?? row.public_version) },
     row.organizer as string | undefined);
-  headers.ETag = `"${row.public_version}.${row.revision ?? row.public_version}"`;
+  const tag = `${row.public_version}.${row.revision ?? row.public_version}`;
+  const headers: HeadersInit = urlTag === undefined
+    ? { ETag: `"${tag}"`, 'Cache-Control': 'private, no-cache' }
+    : { 'Cache-Control': row.archived ? 'private, no-store' : urlTag === tag
+      ? 'public, max-age=31536000, s-maxage=86400, immutable' : 'no-store' };
   return Response.json({ ...snapshot, competition, venue: stageVenue(competition.venue, snapshot.venueOverride) }, { headers });
 }
 

@@ -28,13 +28,12 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
           const url = `/api/events/${encodeURIComponent(id)}`;
           const options = { signal, cache: 'no-cache' as const };
           const progress = await api<ReturnType<typeof eventProgress> & { snapshotTag: string }>(`${url}/progress`, options);
-          let tag = progress.snapshotTag;
+          const tag = progress.snapshotTag;
           let snapshot = held.current?.tag === tag && held.current.event.id === id ? held.current.event : null;
           if (!snapshot) {
-            const response = await fetch(url, options);
+            const response = await fetch(`${url}/standings/${tag.slice(1, -1)}`, { signal });
             if (!response.ok) throw Object.assign(new Error((await response.json()).error), { status: response.status });
             snapshot = await response.json() as PublicEvent;
-            tag = response.headers.get('etag') ?? tag;
           }
           data = mergeEventProgress(snapshot, progress);
           if (generation === requestGeneration.current) held.current = { tag, event: data };

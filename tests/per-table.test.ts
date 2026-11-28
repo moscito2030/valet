@@ -276,6 +276,15 @@ test('per-table storage', async t => {
       assert.equal(await projectionCalls(session), 0);
       assert.equal((await readScoreboard(sql, e.id, oldTag, false)).status, 304);
 
+      const beforeProgress = await readProgress(sql, e.id, null, false);
+      const { snapshotTag: beforeTag }: { snapshotTag: string } = await beforeProgress.json();
+      assert.equal(beforeTag, oldTag);
+      const progressCache = 'public, s-maxage=5, stale-while-revalidate=10';
+      assert.equal(beforeProgress.headers.get('cache-control'), progressCache);
+      const unchanged = await readProgress(sql, e.id, beforeProgress.headers.get('etag'), false);
+      assert.equal(unchanged.status, 304);
+      assert.equal(unchanged.headers.get('cache-control'), progressCache);
+
       const refreshed = await publish({ action: 'running-score-refresh' }, oldTag);
       const snapshot = await refreshed.json();
       assert.deepEqual(Object.keys(snapshot.results).sort(), keys.sort());
@@ -286,6 +295,19 @@ test('per-table storage', async t => {
       assert.equal(snapshot.runningScore, undefined);
       const newTag = refreshed.headers.get('etag');
       assert.equal((await readScoreboard(sql, e.id, newTag, false)).status, 304);
+
+      const { snapshotTag: afterTag }: { snapshotTag: string } = await (await readProgress(sql, e.id, null, false)).json();
+      assert.notEqual(afterTag, beforeTag);
+      assert.equal(afterTag, newTag);
+      const standings = await readScoreboard(sql, e.id, afterTag, false, afterTag.slice(1, -1));
+      assert.equal(standings.status, 200);
+      assert.equal(standings.headers.get('etag'), null);
+      assert.equal(standings.headers.get('cache-control'), 'public, max-age=31536000, s-maxage=86400, immutable');
+      assert.deepEqual(await standings.json(), snapshot);
+      const staleUrl = await readScoreboard(sql, e.id, null, false, beforeTag.slice(1, -1));
+      assert.equal(staleUrl.status, 200);
+      assert.equal(staleUrl.headers.get('cache-control'), 'no-store');
+      assert.deepEqual(await staleUrl.json(), snapshot);
 
       const disabled = await publish({ action: 'club-config', enabled: true, runningScore: false }, newTag);
       assert.deepEqual((await disabled.json()).results, {});
@@ -314,6 +336,20 @@ test('per-table storage', async t => {
     await repo.mutateEvent(id, mutationSchema.parse({ action: 'stage-archive', reason: '測試封存', archived: true,
       revision: current.event.revision, requestId: randomUUID() }));
     assert.deepEqual(await query(), before);
+  });
+  await t.test('archived standings and progress stay private', async () => {
+    const progress = await readProgress(sql, id, null, true);
+    const { snapshotTag } = await progress.json();
+    const tag = snapshotTag.slice(1, -1);
+    const standings = await readScoreboard(sql, id, null, true, tag);
+    assert.equal(standings.status, 200);
+    assert.equal(standings.headers.get('cache-control'), 'private, no-store');
+    assert.equal(progress.headers.get('cache-control'), 'private, no-store');
+    const unchanged = await readProgress(sql, id, progress.headers.get('etag'), true);
+    assert.equal(unchanged.status, 304);
+    assert.equal(unchanged.headers.get('cache-control'), 'private, no-store');
+    await assert.rejects(readScoreboard(sql, id, null, false, tag), { status: 404 });
+    await assert.rejects(readProgress(sql, id, null, false), { status: 404 });
   });
   await t.test('single-stage and competition operations scope their family reads in SQL', async () => {
     statements.length = 0;
