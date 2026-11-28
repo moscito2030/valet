@@ -12,7 +12,7 @@ import {
   Vulnerability,
   resultKey,
 } from './model';
-import { normalizeResults } from './result-status';
+import { normalizeResults, teamBoardReceived } from './result-status';
 import { teamByes } from './team-movement';
 // Assigned scores remain in NS coordinates; the side selects the awarded contract.
 export function awardedResult(result: Result | undefined, side: 'ns' | 'ew'): Result | undefined {
@@ -230,13 +230,12 @@ export function teamMatchScores(e: ProjectionInput) {
     for (const board of open.boards) {
       const x = e.results[resultKey(open.id, board)],
         y = e.results[resultKey(closed.id, board)];
-      if (pending && (!x || !y)) continue;
+      if (!teamBoardReceived(x, y, !!pending)) continue;
       if (x?.status === 'cancelled' || y?.status === 'cancelled') {
         cancelled++;
         match.completed++;
         continue;
       }
-      if (!x || !y) continue;
       const [imp, otherImp] = teamBoardImps(x, y);
       if (e.teamMethod === 'bam') {
         const [a, b] = bamBoardPoints(x, y, e);

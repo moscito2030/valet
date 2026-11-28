@@ -22,7 +22,8 @@ import { canonical, seedResultWrites } from './cell-write';
 import { captureSql, commitSql, isConflict } from './batch';
 import { normalizeResults } from '../result-status';
 import { inheritCompetition } from '../competitions';
-import { audienceEvent, audienceScoring } from '../read-models/public-event';
+import { competitionInfo, stageVenue } from '../competitions';
+import type { PublicEvent, CompetitionInfo } from '../model';
 import { cachedProjection, scoreboardVersion } from './projection';
 import { readOrganizerNames } from './organizer-names';
 import { resolveCompetitionOrganizer } from '../competitions';
@@ -33,6 +34,7 @@ import {
   loadStage,
   loadStages,
   queueCompetition,
+  queueCompetitionOrganizer,
   queueDeleteCompetition,
   queueDeleteStage,
   queueStage,
@@ -58,6 +60,7 @@ function queueSaved(
           ? (competition.existed ? competition.revision : null)
           : undefined,
       );
+      if (competition && !competition.existed) queueCompetitionOrganizer(sql, competition.id);
       continue;
     }
     const prior = stages.find((stage) => stage.stored.event.id === document.event.id);
@@ -105,13 +108,8 @@ export function createNormalizedRepository(query: Sql) {
         (SELECT max(version) FROM bridge_penalties WHERE event_id = s.id)) AS revision, s.settings, s.updated_at,
         (SELECT count(*)::int FROM bridge_results r WHERE r.event_id = s.id) AS received,
         (SELECT count(*)::int FROM bridge_assignments a,
-           LATERAL jsonb_array_elements_text(a.document->'boards') b(board)
-         WHERE a.event_id = s.id AND (NOT EXISTS (
-           SELECT 1 FROM jsonb_each(s.settings->'knockout'->'decisions') d
-           WHERE d.value->>'method' IN ('forfeit','withdrawal')
-             AND starts_with(a.document->>'matchId', 'ko-' || d.key || '-r')
-             AND substr(a.document->>'matchId', length(d.key) + 6) ~ '^[0-9]+$'
-         ) OR EXISTS (SELECT 1 FROM bridge_results r WHERE r.event_id = s.id
+           LATERAL jsonb_array_elements_text(a.boards) b(board)
+         WHERE a.event_id = s.id AND (NOT a.exempt OR EXISTS (SELECT 1 FROM bridge_results r WHERE r.event_id = s.id
            AND r.assignment_id = a.assignment_id AND r.board = b.board::int))) AS expected
         FROM bridge_stages s ORDER BY s.updated_at DESC, s.id`;
     const [participants, boards] = await Promise.all([
@@ -172,8 +170,7 @@ export function createNormalizedRepository(query: Sql) {
     const organizer = resolveCompetitionOrganizer(assignments.map(row => row.organizer_id), names);
     const stored = materializeStoredPublication(stage.stored);
     const event = { ...stored.event, results: normalizeResults(stored.event.results) };
-    const projection = rankings ? await cachedProjection(query, event, 'full') : null;
-    if (rankings && !projection) return getEvent(id, history, rankings);
+    const projection = rankings ? await cachedProjection(query, event) : null;
     const record = projection ? { event, requests: stored.requests, projection } : storedWithProjection(event, stored.requests);
     return inheritCompetition(record,
       root.competition, organizer.name);
@@ -193,6 +190,7 @@ export function createNormalizedRepository(query: Sql) {
     );
     const conflict = await writeOnce(sql(), (cap) => {
       queueDeleteStage(cap, id, revision);
+      if (stage.stored.event.organizerId) queueCompetitionOrganizer(cap, competitionId);
       queueSaved(cap, current.stages, saved, {
         id: competitionId,
         revision: previous.competition.revision,
@@ -327,6 +325,7 @@ export function createNormalizedRepository(query: Sql) {
         }
         queueCompetition(cap, next, existing ? revision : null);
         queueStage(cap, stored, seedResultWrites(child));
+        if (!existing) queueCompetitionOrganizer(cap, parentId);
       });
       if (!conflict) return (await loadStage(sql(), child.id))!.stored;
     }
@@ -353,14 +352,34 @@ export async function readScoreboard(sql: Sql, id: string, validator: string | n
   const version = await scoreboardVersion(sql, id, director);
   const headers = { ETag: version, 'Cache-Control': 'private, no-cache' };
   if (validator === version) return new Response(null, { status: 304, headers });
-  const repo = createNormalizedRepository(sql);
-  for (;;) {
-    const { event, projection } = await repo.getEvent(id, false);
-    if ((event.stageArchived || event.competition?.archived) && !director) throw new DomainError('找不到賽事', 404);
-    const scoring = audienceScoring(event, projection);
-    const publicProjection = await cachedProjection(sql, scoring, 'public');
-    if (!publicProjection) continue;
-    headers.ETag = `"${event.revision}.${event.competition?.revision ?? event.revision}"`;
-    return Response.json(audienceEvent(event, projection, publicProjection, scoring), { headers });
-  }
+  const [row] = await sql`SELECT p.projection, s.public_version, s.archived OR c.archived AS archived,
+      c.document AS competition, c.revision, o.document->>'name' AS organizer
+    FROM bridge_stages s JOIN bridge_projection_cache p ON p.event_id = s.id AND p.audience = 'public'
+    LEFT JOIN bridge_competitions c ON c.id = s.competition_id
+    LEFT JOIN bridge_organizers o ON o.id = CASE WHEN c.id IS NULL THEN s.organizer_id ELSE c.organizer_id END
+    WHERE s.id = ${id}`;
+  if (!row || (row.archived && !director)) throw new DomainError('找不到賽事', 404);
+  const snapshot = row.projection as PublicEvent;
+  const root = row.competition as CompetitionInfo ?? { ...snapshot, hasStages: true };
+  const competition = competitionInfo({ ...root, revision: Number(row.revision ?? row.public_version) },
+    row.organizer as string | undefined);
+  headers.ETag = `"${row.public_version}.${row.revision ?? row.public_version}"`;
+  return Response.json({ ...snapshot, competition, venue: stageVenue(competition.venue, snapshot.venueOverride) }, { headers });
+}
+
+export function adminResponse(stored: StoredEvent, director: boolean, validator: string | null) {
+  const { audit, ...event } = stored.event;
+  if ((event.stageArchived || event.competition?.archived) && !director) throw new DomainError('找不到賽事', 404);
+  const ETag = `"${event.revision}.${event.competition?.revision ?? event.revision}"`;
+  const headers = { ETag, 'Cache-Control': 'private, no-cache', Vary: 'Cookie' };
+  if (ETag === validator) return new Response(null, { status: 304, headers });
+  return Response.json({ ...event, ...(director ? { audit } : {}), projection: stored.projection, canDirect: director }, { headers });
+}
+
+export async function readAdmin(sql: Sql, id: string, validator: string | null, director: boolean) {
+  const ETag = await scoreboardVersion(sql, id, director, true);
+  if (ETag === validator) return new Response(null, {
+    status: 304, headers: { ETag, 'Cache-Control': 'private, no-cache', Vary: 'Cookie' },
+  });
+  return adminResponse(await createNormalizedRepository(sql).getEvent(id), director, validator);
 }

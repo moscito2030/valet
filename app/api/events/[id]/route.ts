@@ -1,5 +1,5 @@
 import { canMutate } from '@/lib/mutation-permissions';
-import { audienceEvent } from '@/lib/club-view';
+import { publicSnapshot } from '@/lib/read-models/public-event';
 import { NextResponse } from 'next/server';
 import { scoreboardVersion } from '@/lib/storage/projection';
 import { readScoreboard } from '@/lib/storage/normalized';
@@ -18,7 +18,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { event, projection } = await getEvent(id);
     const headers = { 'Cache-Control': 'private, no-cache', ETag: `"${event.revision}.${event.competition?.revision ?? event.revision}"` };
     if (request.headers.get('if-none-match') === headers.ETag) return new Response(null, { status: 304, headers });
-    return NextResponse.json(audienceEvent(event, projection), { headers });
+    return NextResponse.json(publicSnapshot(event, projection), { headers });
   } catch (e) {
     return errorResponse(e);
   }

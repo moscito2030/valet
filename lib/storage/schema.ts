@@ -150,11 +150,14 @@ export const normalizedSchemaStatements = [
 export const perTableSchemaStatements = [
   `CREATE SEQUENCE IF NOT EXISTS bridge_data_version`,
   `ALTER TABLE bridge_stages
+     ADD COLUMN IF NOT EXISTS public_version bigint,
+     ADD COLUMN IF NOT EXISTS organizer_id text GENERATED ALWAYS AS (settings->>'organizerId') STORED,
      ADD COLUMN IF NOT EXISTS current_round int GENERATED ALWAYS AS (coalesce((settings->>'currentRound')::int,0)) STORED,
      ADD COLUMN IF NOT EXISTS club_enabled boolean GENERATED ALWAYS AS ((settings->'club'->>'enabled')::boolean) STORED,
      ADD COLUMN IF NOT EXISTS table_mode boolean GENERATED ALWAYS AS (coalesce(settings->'club'->>'mode' = 'table',false)) STORED,
      ADD COLUMN IF NOT EXISTS archived boolean GENERATED ALWAYS AS ((settings->>'stageArchived')::boolean) STORED`,
-  `ALTER TABLE bridge_competitions ADD COLUMN IF NOT EXISTS archived boolean
+  `ALTER TABLE bridge_competitions ADD COLUMN IF NOT EXISTS organizer_id text,
+     ADD COLUMN IF NOT EXISTS archived boolean
      GENERATED ALWAYS AS ((document->>'archived')::boolean) STORED`,
   `ALTER TABLE bridge_assignments
     ADD COLUMN IF NOT EXISTS round integer,
@@ -165,16 +168,24 @@ export const perTableSchemaStatements = [
     ADD COLUMN IF NOT EXISTS device_key text,
     ADD COLUMN IF NOT EXISTS version bigint,
     ADD COLUMN IF NOT EXISTS input_pair text,
-    ADD COLUMN IF NOT EXISTS participant_count int,
+    ADD COLUMN IF NOT EXISTS boards jsonb GENERATED ALWAYS AS (document->'boards') STORED,
+    ADD COLUMN IF NOT EXISTS match_id text GENERATED ALWAYS AS (document->>'matchId') STORED,
+    ADD COLUMN IF NOT EXISTS table_number boolean GENERATED ALWAYS AS (jsonb_typeof(document->'table') = 'number') STORED,
+    ADD COLUMN IF NOT EXISTS player_names jsonb GENERATED ALWAYS AS (document->'playerNames') STORED,
+    ADD COLUMN IF NOT EXISTS exempt boolean,
+    ADD COLUMN IF NOT EXISTS provisional boolean,
     ADD COLUMN IF NOT EXISTS confirmation jsonb`,
   `CREATE INDEX IF NOT EXISTS bridge_assignments_round ON bridge_assignments(event_id, round)`,
+  `CREATE INDEX IF NOT EXISTS bridge_assignments_version ON bridge_assignments(event_id, version)`,
   `CREATE TABLE IF NOT EXISTS bridge_club_tokens (
      event_id text NOT NULL, device_key text NOT NULL, token_hash text NOT NULL, movement_size int NOT NULL, device_label text,
      PRIMARY KEY(event_id, device_key), UNIQUE(event_id, token_hash)
    )`,
+  `ALTER TABLE bridge_results ADD COLUMN IF NOT EXISTS status text GENERATED ALWAYS AS (coalesce(document->>'status','played')) STORED`,
   `ALTER TABLE bridge_penalties ADD COLUMN IF NOT EXISTS version bigint`,
+  `CREATE INDEX IF NOT EXISTS bridge_penalties_version ON bridge_penalties(event_id, version)`,
   `CREATE TABLE IF NOT EXISTS bridge_projection_cache (
-     event_id text NOT NULL, audience text NOT NULL CHECK (audience IN ('full','public')),
+     event_id text NOT NULL, audience text NOT NULL CHECK (audience IN ('full','public','progress')),
      data_version bigint NOT NULL, projection jsonb NOT NULL, PRIMARY KEY(event_id, audience)
    )`,
   `ALTER TABLE bridge_storage_switch ADD COLUMN IF NOT EXISTS per_table_at timestamptz`,

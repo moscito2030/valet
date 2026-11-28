@@ -109,7 +109,7 @@ export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
     delete event.competition;
     event.revision += 1;
     event.updatedAt = at;
-    return { ...stage, event };
+    return { event, requests: stage.requests, get projection() { return stage.projection; } };
   });
   return {
     documents: [

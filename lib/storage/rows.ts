@@ -1,3 +1,8 @@
+import { knockoutExemptAssignments } from '../knockout-status';
+import { materializeBoardPublication } from '../board-publication';
+import { boardsStillInPlay } from '../board-in-play';
+import { audienceScoring } from '../read-models/public-event';
+import { queuePublicSnapshot } from './projection';
 import { DomainError } from '../domain-error';
 import { clubConfirmationKey } from '../club-confirmation';
 import { interleavedSize } from '../team-movement';
@@ -24,11 +29,12 @@ const splitKeys = ['participants', 'assignments', 'boards', 'results', 'penaltie
 export type LoadedStage = {
   stored: StoredEvent;
   stageVersion: number;
+  publicVersion: number | null;
   assignmentVersions: Record<string, number>;
   penaltyVersions: Record<string, number>;
 };
 
-type StageRow = { id?: string; revision: unknown; settings: BridgeEvent; updated_at: string };
+type StageRow = { id?: string; revision: unknown; public_version: number | null; settings: BridgeEvent; updated_at: string };
 
 export function boardJson(board: Board) {
   return JSON.stringify(board);
@@ -76,6 +82,11 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       if (settingsChanged) sql`UPDATE bridge_stages SET settings = ${JSON.stringify(settings)}::jsonb WHERE id = ${event.id}`;
     }
   }
+  if (event.organizerId !== before?.organizerId || (before && stageCompetitionId(before) !== stageCompetitionId(event))) {
+    queueCompetitionOrganizer(sql, stageCompetitionId(event));
+    if (before && stageCompetitionId(before) !== stageCompetitionId(event))
+      queueCompetitionOrganizer(sql, stageCompetitionId(before));
+  }
   if (prior && command && !stageChanged) {
     const tables = command.action === 'results' ? command.results.map(r => r.assignmentId)
       : 'assignmentId' in command && command.assignmentId ? [command.assignmentId] : [];
@@ -96,26 +107,51 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
   const changedCells = [...new Set([...Object.keys(before?.results ?? {}), ...Object.keys(event.results)])]
     .filter(key => canonical(before?.results[key]) !== canonical(event.results[key]));
   const changedResults = new Set(changedCells.map(key => (event.results[key] ?? before!.results[key]).assignmentId));
+  if (prior && changedCells.length && !stageChanged) {
+    // Publication settings may have changed since this table was read.
+    sql`SELECT 1 / count(*)::int FROM bridge_stages WHERE id = ${event.id} AND revision = ${prior.stageVersion}`;
+    if (!event.club?.enabled) {
+      // In director scoring the last result from another table can release the same board.
+      const boards = new Set(changedCells.map(key => (event.results[key] ?? before!.results[key]).board));
+      const peers = event.assignments.filter(a => !changedResults.has(a.id) && a.boards.some(b => boards.has(b)));
+      if (peers.length) sql`SELECT 1 / (NOT EXISTS (SELECT 1 FROM bridge_assignments WHERE event_id = ${event.id}
+        AND assignment_id IN (SELECT jsonb_array_elements_text(${JSON.stringify(peers.map(a => a.id))}::jsonb))
+        AND version > ${before!.revision}))::int`;
+    }
+  }
+  const exempt = knockoutExemptAssignments(event);
+  const oldExempt = before && knockoutExemptAssignments(before);
+  // A round switch or a deletion changes progress even when the surviving schedules are identical.
+  const progressChanged = before && (before.currentRound !== event.currentRound ||
+    before.assignments.some(a => !event.assignments.some(next => next.id === a.id)));
   for (const [ordinal, row] of event.assignments.entries()) {
     const device = tableDeviceKey(event, row);
     const confirmation = event.club?.confirmations[clubConfirmationKey(event, row)];
     const old = before?.assignments[ordinal];
     const override = event.club?.inputOverrides?.[row.id];
-    if (old && before && override === before.club?.inputOverrides?.[row.id] && before.participants.length === event.participants.length && canonical(row) === canonical(old) && device === tableDeviceKey(before, old)
-      && canonical(confirmation) === canonical(before.club?.confirmations[clubConfirmationKey(before, old)])
-      && !changedResults.has(row.id)) continue;
+    const unchanged = old && before && canonical(row) === canonical(old) &&
+      override === before.club?.inputOverrides?.[row.id] && device === tableDeviceKey(before, old) &&
+      exempt.has(row.id) === oldExempt!.has(row.id) &&
+      !!event.provisionalVp?.[row.matchId] === !!before.provisionalVp?.[row.matchId] &&
+      canonical(confirmation) === canonical(before.club?.confirmations[clubConfirmationKey(before, old)]);
+    if (unchanged && !changedResults.has(row.id) && !(ordinal === 0 && progressChanged)) continue;
     if (prior && prior.assignmentVersions[row.id] !== undefined) {
       const version = prior.assignmentVersions[row.id];
       if (!stageChanged) rejectStale(version, clientRevision);
       sql`SELECT 1 / count(*)::int FROM (SELECT 1 FROM bridge_assignments WHERE event_id = ${event.id}
         AND assignment_id = ${row.id} AND version = ${version} FOR UPDATE) guard`;
     }
-    sql`INSERT INTO bridge_assignments(event_id, assignment_id, ordinal, document, round, table_label, room, ns, ew, device_key, input_pair, participant_count, version, confirmation)
+    if (unchanged) {
+      sql`UPDATE bridge_assignments SET version = current_setting('valet.data_version')::bigint
+        WHERE event_id = ${event.id} AND assignment_id = ${row.id}`;
+      continue;
+    }
+    sql`INSERT INTO bridge_assignments(event_id, assignment_id, ordinal, document, round, table_label, room, ns, ew, device_key, input_pair, exempt, provisional, version, confirmation)
       VALUES (${event.id}, ${row.id}, ${ordinal}, ${JSON.stringify(row)}::jsonb, ${row.round}, ${String(row.table)},
-        ${row.room}, ${row.ns}, ${row.ew}, ${device}, ${override ?? null}, ${event.participants.length}, current_setting('valet.data_version')::bigint, ${confirmation ? JSON.stringify(confirmation) : null}::jsonb)
+        ${row.room}, ${row.ns}, ${row.ew}, ${device}, ${override ?? null}, ${exempt.has(row.id)}, ${!!event.provisionalVp?.[row.matchId]}, current_setting('valet.data_version')::bigint, ${confirmation ? JSON.stringify(confirmation) : null}::jsonb)
       ON CONFLICT(event_id, assignment_id) DO UPDATE SET ordinal = excluded.ordinal, document = excluded.document,
         round = excluded.round, table_label = excluded.table_label, room = excluded.room, ns = excluded.ns, ew = excluded.ew,
-        device_key = excluded.device_key, input_pair = excluded.input_pair, participant_count = excluded.participant_count, version = excluded.version, confirmation = excluded.confirmation`;
+        device_key = excluded.device_key, input_pair = excluded.input_pair, exempt = excluded.exempt, provisional = excluded.provisional, version = excluded.version, confirmation = excluded.confirmation`;
   }
   for (const row of before?.boards ?? [])
     if (!event.boards.some(b => b.number === row.number))
@@ -166,6 +202,23 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       VALUES (${event.id}, ${key}, ${hash}, ${size}, ${devices.get(key) ?? null})
       ON CONFLICT(event_id, device_key) DO UPDATE SET token_hash = excluded.token_hash, movement_size = excluded.movement_size, device_label = excluded.device_label`;
   }
+  function visibleScoresChanged() {
+    if (!changedCells.length || !before) return false;
+    const waiting = boardsStillInPlay(event);
+    const previous = event.club?.enabled ? waiting : boardsStillInPlay(before);
+    const published = new Set(materializeBoardPublication(event).boards.filter(b => b.published).map(b => b.number));
+    if (changedCells.some(key => {
+      const board = (event.results[key] ?? before.results[key]).board;
+      return published.has(board) && (!waiting.has(board) || !previous.has(board));
+    })) return true;
+    return !event.club?.enabled && !!event.provisionalVp &&
+      canonical(audienceScoring(materializeBoardPublication(before)).provisionalVp) !==
+      canonical(audienceScoring(materializeBoardPublication(event)).provisionalVp);
+  }
+  const publicChanged = stageChanged || canonical(before?.penalties) !== canonical(event.penalties) ||
+    canonical(before?.assignments) !== canonical(event.assignments) ||
+    visibleScoresChanged();
+  if (publicChanged) queuePublicSnapshot(sql, event, prior?.publicVersion ?? null);
   if (command)
     sql`SELECT set_config('valet.data_version', greatest(revision,
       (SELECT max(version) FROM bridge_assignments WHERE event_id = ${event.id}),
@@ -200,7 +253,7 @@ function stageSettings(event: BridgeEvent) {
 export async function loadStage(sql: Sql, id: string, history = true): Promise<LoadedStage | null> {
   const cap = captureSql();
   cap.sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`;
-  cap.sql`SELECT id, revision, settings, updated_at FROM bridge_stages WHERE id = ${id}`;
+  cap.sql`SELECT id, revision, public_version, settings, updated_at FROM bridge_stages WHERE id = ${id}`;
   queueChildren(cap.sql, JSON.stringify([id]), history);
   const [, stages, ...children] = await commitSql(sql, cap.batches);
   return hydrateStages(stages as unknown as StageRow[], children, history)[0] ?? null;
@@ -208,8 +261,8 @@ export async function loadStage(sql: Sql, id: string, history = true): Promise<L
 
 export async function loadStages(sql: Sql, competitionId?: string): Promise<LoadedStage[]> {
   const rows = competitionId === undefined
-    ? await sql`SELECT id, revision, settings, updated_at FROM bridge_stages ORDER BY updated_at DESC, id`
-    : await sql`SELECT id, revision, settings, updated_at FROM bridge_stages
+    ? await sql`SELECT id, revision, public_version, settings, updated_at FROM bridge_stages ORDER BY updated_at DESC, id`
+    : await sql`SELECT id, revision, public_version, settings, updated_at FROM bridge_stages
         WHERE competition_id = ${competitionId} OR id = ${competitionId} ORDER BY updated_at DESC, id`;
   if (!rows.length) return [];
   const cap = captureSql();
@@ -289,10 +342,17 @@ function hydrateStages(stages: StageRow[], children: Record<string, unknown>[][]
       };
     }
     return {
-      stageVersion: Number(stage.revision), assignmentVersions, penaltyVersions,
+      stageVersion: Number(stage.revision), publicVersion: stage.public_version == null ? null : Number(stage.public_version), assignmentVersions, penaltyVersions,
       stored: storedWithProjection(event, (requestRows.get(id) ?? []).map(row => String((row as unknown as { request_id: string }).request_id))),
     };
   });
+}
+
+export function queueCompetitionOrganizer(sql: Sql, competitionId: string) {
+  sql`UPDATE bridge_competitions SET organizer_id = (
+    SELECT min(organizer_id) FROM bridge_stages WHERE competition_id = ${competitionId}
+      AND btrim(organizer_id) <> '' HAVING count(DISTINCT organizer_id) = 1
+    ) WHERE id = ${competitionId}`;
 }
 
 export function queueDeleteStage(sql: Sql, id: string, revision?: number) {

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { seedEvents } from '../../lib/domain/demo-events';
-import { audienceEvent } from '../../lib/read-models/public-event';
+import { eventProgress } from '../../lib/round-progress';
+import { publicSnapshot } from '../../lib/read-models/public-event';
 
 test('event deep links and the lazy board view remain usable', async ({ page }) => {
   const stored = seedEvents()[0];
@@ -15,8 +16,9 @@ test('event deep links and the lazy board view remain usable', async ({ page }) 
     received: stored.projection.received, expected: stored.projection.expected,
   }] } }));
   await page.route(`**/api/events/${event.id}`, route => route.fulfill({
-    json: audienceEvent(event, stored.projection),
+    json: publicSnapshot(event, stored.projection),
   }));
+  await page.route(`**/api/events/${event.id}/progress`, route => route.fulfill({ json: eventProgress(event) }));
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`/?event=${event.id}&view=standings`);

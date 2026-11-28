@@ -3,6 +3,9 @@ import type { AccessAudit } from '../access/audit';
 import type { AccessCode } from '../access/codes';
 import type { BridgeEvent } from '../model';
 import { captureSql, commitSql, queueDataVersion } from './batch';
+import { loadStage, queueCompetitionOrganizer } from './rows';
+import { queuePublicSnapshot } from './projection';
+import { stageCompetitionId } from '../competition-record';
 import type { Sql } from './neon';
 import { isUndefinedTable, requireNormalizedStorage } from './switch';
 
@@ -65,7 +68,7 @@ export async function assignAccessRecords(
     (await sql`SELECT id FROM bridge_access_codes`).map((row) => String(row.id)),
   );
   const newCodes = migrated.codes.filter((code) => !existingCodes.has(code.id));
-  const missingOrganizer = events.filter((event) => event.organizerId !== organizerId);
+  const missingOrganizer = events.filter((event) => event.organizerId == null);
   if (!input.dryRun && (missingOrganizer.length || newCodes.length)) {
     const cap = captureSql();
     cap.sql`INSERT INTO bridge_organizers (id, document)
@@ -91,10 +94,16 @@ export async function assignAccessRecords(
       cap.sql`INSERT INTO bridge_access_audit (id, document)
         VALUES (${`assign-${event.id}`}, ${JSON.stringify(audit)}::jsonb)
         ON CONFLICT (id) DO NOTHING`;
+      const prior = (await loadStage(sql, event.id, false))!;
       queueDataVersion(cap.sql, event.id);
       cap.sql`UPDATE bridge_stages
         SET revision = current_setting('valet.data_version')::int, settings = jsonb_set(settings, '{organizerId}', to_jsonb(${organizerId}::text))
-        WHERE id = ${event.id} AND NOT (settings ? 'organizerId')`;
+        WHERE id = ${event.id} AND organizer_id IS NULL`;
+      queuePublicSnapshot(cap.sql, { ...prior.stored.event, organizerId }, prior.publicVersion);
+    }
+    for (const id of new Set(missingOrganizer.map(stageCompetitionId))) {
+      queueCompetitionOrganizer(cap.sql, id);
+      cap.sql`UPDATE bridge_competitions SET revision = revision + 1 WHERE id = ${id}`;
     }
     await commitSql(sql, cap.batches);
   }

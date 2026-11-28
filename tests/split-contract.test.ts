@@ -1,4 +1,9 @@
 import test from 'node:test';
+import { createNormalizedRepository } from '../lib/storage/normalized';
+import { readProgress } from '../lib/storage/progress';
+import { createTestDb } from './helpers/sql';
+import type { Sql } from '../lib/storage/neon';
+import { roundProgress, enteredBoardCounts } from '../lib/round-progress';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createEvent, applyMutation } from '../lib/events';
@@ -161,4 +166,38 @@ test('split validates kind, assignment, contract identity, revision and finished
       } as Mutation),
     /重新開放/,
   );
+});
+
+test('progress counts agree with played standings for pairs, teams, split and cancelled boards', async t => {
+  const db = await createTestDb();
+  t.after(db.close);
+  const reads: string[] = [];
+  const sql: Sql = (strings, ...values) => { reads.push(strings.join('?')); return db.sql(strings, ...values); };
+  sql.transaction = db.sql.transaction;
+  const repo = createNormalizedRepository(sql);
+  for (const kind of ['pairs', 'teams'] as const) {
+    const f = fixture(kind);
+    if (kind === 'teams') {
+      f.mutate(f.split());
+      f.mutate({ action: 'ruling', assignmentId: f.open.id, board: 2, cancelled: true });
+      delete f.stored.event.results[resultKey(f.closed.id, 2)];
+    }
+    const event = f.stored.event;
+    await repo.insertEvent(event);
+    reads.length = 0;
+    const cold = await readProgress(sql, event.id, null, false);
+    assert.deepEqual(await cold.json(), {
+      enteredBoards: enteredBoardCounts(event), collectionProgress: roundProgress(event),
+      receivedByParticipant: Object.fromEntries(project(event).standings.filter(p => p.played).map(p => [p.id, p.played])),
+    });
+    assert.equal(reads.length, 4);
+    assert.doesNotMatch(reads.join(' '), /document|settings|bridge_(participants|boards|audit|requests)/);
+    reads.length = 0;
+    await readProgress(sql, event.id, null, false);
+    assert.equal(reads.length, 2);
+    reads.length = 0;
+    assert.equal((await readProgress(sql, event.id, cold.headers.get('etag'), false)).status, 304);
+    assert.equal(reads.length, 1);
+    assert.doesNotMatch(reads[0], /projection|document|settings|bridge_results/);
+  }
 });

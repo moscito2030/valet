@@ -1,12 +1,13 @@
 import { knockoutExemptAssignments } from './knockout-status';
-import type { BridgeEvent } from './model';
+import type { Assignment, BridgeEvent, Result } from './model';
+import { teamBoardReceived } from './result-status';
 import { resultKey } from './model';
 
 // A board counts as soon as a result is stored. In club scoring that is the
 // designated input side (NS by default) submitting the board. The other side's
 // confirmation is not required, and the count carries no contract or score.
 export function enteredBoardCounts(
-  event: Pick<BridgeEvent, 'assignments' | 'results'>,
+  event: { assignments: Assignment[]; results: Record<string, unknown> },
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const assignment of event.assignments) {
@@ -51,14 +52,20 @@ export function allRoundsComplete(
 export function roundProgress(
   event: Pick<BridgeEvent, 'currentRound' | 'assignments' | 'results'> & Partial<Pick<BridgeEvent, 'knockout'>>,
 ) {
-  const entered = enteredBoardCounts(event);
+  return collectionProgress(event, enteredBoardCounts(event), knockoutExemptAssignments(event));
+}
+
+function collectionProgress(
+  event: Pick<BridgeEvent, 'currentRound' | 'assignments'>,
+  entered: Record<string, number>,
+  exempt: Set<string>,
+) {
   const round =
     event.currentRound ||
     Math.max(
       0,
       ...event.assignments.filter((a) => entered[a.id]).map((a) => a.round),
     );
-  const exempt = knockoutExemptAssignments(event);
   const tables = event.assignments
     .filter((a) => a.round === round)
     .map((assignment) => {
@@ -74,4 +81,32 @@ export function roundProgress(
     expected: tables.reduce((sum, table) => sum + table.expected, 0),
     slowest: unfinished.filter((table) => table.ratio === lowest),
   };
+}
+
+export function eventProgress(
+  event: Pick<BridgeEvent, 'assignments' | 'currentRound'> & {
+    results: Record<string, Pick<Result, 'status'>>;
+    knockout?: BridgeEvent['knockout'];
+    provisionalVp?: BridgeEvent['provisionalVp'];
+  },
+  exempt = knockoutExemptAssignments(event),
+  pending = new Set(Object.keys(event.provisionalVp ?? {})),
+) {
+  const enteredBoards = enteredBoardCounts(event);
+  const receivedByParticipant: Record<string, number> = {};
+  const closedRooms = new Map(event.assignments.filter(a => a.room === 'closed').map(a => [a.matchId, a]));
+  for (const a of event.assignments) {
+    let played = enteredBoards[a.id] ?? 0;
+    if (a.room !== 'pairs') {
+      const closed = closedRooms.get(a.matchId);
+      if (a.room !== 'open' || !closed) continue;
+      played = a.boards.filter(board => {
+        const x = event.results[resultKey(a.id, board)], y = event.results[resultKey(closed.id, board)];
+        return teamBoardReceived(x, y, pending.has(a.matchId));
+      }).length;
+    }
+    if (played) for (const id of [a.ns, a.ew])
+      receivedByParticipant[id] = (receivedByParticipant[id] ?? 0) + played;
+  }
+  return { enteredBoards, receivedByParticipant, collectionProgress: collectionProgress(event, enteredBoards, exempt) };
 }

@@ -25,7 +25,7 @@ export function saveCompetitionRecord(data: StoredDocument[], next: StoredCompet
   const exists = data.some(d => documentKey(d) === key);
   return [...data.filter(d => documentKey(d) !== key).map(d =>
     !exists && isStage(d) && d.event.id === next.competition.id
-      ? { ...d, event: { ...d.event, revision: d.event.revision + 1 } } : d), next];
+      ? { event: { ...d.event, revision: d.event.revision + 1 }, requests: d.requests, get projection() { return d.projection; } } : d), next];
 }
 
 export function createCompetition(input: z.input<typeof competitionSchema>, id: string = randomUUID()): StoredCompetition {

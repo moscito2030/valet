@@ -20,8 +20,17 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
         ? JSON.stringify(entry) : undefined;
       let data: PublicEvent;
       try {
-        data = (!force && finishedCache.read(id, version)) ||
-          await api<PublicEvent>(`/api/events/${encodeURIComponent(id)}`, { signal });
+        const cached = !force && finishedCache.read(id, version);
+        if (cached) data = cached;
+        else {
+          const url = `/api/events/${encodeURIComponent(id)}`;
+          const options = { signal, cache: 'no-cache' as const };
+          const [snapshot, progress] = await Promise.all([
+            api<PublicEvent>(url, options),
+            api<Pick<PublicEvent, 'enteredBoards' | 'receivedByParticipant' | 'collectionProgress'>>(`${url}/progress`, options),
+          ]);
+          data = { ...snapshot, ...progress };
+        }
       }
       catch (error) {
         if ([401, 403, 404].includes((error as { status?: number }).status ?? 0) && generation === requestGeneration.current) setEvent(null);

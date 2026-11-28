@@ -3,8 +3,8 @@ import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
 import { presentBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
-import { allRoundsComplete, enteredBoardCounts, roundProgress } from '../round-progress';
-import { project } from '../scoring';
+import { allRoundsComplete, eventProgress } from '../round-progress';
+import { project, teamMatchScores } from '../scoring';
 export function audienceScoring(event: BridgeEvent, projection?: Projection) {
   const { club } = event;
   const finalized = new Set(club?.finalized ?? []);
@@ -30,15 +30,15 @@ export function audienceScoring(event: BridgeEvent, projection?: Projection) {
   const allResultsVisible = Object.keys(results).length === Object.keys(event.results).length;
   const publicScoring = { ...event, results };
   if (!allResultsVisible && event.provisionalVp) {
-    const active = new Set((projection ?? project(event)).matches.filter(match => match.provisional).map(match => match.id));
+    const active = new Set((projection ?? teamMatchScores(event)).matches.filter(match => match.provisional).map(match => match.id));
     publicScoring.provisionalVp = Object.fromEntries(Object.entries(event.provisionalVp).map(([id, item]) =>
       [id, active.has(id) ? item : { vp: null }]));
   }
   return publicScoring;
 }
 
-export function audienceEvent(event: BridgeEvent, projection?: Projection, publicProjection?: Projection,
-  publicScoring = audienceScoring(event, projection)) {
+export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
+  const publicScoring = audienceScoring(event, projection);
   const { club } = event;
   const data = {
     clubEnabled: !!club?.enabled,
@@ -135,7 +135,6 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection, publi
     competition: event.competition,
     revision: event.revision,
     updatedAt: event.updatedAt,
-    results: normalizeResults(event.results),
   };
   const { results } = publicScoring;
   const safe = { ...data, results };
@@ -143,19 +142,11 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection, publi
   return {
     ...safe,
     boards,
-    // Receipt counts use every stored result and do not include contracts.
-    // Scores stay out of `results` until the director publishes the board and it is no longer in play.
-    enteredBoards: enteredBoardCounts(event),
-    // Same stored results, summed the way standings count 完成. Only the numbers
-    // are public; the projection below still scores the filtered results.
-    receivedByParticipant: receivedByParticipant(projection ?? project(event)),
-    collectionProgress: roundProgress(event),
-    projection: publicProjection ?? (Object.keys(results).length === Object.keys(event.results).length && projection && !event.knockout ? projection : project(publicScoring)),
+    projection: Object.keys(results).length === Object.keys(event.results).length && projection && !event.knockout
+      ? projection : project(publicScoring),
   };
 }
 
-function receivedByParticipant(projection: Projection) {
-  const counts: Record<string, number> = {};
-  for (const row of projection.standings) if (row.played) counts[row.id] = row.played;
-  return counts;
+export function audienceEvent(event: BridgeEvent, projection?: Projection) {
+  return { ...publicSnapshot(event, projection), ...eventProgress(event) };
 }

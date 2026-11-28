@@ -19,6 +19,8 @@ import { clubRoundReady, nextScheduledRound } from '../round-workflow';
 import { roundLabel, type InterleavedSize } from '../team-movement';
 import { captureSql, commitSql, isConflict, queueDataVersion } from './batch';
 import type { Sql } from './neon';
+import { loadStage, queueStage } from './rows';
+import { storedWithProjection } from '../scoring';
 import { assertNormalizedMode, missingStorage } from './switch';
 
 async function tabletHead(sql: Sql, id: string, hash: string, director: boolean) {
@@ -171,7 +173,7 @@ export async function submitTablet(
     const head = await tabletHead(sql, id, command.tokenHash, director);
     const [[stage], rows, requests] = await Promise.all([
       sql`SELECT settings FROM bridge_stages WHERE id = ${id}`,
-      sql`SELECT document, confirmation, input_pair, participant_count FROM bridge_assignments WHERE event_id = ${id} AND assignment_id = ${head.assignmentId}`,
+      sql`SELECT document, confirmation, input_pair FROM bridge_assignments WHERE event_id = ${id} AND assignment_id = ${head.assignmentId}`,
       sql`SELECT 1 FROM bridge_requests WHERE event_id = ${id} AND request_id = ${command.requestId}`,
     ]);
     if (requests.length) return;
@@ -228,44 +230,47 @@ export async function submitTablet(
     cap.sql`INSERT INTO bridge_audit(event_id, seq, document) SELECT ${id}, nextval('bridge_data_version'),
       ${JSON.stringify(audit)}::jsonb || jsonb_build_object('revision', version)
       FROM bridge_assignments WHERE event_id = ${id} AND assignment_id = ${head.assignmentId}`;
+    // Read readiness after the guarded confirmation and audit, in commit order. Of two
+    // final confirmations only the later batch can observe both. Evaluate it after commit.
+    const writeCount = cap.batches.length;
+    if (command.confirm) {
+      cap.sql`SELECT document, confirmation, input_pair FROM bridge_assignments
+        WHERE event_id = ${id} AND round = ${command.round} ORDER BY ordinal`;
+      cap.sql`SELECT r.document FROM bridge_results r JOIN bridge_assignments a USING(event_id, assignment_id)
+        WHERE a.event_id = ${id} AND a.round = ${command.round}`;
+      if (event.swiss) cap.sql`SELECT count(*) AS n FROM bridge_participants WHERE event_id = ${id}`;
+    }
+    let batches;
     try {
-      await commitSql(sql, cap.batches);
+      batches = await commitSql(sql, cap.batches);
     } catch (error) {
       if (!isConflict(error)) throw error;
       if (attempt === 5) throw new DomainError('本桌成績已更新，請重新檢查後再提交', 409);
       continue;
     }
-    if (command.confirm) await settleRound(sql, id, command.round);
+    if (command.confirm) {
+      const [roundRows, roundScores, roster] = batches.slice(writeCount);
+      const roundEvent = tabletEvent(stage.settings as BridgeEvent, roundRows, roundScores);
+      if (roster) roundEvent.participants.length = Number(roster[0].n);
+      if (clubRoundReady(roundEvent, command.round)) await settleRound(sql, id, command.round);
+    }
     return;
   }
 }
 
 async function settleRound(sql: Sql, id: string, round: number) {
   for (;;) {
-    const [[stage], rows, scores] = await Promise.all([
-      sql`SELECT settings, revision FROM bridge_stages WHERE id = ${id}`,
-      sql`SELECT document, confirmation, input_pair, participant_count FROM bridge_assignments WHERE event_id = ${id} AND round = ${round}`,
-      sql`SELECT r.document FROM bridge_results r JOIN bridge_assignments a USING(event_id, assignment_id)
-        WHERE a.event_id = ${id} AND a.round = ${round}`,
-    ]);
-    if (!stage) return;
-    const event = tabletEvent(stage.settings as BridgeEvent, rows, scores);
-    event.participants.length = Number(rows[0]?.participant_count ?? 0);
-    if (!clubRoundReady(event, round)) return;
+    const prior = await loadStage(sql, id, false);
+    if (!prior || !clubRoundReady({ ...prior.stored.event, results: normalizeResults(prior.stored.event.results) }, round)) return;
+    const at = new Date().toISOString();
+    const settled = structuredClone(prior.stored.event);
+    settled.club!.finalized.push(round);
+    if (settled.currentRound === round) settled.roundPhase = 'break';
+    settled.updatedAt = at;
+    settled.audit.push({ at, revision: settled.revision, action: '圈次結算', reason: '全桌確認',
+      detail: `第 ${round} 圈全桌確認完成，自動結算並發布成績` });
     const cap = captureSql();
-    queueDataVersion(cap.sql, id);
-    cap.sql`WITH upd AS (UPDATE bridge_stages SET revision = current_setting('valet.data_version')::int, updated_at = now(),
-      settings = jsonb_set(jsonb_set(settings, '{club,finalized}', ${JSON.stringify([...event.club!.finalized, round])}::jsonb),
-        '{roundPhase}', CASE WHEN current_round = ${round} THEN '"break"'::jsonb ELSE settings->'roundPhase' END) WHERE id = ${id} AND revision = ${stage.revision} RETURNING 1)
-      SELECT 1 / (SELECT count(*)::int FROM upd)`;
-    const audit = {
-      at: new Date().toISOString(),
-      action: '圈次結算',
-      reason: '全桌確認',
-      detail: `第 ${round} 圈全桌確認完成，自動結算並發布成績`,
-    };
-    cap.sql`INSERT INTO bridge_audit(event_id, seq, document) SELECT ${id}, nextval('bridge_data_version'),
-      ${JSON.stringify(audit)}::jsonb || jsonb_build_object('revision', revision) FROM bridge_stages WHERE id = ${id}`;
+    queueStage(cap.sql, storedWithProjection(settled, []), {}, prior);
     try {
       await commitSql(sql, cap.batches);
       return;

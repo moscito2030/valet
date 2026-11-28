@@ -1,4 +1,6 @@
 import { captureSql, commitSql, queueDataVersion } from './batch';
+import { loadStage } from './rows';
+import { queuePublicSnapshot } from './projection';
 import type { Sql } from './neon';
 import { resolveCompetitionOrganizer } from '../competitions';
 import { readOrganizerNames } from './organizer-names';
@@ -56,13 +58,15 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
   const cap = captureSql();
   const at = new Date().toISOString();
   let stagesChanged = 0;
-  const entries: Entry[] = competitions.map((competition) => {
+  const entries: Entry[] = [];
+  for (const competition of competitions) {
     const family = stagesByCompetition.get(competition.id) ?? [];
     const entry: Entry = { competition, stages: family, changes: [], skipped: [] };
+    entries.push(entry);
     const { document, id, revision } = competition;
     if (id !== competitionId && id !== standaloneId) {
       entry.skipped.push('No approved mapping');
-      return entry;
+      continue;
     }
 
     const patch: Metadata = {};
@@ -148,9 +152,12 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
           AND settings = ${JSON.stringify(stage.settings)}::jsonb
         RETURNING 1
       ) SELECT 1 / (SELECT count(*)::int FROM upd)`;
+      if (!dryRun) {
+        const prior = (await loadStage(sql, stage.id, false))!;
+        queuePublicSnapshot(cap.sql, { ...prior.stored.event, ...stagePatch, updatedAt: at }, prior.publicVersion);
+      }
     }
-    return entry;
-  });
+  }
 
   if (!dryRun && cap.batches.length) {
     const guard = captureSql();

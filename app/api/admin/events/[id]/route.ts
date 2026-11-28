@@ -1,25 +1,20 @@
 import { NextResponse } from 'next/server';
 import { isAdmin, isDirector } from '@/lib/auth';
-import { deleteEvent } from '@/lib/store';
+import { adminResponse, readAdmin } from '@/lib/storage/normalized';
+import { deleteEvent, normalizedSql } from '@/lib/store';
 import { getAccessibleEvent as getEvent } from '@/lib/event-access';
 import { DomainError } from '@/lib/domain-error';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 export const dynamic = 'force-dynamic';
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     if (!(await isAdmin())) throw new DomainError('請先登入', 401);
-    const stored = await getEvent((await params).id);
+    const { id } = await params;
     const director = await isDirector();
-    const { audit, ...data } = stored.event;
-    return NextResponse.json(
-      {
-        ...data,
-        ...(director ? { audit } : {}),
-        projection: stored.projection,
-        canDirect: director,
-      },
-      { headers: { 'Cache-Control': 'no-store' } },
-    );
+    const sql = normalizedSql();
+    const validator = request.headers.get('if-none-match');
+    if (sql) return await readAdmin(sql, id, validator, director);
+    return adminResponse(await getEvent(id), director, validator);
   } catch (e) {
     return errorResponse(e);
   }

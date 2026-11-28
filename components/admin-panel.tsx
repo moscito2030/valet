@@ -37,7 +37,7 @@ export function AdminPanel({
     [preview, setPreview] = useState('');
   const [deleteName, setDeleteName] = useState('');
   const load = useCallback(async () => {
-    const e = await api<AdminEvent>(`/api/admin/events/${eventId}`, { cache: 'no-store' });
+    const e = await api<AdminEvent>(`/api/admin/events/${eventId}`, { cache: 'no-cache' });
     setEvent(e);
     return e;
   }, [eventId]);
