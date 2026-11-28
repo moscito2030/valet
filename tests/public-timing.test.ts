@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { Session } from 'node:inspector/promises';
 import test from 'node:test';
+import { competitionUpdateSchema, createCompetition } from '../lib/competition-record';
 import { createEvent } from '../lib/domain/event-factory';
 import { mutationSchema, resultKey, type Assignment, type BridgeEvent, type Mutation } from '../lib/model';
 import { canMutate } from '../lib/mutation-permissions';
@@ -132,6 +133,56 @@ test('plain events retain progress and versioned standings cache headers', async
   assert.equal((await readScoreboard(db.sql, event.id, null, false, '0.0')).headers.get('cache-control'), 'no-store');
 });
 
+test('competition auto-refresh edits invalidate public progress for pairs and teams', async t => {
+  const { sql, close } = await createTestDb();
+  t.after(close);
+  const repo = createNormalizedRepository(sql);
+  const { competition } = await repo.insertCompetition(createCompetition({ name: 'Viewer updates' }));
+  const pairs = fixture('pairs'), teams = fixture('teams');
+  await repo.insertStage(competition.id, pairs, competition.revision);
+  await repo.insertStage(competition.id, teams, competition.revision + 1);
+
+  const previous = await Promise.all([pairs, teams].map(async ({ id }) => {
+    const response = await readProgress(sql, id, null, false);
+    const body = await response.json();
+    assert.equal(body.autoRefreshDisabled, false);
+    return { id, etag: response.headers.get('etag'), tag: body.snapshotTag };
+  }));
+  const root = (await repo.getCompetition(competition.id)).competition;
+  const patch = competitionUpdateSchema.parse({
+    name: root.name, venue: root.venue, revision: root.revision,
+    requestId: randomUUID(), disableAutoRefresh: true,
+  });
+  const updated = await repo.mutateCompetition(root.id, patch);
+  assert.equal(updated.competition.revision, root.revision + 1);
+  const persisted = (await repo.getCompetition(root.id)).competition;
+  assert.equal(persisted.disableAutoRefresh, true);
+  assert.equal(persisted.revision, updated.competition.revision);
+  assert.equal((await repo.mutateCompetition(root.id, patch)).competition.revision, persisted.revision);
+
+  for (const { id, etag, tag } of previous) {
+    const response = await readProgress(sql, id, etag, false);
+    assert.equal(response.status, 200);
+    assert.notEqual(response.headers.get('etag'), etag);
+    const body = await response.json();
+    assert.equal(body.autoRefreshDisabled, true);
+    assert.notEqual(body.snapshotTag, tag);
+    const standings = await (await readScoreboard(sql, id, null, false, body.snapshotTag.slice(1, -1))).json();
+    assert.equal('autoRefreshDisabled' in standings, false);
+    assert.equal('disableAutoRefresh' in standings.competition, false);
+  }
+  const cached = await sql`SELECT projection FROM bridge_projection_cache WHERE audience = 'progress'`;
+  assert.equal(cached.length, 2);
+  for (const { projection } of cached) assert.equal('autoRefreshDisabled' in (projection as object), false);
+
+  await repo.mutateCompetition(root.id, competitionUpdateSchema.parse({
+    ...patch, revision: persisted.revision, requestId: randomUUID(), disableAutoRefresh: false,
+  }));
+  for (const { id } of previous) {
+    assert.equal((await (await readProgress(sql, id, null, false)).json()).autoRefreshDisabled, false);
+  }
+});
+
 test('stage timing and board-group commands publish once and invalidate the previous standings URL', async t => {
   const db = await createTestDb();
   t.after(db.close);
@@ -162,7 +213,7 @@ test('stage timing and board-group commands publish once and invalidate the prev
     saved = await repo.mutateEvent(id, mutationSchema.parse({ ...payload, revision: saved.event.revision,
       requestId: randomUUID(), reason: '公開時機測試' }));
     const receipt = await progress();
-    assert.deepEqual(Object.keys(receipt).sort(), ['collectionProgress', 'enteredBoards', 'receivedByParticipant', 'snapshotTag']);
+    assert.deepEqual(Object.keys(receipt).sort(), ['autoRefreshDisabled', 'collectionProgress', 'enteredBoards', 'receivedByParticipant', 'snapshotTag']);
     const next = receipt.snapshotTag.slice(1, -1);
     assert.notEqual(next, tag);
     assert.equal(publishes, before + 1);

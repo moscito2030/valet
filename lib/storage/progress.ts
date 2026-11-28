@@ -10,7 +10,7 @@ const PUBLIC_REBUILD_MIN_SECONDS = 30;
 
 export async function readProgress(sql: Sql, id: string, validator: string | null, director: boolean): Promise<Response> {
   const readHead = () => sql`SELECT sw.mode, sw.per_table_at, s.id, s.current_round, s.public_version, c.revision, s.archived OR c.archived AS archived,
-      s.updated_at,
+      s.updated_at, c.document->>'disableAutoRefresh' AS disable_auto_refresh,
       coalesce(s.settings->>'kind' = 'teams' AND 'board' IN (
         s.settings->'publicTiming'->>'vp', s.settings->'publicTiming'->>'contract', s.settings->'publicTiming'->>'hands'
       ), false) AS live_timing,
@@ -40,7 +40,7 @@ export async function readProgress(sql: Sql, id: string, validator: string | nul
   }
   const version = Number(head.version);
   const publication = `${head.public_version}.${head.revision ?? head.public_version}`;
-  const snapshotTag = `"${publication}"`;
+  const metadata = { snapshotTag: `"${publication}"`, autoRefreshDisabled: head.disable_auto_refresh === 'true' };
   const headers = {
     ETag: `"${version}.${publication}"`,
     'Cache-Control': head.archived ? 'private, no-store' : 'public, s-maxage=5, stale-while-revalidate=10',
@@ -48,7 +48,7 @@ export async function readProgress(sql: Sql, id: string, validator: string | nul
   if (headers.ETag === validator) return new Response(null, { status: 304, headers });
   const [cached] = await sql`SELECT projection FROM bridge_projection_cache
     WHERE event_id = ${id} AND audience = 'progress' AND data_version = ${version}`;
-  if (cached) return Response.json({ ...cached.projection as object, snapshotTag }, { headers });
+  if (cached) return Response.json({ ...cached.projection as object, ...metadata }, { headers });
   const rows = await sql`SELECT a.assignment_id, a.round, a.room, a.ns, a.ew,
       a.boards, a.match_id, a.version, a.exempt, a.provisional,
       (SELECT jsonb_object_agg(r.board,r.status) FROM bridge_results r
@@ -69,5 +69,5 @@ export async function readProgress(sql: Sql, id: string, validator: string | nul
   });
   const progress = eventProgress({ assignments, results, currentRound: Number(head.current_round) }, exempt, pending);
   await cacheProjection(sql, id, 'progress', version, progress);
-  return Response.json({ ...progress, snapshotTag }, { headers });
+  return Response.json({ ...progress, ...metadata }, { headers });
 }

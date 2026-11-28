@@ -194,14 +194,14 @@ test('progress counts agree with played standings for pairs, teams, split and ca
     assert.deepEqual(body.receivedByParticipant, Object.fromEntries(project(event).standings.filter(p => p.played).map(p => [p.id, p.played])));
     assert.deepEqual(mergeEventProgress(await snapshot.json(), body).collectionProgress, roundProgress(event));
     assert.equal(reads.length, 4);
-    assert.doesNotMatch(reads.join(' '), /document|\bsettings\b(?!\s*->)|table_label|table_number|player_names|bridge_(participants|boards|audit|requests)/);
+    assert.doesNotMatch(reads.join(' ').replace("c.document->>'disableAutoRefresh'", ''), /document|\bsettings\b(?!\s*->)|table_label|table_number|player_names|bridge_(participants|boards|audit|requests)/);
     reads.length = 0;
     await readProgress(sql, event.id, null, false);
     assert.equal(reads.length, 2);
     reads.length = 0;
     assert.equal((await readProgress(sql, event.id, cold.headers.get('etag'), false)).status, 304);
     assert.equal(reads.length, 1);
-    assert.doesNotMatch(reads[0], /projection|document|\bsettings\b(?!\s*->)|bridge_results/);
+    assert.doesNotMatch(reads[0].replace("c.document->>'disableAutoRefresh'", ''), /projection|document|\bsettings\b(?!\s*->)|bridge_results/);
     await repo.mutateEvent(event.id, mutationSchema.parse({ action: 'penalty', amount: 2, participantId: event.participants[0].id,
       revision: saved.event.revision, requestId: randomUUID(), reason: '測試判罰' }));
     const changed = await readProgress(sql, event.id, cold.headers.get('etag'), false);

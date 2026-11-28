@@ -10,7 +10,10 @@ export async function GET() {
   try {
     const [stages, records, organizerNames] = await Promise.all([listEventIndex(), listCompetitionRecords(), listOrganizerNames()]);
     const director = await isDirector();
-    return NextResponse.json({ competitions: competitionCatalog(stages, records, director, organizerNames).filter(c => director || !c.archived) }, { headers: { 'Cache-Control': 'no-store' } });
+    const competitions = competitionCatalog(stages, records, director, organizerNames)
+      .filter(c => director || !c.archived)
+      .map(({ disableAutoRefresh, ...competition }) => director ? { ...competition, disableAutoRefresh } : competition);
+    return NextResponse.json({ competitions }, { headers: { 'Cache-Control': 'no-store' } });
   }
   catch (e) { return errorResponse(e); }
 }

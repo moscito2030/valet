@@ -65,7 +65,12 @@ function timedTeamSnapshot(event: BridgeEvent) {
 }
 
 export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
-  const { club } = event;
+  const { club, competition } = event;
+  let publicCompetition = competition;
+  if (competition) {
+    const { disableAutoRefresh: _disableAutoRefresh, ...info } = competition;
+    publicCompetition = info;
+  }
   const data = {
     clubEnabled: !!club?.enabled,
     id: event.id,
@@ -158,7 +163,7 @@ export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
     parentEventId: event.parentEventId,
     stageName: event.stageName,
     hasStages: event.hasStages,
-    competition: event.competition,
+    competition: publicCompetition,
     revision: event.revision,
     updatedAt: event.updatedAt,
   };

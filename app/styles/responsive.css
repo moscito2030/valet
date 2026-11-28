@@ -225,7 +225,7 @@
   .event-heading h1 {
     font-size: 20px;
   }
-  .event-heading > .button {
+  .event-refresh-controls > .button {
     padding: 8px;
     font-size: 9px;
   }

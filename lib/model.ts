@@ -23,6 +23,7 @@ export type Participant = {
   group?: 'NS' | 'EW';
 };
 export type CompetitionInfo = {
+  disableAutoRefresh?: boolean;
   organizerName?: string;
   archived?: boolean;
   id: string;

@@ -111,10 +111,10 @@ export default function CompetitionHub({ competitionId }: { competitionId?: stri
           {editing && session.director && <form className="panel hub-form" key={competition.revision} onSubmit={async e => {
             e.preventDefault(); const form = new FormData(e.currentTarget); setBusy(true); setError('');
             try {
-              await request(`/api/competitions/${competition.id}`, { revision: competition.revision, requestId: crypto.randomUUID(), name: String(form.get('name')), venue: String(form.get('venue')) }, 'PATCH');
+              await request(`/api/competitions/${competition.id}`, { revision: competition.revision, requestId: crypto.randomUUID(), name: String(form.get('name')), venue: String(form.get('venue')), disableAutoRefresh: form.has('disableAutoRefresh') }, 'PATCH');
               await load(); setEditing(false);
             } catch (e) { setError((e as Error).message); await load().catch(() => {}); } finally { setBusy(false); }
-          }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><div className="form-grid"><label className="field">場館<input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" defaultValue={competition.venue} /></label></div><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
+          }}><h3>賽事共用資訊</h3><label className="field">名稱<input name="name" minLength={2} maxLength={80} required defaultValue={competition.name} /></label><div className="form-grid"><label className="field">場館<input name="venue" maxLength={80} placeholder="例如：臺灣大學 第二學生活動中心" defaultValue={competition.venue} /></label></div><label className="checkbox-label"><input type="checkbox" name="disableAutoRefresh" defaultChecked={competition.disableAutoRefresh} />禁用瀏覽器端自動更新</label><button className="button primary" disabled={busy}>儲存共用資訊</button></form>}
           <section aria-label="選擇賽段">
             <div className="hub-section-heading"><h2>選擇賽段</h2><p>各賽段的日期、名單、賽制與成績各自獨立。</p></div>
             <div className="competition-grid competition-list">{competition.stages.map(s => <div key={s.id}><a className="panel competition-card competition-card-compact" href={`/?event=${encodeURIComponent(s.id)}&view=standings`}>

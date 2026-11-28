@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const publication = `${event.revision}.${event.competition?.revision ?? event.revision}`;
     const headers = { ETag: `"${event.revision}.${publication}"`, 'Cache-Control': 'private, no-cache' };
     if (headers.ETag === validator) return new Response(null, { status: 304, headers });
-    return Response.json({ ...eventProgress(event), snapshotTag: `"${publication}"` }, { headers });
+    return Response.json({ ...eventProgress(event), snapshotTag: `"${publication}"`, autoRefreshDisabled: event.competition?.disableAutoRefresh === true }, { headers });
   } catch (error) {
     return errorResponse(error);
   }

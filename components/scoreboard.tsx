@@ -135,7 +135,7 @@ export default function Scoreboard() {
     [password, setPassword] = useState(''),
     [loginError, setLoginError] = useState(''),
     [loggingIn, setLoggingIn] = useState(false);
-  const { event, setEvent, requestGeneration, refreshEvent } = useEventResource(id, tab, setError, events.find((entry) => entry.id === id));
+  const { event, setEvent, requestGeneration, refreshEvent, autoRefresh, setAutoRefresh, autoRefreshDisabled } = useEventResource(id, tab, setError, events.find((entry) => entry.id === id));
   const firstLoad = useRef(true);
   const requestedResults = useRef<URLSearchParams | null>(null);
   const refreshList = useCallback(async () => {
@@ -465,14 +465,29 @@ export default function Scoreboard() {
                         </span>
                       </div>
                     </div>
-                    <button
-                      className={`button subtle ${refreshing ? 'refreshing' : ''}`}
-                      disabled={refreshing || refreshCooldown}
-                      onClick={manualRefresh}
-                    >
-                      <Activity size={16} />
-                      {refreshing ? '更新中' : '更新成績'}
-                    </button>
+                    <div className="event-refresh-controls">
+                      <button
+                        className={`button subtle ${refreshing ? 'refreshing' : ''}`}
+                        disabled={refreshing || refreshCooldown}
+                        onClick={manualRefresh}
+                      >
+                        <Activity size={16} />
+                        {refreshing ? '更新中' : '更新成績'}
+                      </button>
+                      {tab !== 'admin' && (
+                        <button
+                          type="button"
+                          className="butler-display-toggle"
+                          role="switch"
+                          aria-checked={autoRefresh}
+                          disabled={autoRefreshDisabled}
+                          onClick={() => setAutoRefresh(!autoRefresh)}
+                        >
+                          <span className="butler-toggle-track" aria-hidden="true"><span /></span>
+                          自動更新
+                        </button>
+                      )}
+                    </div>
                   </section>
                   {event.demo && (
                     <div className="demo-banner">

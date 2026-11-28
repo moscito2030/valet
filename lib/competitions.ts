@@ -36,7 +36,7 @@ export function competitionStatusLabel(
 }
 
 type CompetitionSource = Pick<IndexEvent, 'id' | 'name' | 'venue' | 'hasStages' | 'revision'> &
-  Pick<CompetitionInfo, 'archived'>;
+  Pick<CompetitionInfo, 'archived' | 'disableAutoRefresh'>;
 
 export function competitionInfo(root: CompetitionSource, organizerName?: string): CompetitionInfo {
   return { id: root.id, name: root.name, ...(organizerName ? { organizerName } : {}), venue: root.venue, hasStages: !!root.hasStages, revision: root.revision, ...(root.archived !== undefined ? { archived: root.archived } : {}) };
@@ -54,7 +54,7 @@ export function stageSummary(event: IndexEvent) {
 
 export function competitionCatalog(data: EventIndex[], records: StoredCompetition[] = [], includeArchivedStages = true, organizerNames: ReadonlyMap<string, string> = new Map()) {
   const roots = new Map(data.filter(s => !s.event.parentEventId).map(s => [s.event.id, competitionInfo(s.event)]));
-  for (const { competition } of records) roots.set(competition.id, competitionInfo(competition));
+  for (const { competition } of records) roots.set(competition.id, competition);
   return [...roots.values()].map(root => {
     const family = data.filter(s => (s.event.parentEventId ?? s.event.id) === root.id);
     const ordered = family.some(s => typeof s.event.stageOrder === 'number')
@@ -65,6 +65,7 @@ export function competitionCatalog(data: EventIndex[], records: StoredCompetitio
     const dates = [...new Set(stages.map(s => s.date))].sort();
     return {
       ...competitionInfo(root, resolveCompetitionOrganizer(family.map(({ event }) => event.organizerId), organizerNames).name),
+      ...(root.disableAutoRefresh !== undefined ? { disableAutoRefresh: root.disableAutoRefresh } : {}),
       date: dates[0] ?? '',
       endDate: stages.map(s => s.endDate).sort().at(-1) ?? '',
       dates,
@@ -78,7 +79,9 @@ export type Competition = ReturnType<typeof competitionCatalog>[number];
 
 export function inheritCompetition(stored: StoredEvent, root: CompetitionSource, organizerName?: string): StoredEvent {
   const { prefix: _legacyPrefix, ...event } = stored.event as BridgeEvent & { prefix?: unknown };
-  return { requests: stored.requests, get projection() { return stored.projection; }, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition: competitionInfo(root, organizerName) } };
+  const competition = competitionInfo(root, organizerName);
+  if (root.disableAutoRefresh !== undefined) competition.disableAutoRefresh = root.disableAutoRefresh;
+  return { requests: stored.requests, get projection() { return stored.projection; }, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition } };
 }
 
 export function stageVenue(building?: string, room?: string): string {
