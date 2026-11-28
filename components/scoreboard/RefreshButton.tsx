@@ -1,7 +1,7 @@
 import { Activity } from 'lucide-react';
 import { useRef } from 'react';
 import { createRefreshGesture } from './refresh-gesture';
-import { refreshButtonHint, refreshButtonLabel, refreshModeLabel } from './refresh-copy';
+import { refreshButtonHint, refreshButtonLabel } from './refresh-copy';
 
 type Props = {
   autoRefresh: boolean;
@@ -40,7 +40,6 @@ export function RefreshButton({
       className={`button subtle event-refresh-button${refreshing ? ' refreshing' : ''}`}
       disabled={disabled}
       title={refreshButtonHint(autoRefreshDisabled)}
-      aria-label={refreshButtonLabel(refreshing, autoRefresh, autoRefreshDisabled)}
       onPointerDown={(event) => g.pointerDown(event.button)}
       onPointerUp={() => g.pointerEnd()}
       onPointerCancel={() => g.pointerEnd()}
@@ -49,8 +48,7 @@ export function RefreshButton({
       onClick={() => g.click()}
     >
       <Activity size={16} />
-      {refreshing ? '更新中' : '更新成績'}
-      <small className="event-refresh-mode">{refreshModeLabel(autoRefresh, autoRefreshDisabled)}</small>
+      {refreshButtonLabel(refreshing, autoRefresh, autoRefreshDisabled)}
     </button>
   );
 }

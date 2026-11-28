@@ -37,7 +37,7 @@ async function openViewer(page: Page, id: string) {
   // Clear cookies then go, re-login is in beforeEach of the same page — use storageState-less request is already done.
   await context.clearCookies();
   await page.goto(`/?event=${id}&view=standings`);
-  await expect(page.getByRole('button', { name: /更新成績/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: '手動更新', exact: true })).toBeVisible();
 }
 
 test('click refreshes, long-press toggles auto-update without a trailing refresh, and a competition disable blocks the toggle', async ({
@@ -49,9 +49,8 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
     if (request.url().includes('/progress') && request.method() === 'GET') progressCalls++;
   });
   await openViewer(page, id);
-  const button = page.getByRole('button', { name: /更新成績/ });
-  await expect(button).toHaveAttribute('aria-label', '更新成績，手動');
-  await expect(button.getByText('手動', { exact: true })).toBeVisible();
+  const button = page.getByRole('button', { name: /^(手動更新|自動更新)$/ });
+  await expect(button).toHaveText('手動更新');
   await expect(page.getByText('自動更新已關閉')).toBeVisible();
   const afterLoad = progressCalls;
 
@@ -59,8 +58,7 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
   await page.waitForTimeout(600);
   await button.dispatchEvent('pointerup', { button: 0 });
   await button.dispatchEvent('click');
-  await expect(button).toHaveAttribute('aria-label', '更新成績，自動');
-  await expect(button.getByText('自動', { exact: true })).toBeVisible();
+  await expect(button).toHaveText('自動更新');
   await expect(page.getByText(/每 30 秒自動更新/)).toBeVisible();
   await expect.poll(() => progressCalls).toBe(afterLoad);
 
@@ -71,7 +69,7 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
   await button.click();
   await expect.poll(() => progressCalls).toBeGreaterThan(afterLoad);
 
-  // Director disables auto-update for the competition, then a new viewer session should see 已禁用.
+  // The director disables auto-update, so the viewer button shows 手動更新.
   const login = await page.request.post('/api/session', {
     headers: { origin },
     data: { password: 'local-e2e-director-2026' },
@@ -92,14 +90,14 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
   expect(patch.ok(), await patch.text()).toBeTruthy();
 
   await openViewer(page, id);
-  const disabled = page.getByRole('button', { name: /更新成績/ });
-  await expect(disabled).toHaveAttribute('aria-label', '更新成績，已禁用');
+  const disabled = page.getByRole('button', { name: /^(手動更新|自動更新)$/ });
+  await expect(disabled).toHaveText('手動更新');
   const before = progressCalls;
   await disabled.dispatchEvent('pointerdown', { button: 0 });
   await page.waitForTimeout(600);
   await disabled.dispatchEvent('pointerup', { button: 0 });
   await disabled.dispatchEvent('click');
-  await expect(disabled).toHaveAttribute('aria-label', '更新成績，已禁用');
+  await expect(disabled).toHaveText('手動更新');
   await expect(page.getByText('此賽事已禁用自動更新')).toBeVisible();
   await expect.poll(() => progressCalls).toBe(before);
   await page.waitForTimeout(800);

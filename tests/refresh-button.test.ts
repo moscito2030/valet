@@ -3,17 +3,17 @@ import test from 'node:test';
 import {
   refreshButtonHint,
   refreshButtonLabel,
-  refreshModeLabel,
   standingsRefreshFooter,
 } from '../components/scoreboard/refresh-copy';
 import { createRefreshGesture, LONG_PRESS_MS } from '../components/scoreboard/refresh-gesture';
 
 test('refresh copy follows auto-update state', () => {
-  assert.equal(refreshModeLabel(false, false), '手動');
-  assert.equal(refreshModeLabel(true, false), '自動');
-  assert.equal(refreshModeLabel(true, true), '已禁用');
-  assert.equal(refreshButtonLabel(false, false, false), '更新成績，手動');
-  assert.equal(refreshButtonLabel(true, true, false), '更新中，自動');
+  assert.equal(refreshButtonLabel(false, false, false), '手動更新');
+  assert.equal(refreshButtonLabel(false, true, false), '自動更新');
+  assert.equal(refreshButtonLabel(false, true, true), '手動更新');
+  assert.equal(refreshButtonLabel(false, false, true), '手動更新');
+  assert.equal(refreshButtonLabel(true, true, false), '更新中');
+  assert.equal(refreshButtonLabel(true, false, true), '更新中');
   assert.equal(refreshButtonHint(false), '點一下更新成績，長按切換自動更新。');
   assert.equal(refreshButtonHint(true), '點一下更新成績。此賽事已禁用自動更新。');
   assert.equal(standingsRefreshFooter('live', false, false), '自動更新已關閉');

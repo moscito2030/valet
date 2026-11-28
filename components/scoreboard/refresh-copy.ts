@@ -1,11 +1,6 @@
-export function refreshModeLabel(autoRefresh: boolean, autoRefreshDisabled: boolean) {
-  if (autoRefreshDisabled) return '已禁用';
-  return autoRefresh ? '自動' : '手動';
-}
-
 export function refreshButtonLabel(refreshing: boolean, autoRefresh: boolean, autoRefreshDisabled: boolean) {
-  const action = refreshing ? '更新中' : '更新成績';
-  return `${action}，${refreshModeLabel(autoRefresh, autoRefreshDisabled)}`;
+  if (refreshing) return '更新中';
+  return autoRefresh && !autoRefreshDisabled ? '自動更新' : '手動更新';
 }
 
 export function refreshButtonHint(autoRefreshDisabled: boolean) {

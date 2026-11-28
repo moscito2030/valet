@@ -15,13 +15,17 @@
   color: var(--theme-muted, #c7cbbf);
   margin: 0 5px;
 }
+.event-meta,
+.table-footer {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--theme-muted, #7f897e);
+}
 .event-meta {
   display: flex;
   align-items: center;
   gap: 0;
   margin-top: 13px;
-  font-size: 11px;
-  color: var(--theme-muted, #7f897e);
 }
 .event-meta span + span:before {
   content: '·';
@@ -363,8 +367,6 @@ tbody tr.followed {
   padding: 16px 24px;
   background: var(--theme-surface, #fcfcf9);
   border-top: 1px solid var(--line);
-  font-size: 10px;
-  color: var(--theme-muted, #929b89);
   display: flex;
   justify-content: space-between;
   gap: 10px;
