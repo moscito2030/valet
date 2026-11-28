@@ -51,6 +51,8 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
   await openViewer(page, id);
   const button = page.getByRole('button', { name: /^(手動更新|自動更新)$/ });
   await expect(button).toHaveText('手動更新');
+  await expect(button.locator('svg.lucide-refresh-cw')).toHaveCount(1);
+  await expect(button.locator('.event-refresh-live')).toHaveCount(0);
   await expect(page.getByText('自動更新已關閉')).toBeVisible();
   const afterLoad = progressCalls;
 
@@ -59,6 +61,8 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
   await button.dispatchEvent('pointerup', { button: 0 });
   await button.dispatchEvent('click');
   await expect(button).toHaveText('自動更新');
+  await expect(button.locator('.event-refresh-live')).toHaveCount(1);
+  await expect(button.locator('svg')).toHaveCount(0);
   await expect(page.getByText(/每 30 秒自動更新/)).toBeVisible();
   await expect.poll(() => progressCalls).toBe(afterLoad);
 
@@ -92,6 +96,8 @@ test('click refreshes, long-press toggles auto-update without a trailing refresh
   await openViewer(page, id);
   const disabled = page.getByRole('button', { name: /^(手動更新|自動更新)$/ });
   await expect(disabled).toHaveText('手動更新');
+  await expect(disabled.locator('svg.lucide-refresh-cw')).toHaveCount(1);
+  await expect(disabled.locator('.event-refresh-live')).toHaveCount(0);
   const before = progressCalls;
   await disabled.dispatchEvent('pointerdown', { button: 0 });
   await page.waitForTimeout(600);

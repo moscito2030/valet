@@ -93,6 +93,31 @@
   align-self: center;
   margin-right: 12px;
 }
+
+.event-refresh-live {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.event-refresh-live::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--score-positive);
+  animation: event-refresh-live-pulse 2.8s ease-in-out infinite;
+}
+@keyframes event-refresh-live-pulse {
+  50% { opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .event-refresh-live::after {
+    animation: none;
+  }
+}
 .event-refresh-button {
   -webkit-user-select: none;
   user-select: none;

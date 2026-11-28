@@ -1,3 +1,7 @@
+export function refreshButtonMark(autoRefresh: boolean, autoRefreshDisabled: boolean) {
+  return autoRefresh && !autoRefreshDisabled ? 'live' : 'refresh';
+}
+
 export function refreshButtonLabel(refreshing: boolean, autoRefresh: boolean, autoRefreshDisabled: boolean) {
   if (refreshing) return '更新中';
   return autoRefresh && !autoRefreshDisabled ? '自動更新' : '手動更新';

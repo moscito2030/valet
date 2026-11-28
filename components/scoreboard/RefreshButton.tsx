@@ -1,7 +1,7 @@
-import { Repeat, RotateCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useRef } from 'react';
 import { createRefreshGesture } from './refresh-gesture';
-import { refreshButtonHint, refreshButtonLabel } from './refresh-copy';
+import { refreshButtonHint, refreshButtonLabel, refreshButtonMark } from './refresh-copy';
 
 type Props = {
   autoRefresh: boolean;
@@ -34,7 +34,7 @@ export function RefreshButton({
       onToggle: () => onToggleRef.current(),
     });
   const g = gesture.current;
-  const Icon = autoRefresh && !autoRefreshDisabled ? Repeat : RotateCw;
+  const live = refreshButtonMark(autoRefresh, autoRefreshDisabled) === 'live';
   return (
     <button
       type="button"
@@ -48,7 +48,11 @@ export function RefreshButton({
       onContextMenu={(event) => event.preventDefault()}
       onClick={() => g.click()}
     >
-      <Icon size={16} aria-hidden="true" />
+      {live ? (
+        <span className="event-refresh-live" aria-hidden="true" />
+      ) : (
+        <RefreshCw size={16} aria-hidden="true" />
+      )}
       {refreshButtonLabel(refreshing, autoRefresh, autoRefreshDisabled)}
     </button>
   );
