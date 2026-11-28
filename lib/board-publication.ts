@@ -1,5 +1,15 @@
 import type { Board, BridgeEvent, StoredEvent } from './model';
 
+export const boardPublicationFlag = {
+  vp: 'publishedVp',
+  contract: 'publishedContract',
+  hands: 'published',
+} as const;
+
+export function effectivePublicTiming(event: Pick<BridgeEvent, 'publicTiming'>): NonNullable<BridgeEvent['publicTiming']> {
+  return { vp: 'manual', contract: 'manual', hands: 'manual', ...event.publicTiming };
+}
+
 type LegacyEvent = {
   publishBoards?: boolean;
   boards: Board[];
@@ -30,5 +40,5 @@ export function materializeBoardPublication<T extends LegacyEvent>(
 export function materializeStoredPublication(stored: StoredEvent): StoredEvent {
   const event = stored.event as BridgeEvent & { publishBoards?: boolean };
   if (!Object.prototype.hasOwnProperty.call(event, 'publishBoards')) return stored;
-  return { ...stored, event: materializeBoardPublication(event) };
+  return { event: materializeBoardPublication(event), requests: stored.requests, get projection() { return stored.projection; } };
 }

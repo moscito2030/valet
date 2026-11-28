@@ -43,3 +43,11 @@ VALET_MATERIALIZE_PUBLICATION=1 npm run db:materialize-publication
 ```
 
 先以乾跑檢查 `stages` 和 `boards` 計數。正式執行會印出 `deals: unchanged`，再次乾跑時兩個計數應為 0。
+
+## 分桌儲存遷移
+
+在正規化模式下暫停舊版寫入，依序執行：
+
+1. `npm run db:migrate-per-table -- --dry-run`，核對每個賽段的安排、權杖與確認筆數。
+2. `npm run db:migrate-per-table -- --apply`，建立結構、回填分桌資料與各賽段的公開計分板快照，最後設定啟用時間。
+3. 部署使用分桌儲存的版本，再恢復寫入。

@@ -1,12 +1,76 @@
+import { boardPublicationFlag, effectivePublicTiming } from '../board-publication';
 import { boardsStillInPlay } from '../board-in-play';
 import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
-import { presentBoards } from '../public-event';
+import { presentBoards, publicBoards } from '../public-event';
 import { normalizeResults } from '../result-status';
-import { allRoundsComplete, enteredBoardCounts, roundProgress } from '../round-progress';
-import { project } from '../scoring';
-export function audienceEvent(event: BridgeEvent, projection?: Projection) {
+import { allRoundsComplete, eventProgress } from '../round-progress';
+import { project, teamMatchScores } from '../scoring';
+export function audienceScoring(event: BridgeEvent, projection?: Projection) {
   const { club } = event;
+  const finalized = new Set(club?.finalized ?? []);
+  const exempt = knockoutExemptAssignments(event);
+  const published = new Set(club?.publishedAssignments ?? []);
+  const visible = club?.enabled
+    ? new Set(event.assignments.filter((a) => finalized.has(a.round) || published.has(a.id) || exempt.has(a.id)).map((a) => a.id))
+    : null;
+  const waiting = boardsStillInPlay(event);
+  // Hands already follow `published`. Scores, pair IMPs and standings must too:
+  // finishing every table, or settling the round, does not publish a board the director left hidden.
+  const publishedBoards = new Set(
+    event.boards.filter((b) => b.published === true).map((b) => b.number),
+  );
+  const results = Object.fromEntries(
+    Object.entries(normalizeResults(event.results)).filter(
+      ([, r]) =>
+        publishedBoards.has(r.board) &&
+        !waiting.has(r.board) &&
+        (!visible || visible.has(r.assignmentId)),
+    ),
+  );
+  const allResultsVisible = Object.keys(results).length === Object.keys(event.results).length;
+  const publicScoring = { ...event, results };
+  if (!allResultsVisible && event.provisionalVp) {
+    const active = new Set((projection ?? teamMatchScores(event)).matches.filter(match => match.provisional).map(match => match.id));
+    publicScoring.provisionalVp = Object.fromEntries(Object.entries(event.provisionalVp).map(([id, item]) =>
+      [id, active.has(id) ? item : { vp: null }]));
+  }
+  return publicScoring;
+}
+
+function timedTeamSnapshot(event: BridgeEvent) {
+  const timing = effectivePublicTiming(event);
+  const modes = Object.values(timing);
+  const waiting = modes.includes('round') ? boardsStillInPlay(event) : undefined;
+  const incomparable = modes.includes('board')
+    ? boardsStillInPlay({ ...event, club: undefined }) : undefined;
+  const results = Object.entries(normalizeResults(event.results));
+  const filterResults = (item: 'vp' | 'contract') => {
+    const eligible = new Set(event.boards.filter(board => {
+      if (timing[item] === 'manual') return (board[boardPublicationFlag[item]] ?? board.published) === true;
+      if (timing[item] === 'round') return !waiting!.has(board.number);
+      return !incomparable!.has(board.number);
+    }).map(board => board.number));
+    return Object.fromEntries(results.filter(([, result]) => eligible.has(result.board)));
+  };
+  return {
+    results: filterResults('contract'),
+    boards: publicBoards({ ...event, boards: event.boards.map(board => ({
+      ...board,
+      published: timing.hands === 'manual' ? board.published === true
+        : !(timing.hands === 'round' ? waiting! : incomparable!).has(board.number),
+    })) }),
+    projection: project({ ...event, results: filterResults('vp') }),
+  };
+}
+
+export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
+  const { club, competition } = event;
+  let publicCompetition = competition;
+  if (competition) {
+    const { disableAutoRefresh: _disableAutoRefresh, ...info } = competition;
+    publicCompetition = info;
+  }
   const data = {
     clubEnabled: !!club?.enabled,
     id: event.id,
@@ -99,58 +163,23 @@ export function audienceEvent(event: BridgeEvent, projection?: Projection) {
     parentEventId: event.parentEventId,
     stageName: event.stageName,
     hasStages: event.hasStages,
-    competition: event.competition,
+    competition: publicCompetition,
     revision: event.revision,
     updatedAt: event.updatedAt,
-    results: normalizeResults(event.results),
   };
-  const finalized = new Set(club?.finalized ?? []);
-  const exempt = knockoutExemptAssignments(event);
-  const published = new Set(club?.publishedAssignments ?? []);
-  const visible = club?.enabled
-    ? new Set(event.assignments.filter((a) => finalized.has(a.round) || published.has(a.id) || exempt.has(a.id)).map((a) => a.id))
-    : null;
-  const waiting = boardsStillInPlay(event);
-  // Hands already follow `published`. Scores, pair IMPs and standings must too:
-  // finishing every table, or settling the round, does not publish a board the director left hidden.
-  const publishedBoards = new Set(
-    event.boards.filter((b) => b.published === true).map((b) => b.number),
-  );
-  const results = Object.fromEntries(
-    Object.entries(data.results).filter(
-      ([, r]) =>
-        publishedBoards.has(r.board) &&
-        !waiting.has(r.board) &&
-        (!visible || visible.has(r.assignmentId)),
-    ),
-  );
+  if (event.kind === 'teams') return { ...data, ...timedTeamSnapshot(event) };
+  const publicScoring = audienceScoring(event, projection);
+  const { results } = publicScoring;
   const safe = { ...data, results };
   const boards = presentBoards(event);
-  // Reuse only when the stored projection sees exactly the same results as the audience.
-  // Any hidden result forces a fresh public projection; no cross-request/private cache is used.
-  const allResultsVisible = Object.keys(results).length === Object.keys(data.results).length;
-  const publicScoring = { ...event, results };
-  if (!allResultsVisible && event.provisionalVp) {
-    const active = new Set((projection ?? project(event)).matches.filter(match => match.provisional).map(match => match.id));
-    publicScoring.provisionalVp = Object.fromEntries(Object.entries(event.provisionalVp).map(([id, item]) =>
-      [id, active.has(id) ? item : { vp: null }]));
-  }
   return {
     ...safe,
     boards,
-    // Receipt counts use every stored result and do not include contracts.
-    // Scores stay out of `results` until the director publishes the board and it is no longer in play.
-    enteredBoards: enteredBoardCounts(event),
-    // Same stored results, summed the way standings count 完成. Only the numbers
-    // are public; the projection below still scores the filtered results.
-    receivedByParticipant: receivedByParticipant(event),
-    collectionProgress: roundProgress(event),
-    projection: allResultsVisible && projection && !event.knockout ? projection : project(publicScoring),
+    projection: Object.keys(results).length === Object.keys(event.results).length && projection && !event.knockout
+      ? projection : project(publicScoring),
   };
 }
 
-function receivedByParticipant(event: BridgeEvent) {
-  const counts: Record<string, number> = {};
-  for (const row of project(event).standings) if (row.played) counts[row.id] = row.played;
-  return counts;
+export function audienceEvent(event: BridgeEvent, projection?: Projection) {
+  return { ...publicSnapshot(event, projection), ...eventProgress(event) };
 }

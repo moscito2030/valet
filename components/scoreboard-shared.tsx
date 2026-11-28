@@ -21,7 +21,7 @@ export type EventSummary = {
   expected: number;
 };
 export type Tab = 'standings' | 'rounds' | 'boards' | 'players' | 'admin';
-export type AdminEvent = Omit<PublicEvent, "boards"> & { boards: (Omit<import("@/lib/model").Board, "deal"> & { deal?: import("@/lib/model").Board["deal"] })[]; audit?: Audit[]; canDirect?: boolean; club?: import("@/lib/model").BridgeEvent["club"] };
+export type AdminEvent = Omit<PublicEvent, "boards"> & { boards: (Omit<import("@/lib/model").Board, "deal"> & { deal?: import("@/lib/model").Board["deal"] })[]; stageRevision?: number; audit?: Audit[]; canDirect?: boolean; publicTiming?: import("@/lib/model").BridgeEvent["publicTiming"]; club?: import("@/lib/model").BridgeEvent["club"] };
 export const methodNames = { mp: 'MP', crossimp: 'CrossIMP', butler: 'ButlerIMP' };
 export function pairValue(value: number | null | undefined, top: number, method = 'mp') {
   const { value: score, ...options } = pairScoreFormat(value, top, method);

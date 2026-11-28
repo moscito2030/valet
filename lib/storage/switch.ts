@@ -5,14 +5,22 @@ export function isUndefinedTable(error: unknown) {
   return (error as { code?: string })?.code === '42P01';
 }
 
+function storageUnavailable() {
+  return new DomainError('正規化儲存尚未啟用，暫停讀寫。請聯絡站台管理員。', 503, 'storage-unavailable');
+}
+
+export function missingStorage(error: unknown): never {
+  if (isUndefinedTable(error) || (error as { code?: string }).code === '42703') throw storageUnavailable();
+  throw error;
+}
+
+export function assertNormalizedMode(row?: Record<string, unknown>) {
+  if (row?.mode !== 'normalized' || !row.per_table_at) throw storageUnavailable();
+}
+
 export async function requireNormalizedStorage(sql: Sql): Promise<void> {
-  try {
-    const rows = await sql`SELECT mode FROM bridge_storage_switch WHERE id = 1`;
-    if (rows[0]?.mode === 'normalized') return;
-  } catch (error) {
-    if (!isUndefinedTable(error)) throw error;
-  }
-  throw new DomainError('正規化儲存尚未啟用，暫停讀寫。請聯絡站台管理員。', 503, 'storage-unavailable');
+  const [row] = await sql`SELECT mode, per_table_at FROM bridge_storage_switch WHERE id = 1`.catch(missingStorage);
+  assertNormalizedMode(row);
 }
 
 export async function competitionRedirect(sql: Sql, id: string) {

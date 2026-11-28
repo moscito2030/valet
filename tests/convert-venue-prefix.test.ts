@@ -46,6 +46,7 @@ test('venue conversion previews, updates known fields only, and preserves exact 
     const stages = () => sql`SELECT * FROM bridge_stages ORDER BY id`;
     const before = { boards: await boards(), competitions: await competitions(), stages: await stages() };
 
+    await sql`SELECT setval('bridge_data_version', 9)`;
     const preview = await convertVenuePrefix(sql, { dryRun: true });
     assert.deepEqual([preview.competitionsChanged, preview.competitionsSkipped, preview.competitionsUnchanged, preview.stagesChanged], [2, 3, 0, 3]);
     const output = formatVenueConversion(preview);
@@ -81,11 +82,11 @@ test('venue conversion previews, updates known fields only, and preserves exact 
     assert.deepEqual(after.competitions.filter(unchangedCompetition), before.competitions.filter(unchangedCompetition));
     for (const [id, room, venue] of [[november, '705', '705'], [rehearsal, '704', '臺灣大學 二活704'], [standalone, '603', standaloneVenue]]) {
       const row = after.stages.find(stage => stage.id === id)!;
-      assert.equal(row.revision, 10);
+      assert.ok(Number(row.revision) > 9);
       const settings = row.settings as Record<string, unknown>;
       const original = before.stages.find(stage => stage.id === id)!;
       assert.deepEqual(settings, {
-        ...(original.settings as object), venue, venueOverride: room, revision: 10, updatedAt: settings.updatedAt,
+        ...(original.settings as object), venue, venueOverride: room, revision: row.revision, updatedAt: settings.updatedAt,
       });
       assert.deepEqual(row.projection, { received: 1 });
     }

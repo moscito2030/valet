@@ -10,7 +10,6 @@ import { dateRangeLabel } from '@/lib/date-range';
 import { allRoundsComplete, roundProgress } from '@/lib/round-progress';
 import { roundLabel } from '@/lib/team-movement';
 import {
-  Activity,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -34,6 +33,7 @@ import { api, EventSummary, methodNames, Tab } from './scoreboard-shared';
 import { Stat } from './scoreboard-widgets';
 import { PlayersView } from './scoreboard/PlayersView';
 import { RoundsView } from './scoreboard/RoundsView';
+import { RefreshButton } from './scoreboard/RefreshButton';
 import { StandingsView } from './scoreboard/StandingsView';
 import { useEventResource } from './scoreboard/use-event-resource';
 import { usePrivatePreview } from './scoreboard/use-private-preview';
@@ -135,7 +135,7 @@ export default function Scoreboard() {
     [password, setPassword] = useState(''),
     [loginError, setLoginError] = useState(''),
     [loggingIn, setLoggingIn] = useState(false);
-  const { event, setEvent, requestGeneration, refreshEvent } = useEventResource(id, tab, setError, events.find((entry) => entry.id === id));
+  const { event, setEvent, requestGeneration, refreshEvent, autoRefresh, setAutoRefresh, autoRefreshDisabled } = useEventResource(id, tab, setError, events.find((entry) => entry.id === id));
   const firstLoad = useRef(true);
   const requestedResults = useRef<URLSearchParams | null>(null);
   const refreshList = useCallback(async () => {
@@ -465,14 +465,16 @@ export default function Scoreboard() {
                         </span>
                       </div>
                     </div>
-                    <button
-                      className={`button subtle ${refreshing ? 'refreshing' : ''}`}
-                      disabled={refreshing || refreshCooldown}
-                      onClick={manualRefresh}
-                    >
-                      <Activity size={16} />
-                      {refreshing ? '更新中' : '更新成績'}
-                    </button>
+                    <div className="event-refresh-controls">
+                      <RefreshButton
+                        autoRefresh={autoRefresh}
+                        autoRefreshDisabled={autoRefreshDisabled}
+                        disabled={refreshing || refreshCooldown}
+                        refreshing={refreshing}
+                        onRefresh={manualRefresh}
+                        onToggleAuto={() => setAutoRefresh(!autoRefresh)}
+                      />
+                    </div>
                   </section>
                   {event.demo && (
                     <div className="demo-banner">
@@ -668,6 +670,8 @@ export default function Scoreboard() {
                       setQuery={setQuery}
                       setTab={setTab}
                       toggleFollow={toggleFollow}
+                      autoRefresh={autoRefresh}
+                      autoRefreshDisabled={autoRefreshDisabled}
                     />
                   )}
                   {tab === 'rounds' && (

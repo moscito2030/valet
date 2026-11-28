@@ -1,7 +1,7 @@
 import { findCompetition, isStage, type StoredCompetition, type StoredDocument } from '../competition-record';
 import type { BridgeEvent, StoredEvent } from '../model';
 import { project } from '../scoring';
-import { canonical, seedResultWrites } from './cell-write';
+import { canonical } from './cell-write';
 import { captureSql, commitSql } from './batch';
 import type { Sql } from './neon';
 import {
@@ -10,7 +10,6 @@ import {
   queueCompetition,
   queueDeleteCompetition,
   queueStage,
-  type StagePrior,
 } from './rows';
 import { requireNormalizedStorage } from './switch';
 
@@ -110,7 +109,7 @@ export function planStageMerge(documents: StoredDocument[]): StageMergePlan {
     delete event.competition;
     event.revision += 1;
     event.updatedAt = at;
-    return { ...stage, event };
+    return { event, requests: stage.requests, get projection() { return stage.projection; } };
   });
   return {
     documents: [
@@ -141,15 +140,7 @@ export async function commitStageMerge(sql: Sql) {
     for (const document of plan.documents) {
       if (isStage(document) && touched.has(document.event.id)) {
         const prior = stages.find((stage) => stage.stored.event.id === document.event.id);
-        const guard: StagePrior | undefined = prior
-          ? {
-              eventRevision: prior.stored.event.revision,
-              writes: prior.writes,
-              revisions: prior.revisions,
-              results: prior.stored.event.results,
-            }
-          : undefined;
-        queueStage(cap.sql, document, prior?.writes ?? seedResultWrites(document.event), guard);
+        queueStage(cap.sql, document, {}, prior);
       } else if (!isStage(document) && document.competition.id === stageMerge.competitionId) {
         const existed = competitions.some((item) => item.competition.id === stageMerge.competitionId);
         queueCompetition(

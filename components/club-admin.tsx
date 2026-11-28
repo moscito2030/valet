@@ -6,6 +6,9 @@ import { roundLabel } from '@/lib/team-movement';
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { RoundControlPanel } from './admin/RoundControlPanel';
+import type { ClubStatus } from '@/lib/storage/club-status';
+import type { Assignment } from '@/lib/model';
+import { enteredBoardCounts } from '@/lib/round-progress';
 import type { AdminEvent } from './scoreboard-shared';
 import { clubRoles, clubAccepted } from '@/lib/club-confirmation';
 import { tableDevices, tableDeviceLabel } from '@/lib/table-device';
@@ -26,6 +29,14 @@ export function ClubAdmin({
 }) {
   const [reviewId, setReviewId] = useState<string | null>(null);
   const reviewAssignment = event.assignments.find((a) => a.id === reviewId);
+  const [status, setStatus] = useState<ClubStatus | null>(null);
+  const stageRevision = event.stageRevision ?? event.revision;
+  const live = status?.stageRevision === stageRevision && status.revision > event.revision ? status : null;
+  const entered = enteredBoardCounts(event);
+  for (const [id, table] of Object.entries(live?.assignments ?? {})) entered[id] = table.boards.length;
+  const hasBoard = (a: Assignment, b: number) =>
+    live?.assignments[a.id]?.boards.includes(b) ?? !!event.results[`${a.id}:${b}`];
+  const isAccepted = (a: Assignment) => live?.assignments[a.id]?.accepted ?? clubAccepted(event, a);
   const [working, setBusy] = useState(false);
   const busy = working || disabled;
   const [error, setError] = useState('');
@@ -49,11 +60,28 @@ export function ClubAdmin({
   }, []);
   useEffect(() => {
     if (event.status === 'finished') return;
-    const timer = setInterval(() => {
-      void reload().catch((e) => setError((e as Error).message));
-    }, 10000);
-    return () => clearInterval(timer);
-  }, [reload, event.status]);
+    const controller = new AbortController();
+    let revision = event.revision;
+    async function poll() {
+      const response = await fetch(`/api/admin/club/${event.id}/status`, {
+        headers: { 'If-None-Match': `"${revision}"` }, cache: 'no-store', signal: controller.signal,
+      });
+      if (response.status === 304) return;
+      if (!response.ok) throw new Error((await response.json()).error);
+      const next: ClubStatus = await response.json();
+      if (controller.signal.aborted || next.revision <= revision) return;
+      if (next.stageRevision !== stageRevision) {
+        await reload();
+      } else {
+        setStatus(next);
+      }
+      revision = next.revision;
+    }
+    const timer = setInterval(() => void poll().catch(e => {
+      if (!controller.signal.aborted) setError(e.message);
+    }), 10000);
+    return () => { clearInterval(timer); controller.abort(); };
+  }, [reload, event.id, event.status, event.revision, stageRevision]);
   async function act(body: Record<string, unknown>) {
     setBusy(true);
     onBusyChange?.(true);
@@ -63,7 +91,7 @@ export function ClubAdmin({
       const response = await fetch(`/api/admin/club/${event.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body, revision: event.revision }),
+        body: JSON.stringify({ ...body, revision: live?.revision ?? event.revision }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
@@ -94,11 +122,11 @@ export function ClubAdmin({
   const round = event.currentRound ?? 0;
   const assignments = event.assignments.filter((a) => a.round === round);
   const finalized = event.club?.finalized.includes(round);
-  const pending = assignments.filter((a) => !clubAccepted(event, a));
+  const pending = assignments.filter((a) => !isAccepted(a));
   const forceTables =
     forceRound === null
       ? []
-      : event.assignments.filter((a) => a.round === forceRound && !clubAccepted(event, a));
+      : event.assignments.filter((a) => a.round === forceRound && !isAccepted(a));
   const advance =
     forceRound === round &&
     !roundStartProblem(event, nextScheduledRound(event, round)) &&
@@ -122,6 +150,11 @@ export function ClubAdmin({
           busy={busy}
           event={event}
           save={save}
+          entered={entered}
+          roundActive={live && assignments.length ? assignments.some(a => {
+            const table = live.assignments[a.id];
+            return table?.confirmed || table?.boards.length;
+          }) : undefined}
           onOpenSettings={() => setSettingsOpen(true)}
           collection={
             event.club?.enabled
@@ -167,7 +200,7 @@ export function ClubAdmin({
             </thead>
             <tbody>
               {forceTables.map((a) => {
-                const missing = a.boards.filter((b) => !event.results[`${a.id}:${b}`]);
+                const missing = a.boards.filter((b) => !hasBoard(a, b));
                 return (
                   <tr key={a.id}>
                     <th scope="row">{tableDeviceLabel(event, a)}</th>
@@ -245,7 +278,7 @@ export function ClubAdmin({
                 className="button subtle"
                 disabled={busy}
                 onClick={() =>
-                  clubRoundReady(event, r)
+                  clubRoundReady(event, r, isAccepted)
                     ? void act({
                         action: 'finalize',
                         round: r,
@@ -256,7 +289,7 @@ export function ClubAdmin({
                     : (setReviewAcknowledged(false), setForceRound(r))
                 }
               >
-                {clubRoundReady(event, r) ? '補結算' : '處理未完成桌次'} · 第 {roundLabel(event, r)}{' '}
+                {clubRoundReady(event, r, isAccepted) ? '補結算' : '處理未完成桌次'} · 第 {roundLabel(event, r)}{' '}
                 圈
               </button>
             </div>
@@ -280,8 +313,8 @@ export function ClubAdmin({
               )}
               <div className="club-progress-list">
                 {(pending.length ? pending : assignments).map((a) => {
-                  const accepted = clubAccepted(event, a);
-                  const received = a.boards.filter((b) => event.results[`${a.id}:${b}`]).length;
+                  const accepted = isAccepted(a);
+                  const received = entered[a.id] ?? 0;
                   const roles = clubRoles(event, a);
                   return (
                     <div key={a.id} className="club-progress-row">
@@ -290,7 +323,12 @@ export function ClubAdmin({
                         className="club-progress-info club-progress-trigger"
                         aria-haspopup="dialog"
                         aria-label={`${tableDeviceLabel(event, a)} 成績核對`}
-                        onClick={() => setReviewId(a.id)}
+                        onClick={async () => {
+                          if (live && live.assignments[a.id]?.version > event.revision) {
+                            try { await reload(); } catch (e) { setError((e as Error).message); return; }
+                          }
+                          setReviewId(a.id);
+                        }}
                       >
                         <div className="club-progress-heading">
                           <strong>{tableDeviceLabel(event, a)}</strong>
@@ -315,7 +353,7 @@ export function ClubAdmin({
                           {received < a.boards.length && (
                             <span>
                               缺牌：
-                              {a.boards.filter((b) => !event.results[`${a.id}:${b}`]).join('、')}
+                              {a.boards.filter((b) => !hasBoard(a, b)).join('、')}
                             </span>
                           )}
                           <span>
@@ -389,7 +427,7 @@ export function ClubAdmin({
               收分模式
               <select
                 value={mode}
-                disabled={busy || !!event.club?.enabled || !!Object.keys(event.results).length}
+                disabled={busy || !!event.club?.enabled || Object.values(entered).some(Boolean)}
                 onChange={(e) => {
                   setMode(e.target.value as 'pair' | 'table');
                   setLink('');

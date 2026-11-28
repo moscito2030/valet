@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     if (!(await isDirector())) throw new DomainError('建立賽事僅限裁判', 403);
     const event = createEvent(createSchema.parse(await readJson(request)));
     await insertEvent(event);
-    return NextResponse.json({ id: event.id }, { status: 201 });
+    return NextResponse.json({ id: event.id }, { status: 201, headers: { 'Cache-Control': 'no-store' } });
   } catch (e) {
     return errorResponse(e);
   }

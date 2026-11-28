@@ -1,20 +1,24 @@
 import { canMutate } from '@/lib/mutation-permissions';
-import { audienceEvent } from '@/lib/club-view';
+import { publicSnapshot } from '@/lib/read-models/public-event';
 import { NextResponse } from 'next/server';
-import { mutateEvent } from '@/lib/store';
+import { scoreboardVersion } from '@/lib/storage/projection';
+import { readScoreboard } from '@/lib/storage/normalized';
+import { mutateEvent, normalizedSql } from '@/lib/store';
 import { getAccessibleEvent as getEvent } from '@/lib/event-access';
 import { mutationSchema } from '@/lib/model';
 import { errorResponse, readJson, requireAdmin } from '@/lib/http';
 import { isDirector } from '@/lib/auth';
 import { DomainError } from '@/lib/domain-error';
 export const dynamic = 'force-dynamic';
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { event, projection } = await getEvent((await params).id);
-    return NextResponse.json(
-      audienceEvent(event, projection),
-      { headers: { 'Cache-Control': 'no-store' } },
-    );
+    const id = (await params).id;
+    const sql = normalizedSql();
+    if (sql) return await readScoreboard(sql, id, request.headers.get('if-none-match'), await isDirector());
+    const { event, projection } = await getEvent(id);
+    const headers = { 'Cache-Control': 'private, no-cache', ETag: `"${event.revision}.${event.competition?.revision ?? event.revision}"` };
+    if (request.headers.get('if-none-match') === headers.ETag) return new Response(null, { status: 304, headers });
+    return NextResponse.json(publicSnapshot(event, projection), { headers });
   } catch (e) {
     return errorResponse(e);
   }
@@ -26,7 +30,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!canMutate(await isDirector() ? 'director' : 'admin', command))
       throw new DomainError('此操作需要裁判權限，俱樂部操作請使用專屬入口', 403);
     const id = (await params).id;
-    await getEvent(id);
+    const sql = normalizedSql();
+    if (sql) {
+      await scoreboardVersion(sql, id, await isDirector());
+    } else await getEvent(id);
     const stored = await mutateEvent(id, command);
     return NextResponse.json(
       { revision: stored.event.revision },

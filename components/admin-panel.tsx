@@ -37,7 +37,7 @@ export function AdminPanel({
     [preview, setPreview] = useState('');
   const [deleteName, setDeleteName] = useState('');
   const load = useCallback(async () => {
-    const e = await api<AdminEvent>(`/api/admin/events/${eventId}`, { cache: 'no-store' });
+    const e = await api<AdminEvent>(`/api/admin/events/${eventId}`, { cache: 'no-cache' });
     setEvent(e);
     return e;
   }, [eventId]);
@@ -123,7 +123,9 @@ export function AdminPanel({
             key={k}
             className={section === k ? 'selected' : ''}
             onClick={() => {
+              if (k === section) return;
               setSection(k);
+              if (event.canDirect) void load().catch(e => setError(e.message));
               setError('');
             }}
           >
@@ -211,7 +213,7 @@ export function AdminPanel({
         )}
         {section === 'knockout' && event.canDirect && <KnockoutPanel key={`ko-${event.id}-${event.revision}`} event={event as BridgeEvent} busy={busy} save={save} />}
         {section === 'penalty' && <PenaltyPanel busy={busy} event={event} save={save} />}
-        {section === 'audit' && event.canDirect && <AuditPanel event={event} />}
+        {section === 'audit' && event.canDirect && <AuditPanel key={event.id} eventId={event.id} />}
       </div>
     </section>
   );

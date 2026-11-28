@@ -30,8 +30,8 @@ function normalizedStorageRequired() {
 }
 
 async function assertNormalizedStorage(sql: Sql) {
-  const rows = await sql`SELECT mode FROM bridge_storage_switch WHERE id = 1`.catch((error: unknown) => {
-    if (isUndefinedTable(error)) throw normalizedStorageRequired();
+  const rows = await sql`SELECT mode FROM bridge_storage_switch WHERE id = 1 AND per_table_at IS NOT NULL`.catch((error: unknown) => {
+    if (isUndefinedTable(error) || (error as { code?: string }).code === '42703') throw normalizedStorageRequired();
     throw error;
   });
   if (rows[0]?.mode !== 'normalized') throw normalizedStorageRequired();
@@ -91,7 +91,7 @@ export async function agentRoute(
     const writeRepo = operation === 'mutations' ? createNormalizedRepository(sql) : undefined;
     if (writeRepo) await assertNormalizedStorage(sql);
     const repo = writeRepo ?? createNeonRepository(sql);
-    const stored = await repo.getEvent(eventId);
+    const stored = writeRepo ? await writeRepo.getEvent(eventId, true, false) : await repo.getEvent(eventId);
     assertEventAccess(stored, actor);
     if (operation === 'status') return respond({ revision: stored.event.revision, ...eventStatus(stored.event) });
 
@@ -143,7 +143,6 @@ export async function agentRoute(
         queue(batch, before, after) {
           if (canonical(before.event.boards) !== canonical(after.event.boards))
             throw forbidden('代理 API 不可變更牌組或牌型公開設定');
-          const response = { revision: after.event.revision };
           const changes = resultChanges(before.event.results, after.event.results);
           const audit = auditAgentChange(
             { ...actor, organizerId: before.event.organizerId },
@@ -153,8 +152,8 @@ export async function agentRoute(
             { revision: after.event.revision, results: changes.map(({ target, after }) => ({ target, result: after })) },
           );
           batch`INSERT INTO bridge_agent_mutations (event_id, actor_id, key, request_id, body_hash, response)
-            VALUES (${eventId}, ${actor.id}, ${key}, ${requestId}, ${bodyHash}, ${JSON.stringify(response)}::jsonb)`;
-          batch`INSERT INTO bridge_access_audit (id, document) VALUES (${randomUUID()}, ${JSON.stringify(audit)}::jsonb)`;
+            VALUES (${eventId}, ${actor.id}, ${key}, ${requestId}, ${bodyHash}, jsonb_build_object('revision', current_setting('valet.data_version')::bigint))`;
+          batch`INSERT INTO bridge_access_audit (id, document) VALUES (${randomUUID()}, jsonb_set(${JSON.stringify(audit)}::jsonb, '{after,revision}', to_jsonb(current_setting('valet.data_version')::bigint)))`;
         },
       });
       return respond({ revision: next.event.revision });

@@ -20,11 +20,16 @@ test('public snapshot reuse matches a fresh projection for every publication sta
       assert.ok(!('club' in actual));
       assert.ok(!('audit' in actual));
       assert.ok(!('requests' in actual));
-      assert.ok(
-        Object.values(actual.results).every((r) =>
-          finalized.includes(e.assignments.find((a) => a.id === r.assignmentId)!.round),
-        ),
-      );
+      if (e.kind === 'teams') {
+        // The demo boards are manually public even when their rounds are unsettled.
+        assert.deepEqual(actual.results, normalizeResults(e.results));
+      } else {
+        assert.ok(
+          Object.values(actual.results).every((r) =>
+            finalized.includes(e.assignments.find((a) => a.id === r.assignmentId)!.round),
+          ),
+        );
+      }
       assert.deepEqual(e, before);
     }
 });

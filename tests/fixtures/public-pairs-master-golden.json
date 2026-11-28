@@ -1,0 +1,975 @@
+[
+  {
+    "event": {
+      "id": "pairs-club-mid-round",
+      "name": "pairs-club-mid-round",
+      "kind": "pairs",
+      "rankingMode": "single",
+      "maxBoardNumber": 0,
+      "gameMode": "bridge",
+      "date": "2026-01-02",
+      "venue": "",
+      "rounds": 1,
+      "boardsPerRound": 2,
+      "status": "live",
+      "pairMethod": "mp",
+      "neuberg": false,
+      "trim": "none",
+      "penalties": {},
+      "demo": false,
+      "participants": [
+        {
+          "id": "p1",
+          "name": "A",
+          "players": ""
+        },
+        {
+          "id": "p2",
+          "name": "B",
+          "players": ""
+        },
+        {
+          "id": "p3",
+          "name": "C",
+          "players": ""
+        },
+        {
+          "id": "p4",
+          "name": "D",
+          "players": ""
+        }
+      ],
+      "boards": [
+        {
+          "number": 1,
+          "dealer": "N",
+          "vulnerability": "None",
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          },
+          "published": true
+        },
+        {
+          "number": 2,
+          "dealer": "E",
+          "vulnerability": "NS",
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          },
+          "published": false
+        }
+      ],
+      "assignments": [
+        {
+          "id": "r1m1o",
+          "round": 1,
+          "table": 1,
+          "room": "pairs",
+          "ns": "p1",
+          "ew": "p4",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m1"
+        },
+        {
+          "id": "r1m2o",
+          "round": 1,
+          "table": 2,
+          "room": "pairs",
+          "ns": "p3",
+          "ew": "p2",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m2"
+        }
+      ],
+      "results": {
+        "r1m1o:1": {
+          "assignmentId": "r1m1o",
+          "board": 1,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        },
+        "r1m1o:2": {
+          "assignmentId": "r1m1o",
+          "board": 2,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        }
+      },
+      "audit": [],
+      "revision": 1,
+      "updatedAt": "2026-01-02T03:04:05.000Z",
+      "currentRound": 1,
+      "roundPhase": "playing",
+      "club": {
+        "enabled": true,
+        "tokens": {},
+        "confirmations": {},
+        "finalized": []
+      }
+    },
+    "expected": {
+      "clubEnabled": true,
+      "id": "pairs-club-mid-round",
+      "name": "pairs-club-mid-round",
+      "kind": "pairs",
+      "rankingMode": "single",
+      "gameMode": "bridge",
+      "date": "2026-01-02",
+      "venue": "",
+      "rounds": 1,
+      "boardsPerRound": 2,
+      "maxBoardNumber": 0,
+      "currentRound": 1,
+      "roundPhase": "playing",
+      "status": "live",
+      "pairMethod": "mp",
+      "neuberg": false,
+      "trim": "none",
+      "penalties": {},
+      "demo": false,
+      "participants": [
+        {
+          "id": "p1",
+          "name": "A",
+          "players": ""
+        },
+        {
+          "id": "p2",
+          "name": "B",
+          "players": ""
+        },
+        {
+          "id": "p3",
+          "name": "C",
+          "players": ""
+        },
+        {
+          "id": "p4",
+          "name": "D",
+          "players": ""
+        }
+      ],
+      "assignments": [
+        {
+          "id": "r1m1o",
+          "round": 1,
+          "table": 1,
+          "room": "pairs",
+          "ns": "p1",
+          "ew": "p4",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m1"
+        },
+        {
+          "id": "r1m2o",
+          "round": 1,
+          "table": 2,
+          "room": "pairs",
+          "ns": "p3",
+          "ew": "p2",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m2"
+        }
+      ],
+      "revision": 1,
+      "updatedAt": "2026-01-02T03:04:05.000Z",
+      "results": {},
+      "boards": [
+        {
+          "number": 1,
+          "dealer": "N",
+          "vulnerability": "None",
+          "published": false
+        },
+        {
+          "number": 2,
+          "dealer": "E",
+          "vulnerability": "NS",
+          "published": false
+        }
+      ],
+      "enteredBoards": {
+        "r1m1o": 2
+      },
+      "receivedByParticipant": {
+        "p1": 2,
+        "p4": 2
+      },
+      "collectionProgress": {
+        "round": 1,
+        "received": 2,
+        "expected": 4,
+        "slowest": [
+          {
+            "assignment": {
+              "id": "r1m2o",
+              "round": 1,
+              "table": 2,
+              "room": "pairs",
+              "ns": "p3",
+              "ew": "p2",
+              "boards": [
+                1,
+                2
+              ],
+              "matchId": "r1m2"
+            },
+            "received": 0,
+            "expected": 2,
+            "ratio": 0
+          }
+        ]
+      },
+      "projection": {
+        "standings": [
+          {
+            "id": "p1",
+            "name": "A",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p2",
+            "name": "B",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p3",
+            "name": "C",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p4",
+            "name": "D",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          }
+        ],
+        "matches": [],
+        "pairScores": {},
+        "received": 0,
+        "expected": 4
+      }
+    }
+  },
+  {
+    "event": {
+      "id": "pairs-club-finalized",
+      "name": "pairs-club-finalized",
+      "kind": "pairs",
+      "rankingMode": "single",
+      "maxBoardNumber": 0,
+      "gameMode": "bridge",
+      "date": "2026-01-02",
+      "venue": "",
+      "rounds": 1,
+      "boardsPerRound": 2,
+      "status": "live",
+      "pairMethod": "mp",
+      "neuberg": false,
+      "trim": "none",
+      "penalties": {},
+      "demo": false,
+      "participants": [
+        {
+          "id": "p1",
+          "name": "A",
+          "players": ""
+        },
+        {
+          "id": "p2",
+          "name": "B",
+          "players": ""
+        },
+        {
+          "id": "p3",
+          "name": "C",
+          "players": ""
+        },
+        {
+          "id": "p4",
+          "name": "D",
+          "players": ""
+        }
+      ],
+      "boards": [
+        {
+          "number": 1,
+          "dealer": "N",
+          "vulnerability": "None",
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          },
+          "published": true
+        },
+        {
+          "number": 2,
+          "dealer": "E",
+          "vulnerability": "NS",
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          },
+          "published": false
+        }
+      ],
+      "assignments": [
+        {
+          "id": "r1m1o",
+          "round": 1,
+          "table": 1,
+          "room": "pairs",
+          "ns": "p1",
+          "ew": "p4",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m1"
+        },
+        {
+          "id": "r1m2o",
+          "round": 1,
+          "table": 2,
+          "room": "pairs",
+          "ns": "p3",
+          "ew": "p2",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m2"
+        }
+      ],
+      "results": {
+        "r1m1o:1": {
+          "assignmentId": "r1m1o",
+          "board": 1,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        },
+        "r1m1o:2": {
+          "assignmentId": "r1m1o",
+          "board": 2,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        },
+        "r1m2o:1": {
+          "assignmentId": "r1m2o",
+          "board": 1,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        },
+        "r1m2o:2": {
+          "assignmentId": "r1m2o",
+          "board": 2,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        }
+      },
+      "audit": [],
+      "revision": 1,
+      "updatedAt": "2026-01-02T03:04:05.000Z",
+      "currentRound": 1,
+      "roundPhase": "break",
+      "club": {
+        "enabled": true,
+        "tokens": {},
+        "confirmations": {},
+        "finalized": [
+          1
+        ]
+      }
+    },
+    "expected": {
+      "clubEnabled": true,
+      "id": "pairs-club-finalized",
+      "name": "pairs-club-finalized",
+      "kind": "pairs",
+      "rankingMode": "single",
+      "gameMode": "bridge",
+      "date": "2026-01-02",
+      "venue": "",
+      "rounds": 1,
+      "boardsPerRound": 2,
+      "maxBoardNumber": 0,
+      "currentRound": 1,
+      "roundPhase": "break",
+      "status": "review",
+      "pairMethod": "mp",
+      "neuberg": false,
+      "trim": "none",
+      "penalties": {},
+      "demo": false,
+      "participants": [
+        {
+          "id": "p1",
+          "name": "A",
+          "players": ""
+        },
+        {
+          "id": "p2",
+          "name": "B",
+          "players": ""
+        },
+        {
+          "id": "p3",
+          "name": "C",
+          "players": ""
+        },
+        {
+          "id": "p4",
+          "name": "D",
+          "players": ""
+        }
+      ],
+      "assignments": [
+        {
+          "id": "r1m1o",
+          "round": 1,
+          "table": 1,
+          "room": "pairs",
+          "ns": "p1",
+          "ew": "p4",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m1"
+        },
+        {
+          "id": "r1m2o",
+          "round": 1,
+          "table": 2,
+          "room": "pairs",
+          "ns": "p3",
+          "ew": "p2",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m2"
+        }
+      ],
+      "revision": 1,
+      "updatedAt": "2026-01-02T03:04:05.000Z",
+      "results": {
+        "r1m1o:1": {
+          "assignmentId": "r1m1o",
+          "board": 1,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        },
+        "r1m2o:1": {
+          "assignmentId": "r1m2o",
+          "board": 1,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        }
+      },
+      "boards": [
+        {
+          "number": 1,
+          "dealer": "N",
+          "vulnerability": "None",
+          "published": true,
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          }
+        },
+        {
+          "number": 2,
+          "dealer": "E",
+          "vulnerability": "NS",
+          "published": false
+        }
+      ],
+      "enteredBoards": {
+        "r1m1o": 2,
+        "r1m2o": 2
+      },
+      "receivedByParticipant": {
+        "p1": 2,
+        "p2": 2,
+        "p3": 2,
+        "p4": 2
+      },
+      "collectionProgress": {
+        "round": 1,
+        "received": 4,
+        "expected": 4,
+        "slowest": []
+      },
+      "projection": {
+        "standings": [
+          {
+            "id": "p1",
+            "name": "A",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 1,
+            "played": 1,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p2",
+            "name": "B",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 1,
+            "played": 1,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p3",
+            "name": "C",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 1,
+            "played": 1,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p4",
+            "name": "D",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 1,
+            "played": 1,
+            "total": 2,
+            "penalty": 0
+          }
+        ],
+        "matches": [],
+        "pairScores": {
+          "r1m1o:1": {
+            "ns": 1,
+            "ew": 1,
+            "top": 2,
+            "provisional": false
+          },
+          "r1m2o:1": {
+            "ns": 1,
+            "ew": 1,
+            "top": 2,
+            "provisional": false
+          }
+        },
+        "received": 2,
+        "expected": 4
+      }
+    }
+  },
+  {
+    "event": {
+      "id": "pairs-director-half-entered",
+      "name": "pairs-director-half-entered",
+      "kind": "pairs",
+      "rankingMode": "single",
+      "maxBoardNumber": 0,
+      "gameMode": "bridge",
+      "date": "2026-01-02",
+      "venue": "",
+      "rounds": 1,
+      "boardsPerRound": 2,
+      "status": "live",
+      "pairMethod": "mp",
+      "neuberg": false,
+      "trim": "none",
+      "penalties": {},
+      "demo": false,
+      "participants": [
+        {
+          "id": "p1",
+          "name": "A",
+          "players": ""
+        },
+        {
+          "id": "p2",
+          "name": "B",
+          "players": ""
+        },
+        {
+          "id": "p3",
+          "name": "C",
+          "players": ""
+        },
+        {
+          "id": "p4",
+          "name": "D",
+          "players": ""
+        }
+      ],
+      "boards": [
+        {
+          "number": 1,
+          "dealer": "N",
+          "vulnerability": "None",
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          },
+          "published": true
+        },
+        {
+          "number": 2,
+          "dealer": "E",
+          "vulnerability": "NS",
+          "deal": {
+            "N": [],
+            "E": [],
+            "S": [],
+            "W": []
+          },
+          "published": false
+        }
+      ],
+      "assignments": [
+        {
+          "id": "r1m1o",
+          "round": 1,
+          "table": 1,
+          "room": "pairs",
+          "ns": "p1",
+          "ew": "p4",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m1"
+        },
+        {
+          "id": "r1m2o",
+          "round": 1,
+          "table": 2,
+          "room": "pairs",
+          "ns": "p3",
+          "ew": "p2",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m2"
+        }
+      ],
+      "results": {
+        "r1m1o:1": {
+          "assignmentId": "r1m1o",
+          "board": 1,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        },
+        "r1m1o:2": {
+          "assignmentId": "r1m1o",
+          "board": 2,
+          "level": 1,
+          "strain": "NT",
+          "declarer": "N",
+          "tricks": 7,
+          "doubled": 1,
+          "lead": "",
+          "nsScore": 90,
+          "status": "played",
+          "updatedAt": "2026-01-02T03:04:05.000Z"
+        }
+      },
+      "audit": [],
+      "revision": 1,
+      "updatedAt": "2026-01-02T03:04:05.000Z",
+      "currentRound": 1,
+      "roundPhase": "playing"
+    },
+    "expected": {
+      "clubEnabled": false,
+      "id": "pairs-director-half-entered",
+      "name": "pairs-director-half-entered",
+      "kind": "pairs",
+      "rankingMode": "single",
+      "gameMode": "bridge",
+      "date": "2026-01-02",
+      "venue": "",
+      "rounds": 1,
+      "boardsPerRound": 2,
+      "maxBoardNumber": 0,
+      "currentRound": 1,
+      "roundPhase": "playing",
+      "status": "live",
+      "pairMethod": "mp",
+      "neuberg": false,
+      "trim": "none",
+      "penalties": {},
+      "demo": false,
+      "participants": [
+        {
+          "id": "p1",
+          "name": "A",
+          "players": ""
+        },
+        {
+          "id": "p2",
+          "name": "B",
+          "players": ""
+        },
+        {
+          "id": "p3",
+          "name": "C",
+          "players": ""
+        },
+        {
+          "id": "p4",
+          "name": "D",
+          "players": ""
+        }
+      ],
+      "assignments": [
+        {
+          "id": "r1m1o",
+          "round": 1,
+          "table": 1,
+          "room": "pairs",
+          "ns": "p1",
+          "ew": "p4",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m1"
+        },
+        {
+          "id": "r1m2o",
+          "round": 1,
+          "table": 2,
+          "room": "pairs",
+          "ns": "p3",
+          "ew": "p2",
+          "boards": [
+            1,
+            2
+          ],
+          "matchId": "r1m2"
+        }
+      ],
+      "revision": 1,
+      "updatedAt": "2026-01-02T03:04:05.000Z",
+      "results": {},
+      "boards": [
+        {
+          "number": 1,
+          "dealer": "N",
+          "vulnerability": "None",
+          "published": false
+        },
+        {
+          "number": 2,
+          "dealer": "E",
+          "vulnerability": "NS",
+          "published": false
+        }
+      ],
+      "enteredBoards": {
+        "r1m1o": 2
+      },
+      "receivedByParticipant": {
+        "p1": 2,
+        "p4": 2
+      },
+      "collectionProgress": {
+        "round": 1,
+        "received": 2,
+        "expected": 4,
+        "slowest": [
+          {
+            "assignment": {
+              "id": "r1m2o",
+              "round": 1,
+              "table": 2,
+              "room": "pairs",
+              "ns": "p3",
+              "ew": "p2",
+              "boards": [
+                1,
+                2
+              ],
+              "matchId": "r1m2"
+            },
+            "received": 0,
+            "expected": 2,
+            "ratio": 0
+          }
+        ]
+      },
+      "projection": {
+        "standings": [
+          {
+            "id": "p1",
+            "name": "A",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p2",
+            "name": "B",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p3",
+            "name": "C",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          },
+          {
+            "id": "p4",
+            "name": "D",
+            "players": "",
+            "rank": 1,
+            "score": 50,
+            "secondary": 0,
+            "played": 0,
+            "total": 2,
+            "penalty": 0
+          }
+        ],
+        "matches": [],
+        "pairScores": {},
+        "received": 0,
+        "expected": 4
+      }
+    }
+  }
+]

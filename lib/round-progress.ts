@@ -1,12 +1,13 @@
 import { knockoutExemptAssignments } from './knockout-status';
-import type { BridgeEvent } from './model';
+import type { Assignment, BridgeEvent, PublicEvent, Result } from './model';
+import { teamBoardReceived } from './result-status';
 import { resultKey } from './model';
 
 // A board counts as soon as a result is stored. In club scoring that is the
 // designated input side (NS by default) submitting the board. The other side's
 // confirmation is not required, and the count carries no contract or score.
 export function enteredBoardCounts(
-  event: Pick<BridgeEvent, 'assignments' | 'results'>,
+  event: { assignments: Pick<Assignment, 'id' | 'boards'>[]; results: Record<string, unknown> },
 ): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const assignment of event.assignments) {
@@ -21,11 +22,11 @@ export function enteredBoardCounts(
 export function allRoundsComplete(
   event: Pick<BridgeEvent, 'rounds' | 'assignments' | 'results' | 'club'> &
     Partial<Pick<BridgeEvent, 'swiss' | 'participants' | 'knockout'>>,
+  entered = enteredBoardCounts(event),
 ) {
   if (event.knockout && event.knockout.nodes.some((n) => !event.knockout!.decisions[n.id]))
     return false;
   const exempt = knockoutExemptAssignments(event);
-  const entered = enteredBoardCounts(event);
   return (
     event.rounds > 0 &&
     Array.from({ length: event.rounds }, (_, i) => i + 1).every((round) => {
@@ -50,15 +51,22 @@ export function allRoundsComplete(
 
 export function roundProgress(
   event: Pick<BridgeEvent, 'currentRound' | 'assignments' | 'results'> & Partial<Pick<BridgeEvent, 'knockout'>>,
+  entered = enteredBoardCounts(event),
 ) {
-  const entered = enteredBoardCounts(event);
+  return collectionProgress(event, entered, knockoutExemptAssignments(event));
+}
+
+function collectionProgress<A extends Pick<Assignment, 'id' | 'boards' | 'round'>>(
+  event: Pick<BridgeEvent, 'currentRound'> & { assignments: A[] },
+  entered: Record<string, number>,
+  exempt: Set<string>,
+) {
   const round =
     event.currentRound ||
     Math.max(
       0,
       ...event.assignments.filter((a) => entered[a.id]).map((a) => a.round),
     );
-  const exempt = knockoutExemptAssignments(event);
   const tables = event.assignments
     .filter((a) => a.round === round)
     .map((assignment) => {
@@ -74,4 +82,43 @@ export function roundProgress(
     expected: tables.reduce((sum, table) => sum + table.expected, 0),
     slowest: unfinished.filter((table) => table.ratio === lowest),
   };
+}
+
+export function eventProgress<A extends Omit<Assignment, 'table' | 'playerNames'>>(
+  event: Pick<BridgeEvent, 'currentRound'> & {
+    assignments: A[];
+    results: Record<string, Pick<Result, 'status'>>;
+    knockout?: BridgeEvent['knockout'];
+    provisionalVp?: BridgeEvent['provisionalVp'];
+  },
+  exempt = knockoutExemptAssignments(event),
+  pending = new Set(Object.keys(event.provisionalVp ?? {})),
+) {
+  const enteredBoards = enteredBoardCounts(event);
+  const receivedByParticipant: Record<string, number> = {};
+  const closedRooms = new Map(event.assignments.filter(a => a.room === 'closed').map(a => [a.matchId, a]));
+  for (const a of event.assignments) {
+    let played = enteredBoards[a.id] ?? 0;
+    if (a.room !== 'pairs') {
+      const closed = closedRooms.get(a.matchId);
+      if (a.room !== 'open' || !closed) continue;
+      played = a.boards.filter(board => {
+        const x = event.results[resultKey(a.id, board)], y = event.results[resultKey(closed.id, board)];
+        return teamBoardReceived(x, y, pending.has(a.matchId));
+      }).length;
+    }
+    if (played) for (const id of [a.ns, a.ew])
+      receivedByParticipant[id] = (receivedByParticipant[id] ?? 0) + played;
+  }
+  return { enteredBoards, receivedByParticipant, collectionProgress: collectionProgress(event, enteredBoards, exempt) };
+}
+
+export function mergeEventProgress(snapshot: PublicEvent, progress: ReturnType<typeof eventProgress>): PublicEvent {
+  const { enteredBoards, receivedByParticipant, collectionProgress } = progress;
+  const assignments = new Map(snapshot.assignments.map(a => [a.id, a]));
+  const slowest = collectionProgress.slowest.flatMap(table => {
+    const assignment = assignments.get(table.assignment.id);
+    return assignment ? [{ ...table, assignment }] : [];
+  });
+  return { ...snapshot, enteredBoards, receivedByParticipant, collectionProgress: { ...collectionProgress, slowest } };
 }

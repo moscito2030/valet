@@ -645,7 +645,7 @@ test('stops for explicit format conflicts and schedule disagreements before open
   }
 });
 
-test('imports provisional VP and replaces it after both rooms submit all 12 scores', async () => {
+test('imports provisional VP and uses played VP after both rooms submit all 12 scores', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'valet-provisional-xlsx-'));
   const db = await createTestDb();
   try {
@@ -755,7 +755,7 @@ test('imports provisional VP and replaces it after both rooms submit all 12 scor
     }
     const settled = saved.projection.matches.find((match) => match.id === 'r1m1')!;
     assert.deepEqual([settled.vpA, settled.vpB], [10, 10]);
-    assert.equal(saved.event.provisionalVp?.r1m1?.vp, null);
+    assert.deepEqual(saved.event.provisionalVp?.r1m1?.vp, [8, 12]);
     assert.deepEqual(
       [
         audienceEvent(saved.event).projection.matches.find((match) => match.id === 'r1m1')?.vpA,
@@ -764,7 +764,6 @@ test('imports provisional VP and replaces it after both rooms submit all 12 scor
       ],
       [10, undefined],
     );
-    assert.match(saved.event.audit.at(-1)!.detail!, /以補登成績取代暫定 VP/);
     assert.equal(saved.event.status, 'review');
     saved = await repository.mutateEvent(
       ids.stageId,

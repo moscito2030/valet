@@ -15,6 +15,10 @@ export function storageMode() {
   return mode;
 }
 
+export function normalizedSql() {
+  return storageMode() === 'neon' ? neonHttp(process.env.DATABASE_URL!) : null;
+}
+
 const local = createLocalRepository(
   process.env.VALET_LOCAL_DATA_DIR ?? path.join(process.cwd(), '.data'),
 );

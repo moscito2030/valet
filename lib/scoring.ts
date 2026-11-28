@@ -12,7 +12,7 @@ import {
   Vulnerability,
   resultKey,
 } from './model';
-import { normalizeResults } from './result-status';
+import { normalizeResults, teamBoardReceived } from './result-status';
 import { teamByes } from './team-movement';
 // Assigned scores remain in NS coordinates; the side selects the awarded contract.
 export function awardedResult(result: Result | undefined, side: 'ns' | 'ew'): Result | undefined {
@@ -182,6 +182,7 @@ type ProjectionInput = Pick<
   | 'trim'
   | 'penalties'
   | 'provisionalVp'
+  | 'publicTiming'
   | 'byeVp'
   | 'swiss'
   | 'knockout'
@@ -194,6 +195,87 @@ export function pairStandingsBeforeRound(event: ProjectionInput, round: number):
     Object.entries(event.results).filter(([, r]) => ids.has(r.assignmentId)),
   );
   return project({ ...event, assignments, results, penalties: {} }).standings;
+}
+
+export function teamMatchScores(e: ProjectionInput) {
+  e = { ...e, results: normalizeResults(e.results) };
+  const matches: MatchScore[] = [];
+  const byes = teamByes(e).map((bye) => {
+    const tables = e.assignments.filter((a) => a.round === bye.round);
+    const awarded =
+      tables.length > 0 &&
+      tables.every((a) => a.boards.every((b) => !!e.results[resultKey(a.id, b)]));
+    return { ...bye, awarded };
+  });
+  for (const open of e.assignments.filter((a) => a.room === 'open')) {
+    const closed = e.assignments.find((a) => a.matchId === open.matchId && a.room === 'closed');
+    if (!closed) continue;
+    const match: MatchScore = {
+      id: open.matchId,
+      round: Math.max(open.round, closed.round),
+      a: open.ns,
+      b: open.ew,
+      ...(e.teamMethod === 'bam' ? { bamA: 0, bamB: 0 } : {}),
+      impsA: 0,
+      impsB: 0,
+      marginA: 0,
+      marginB: 0,
+      split: false,
+      completed: 0,
+      total: open.boards.length,
+      vpA: null as number | null,
+      vpB: null as number | null,
+    };
+    const pending = e.provisionalVp?.[match.id];
+    let cancelled = 0;
+    for (const board of open.boards) {
+      const x = e.results[resultKey(open.id, board)],
+        y = e.results[resultKey(closed.id, board)];
+      if (!teamBoardReceived(x, y, !!pending)) continue;
+      if (x?.status === 'cancelled' || y?.status === 'cancelled') {
+        cancelled++;
+        match.completed++;
+        continue;
+      }
+      const [imp, otherImp] = teamBoardImps(x, y);
+      if (e.teamMethod === 'bam') {
+        const [a, b] = bamBoardPoints(x, y, e);
+        match.bamA! += a;
+        match.bamB! += b;
+      }
+      match.marginA += imp;
+      match.marginB += otherImp;
+      match.split ||= !!(x.split || y.split) || imp !== -otherImp;
+      match.impsA += Math.max(0, imp);
+      match.impsB += Math.max(0, otherImp);
+      match.completed++;
+    }
+    const provisionalVp = pending?.vp;
+    if (e.publicTiming?.vp === 'board' && match.completed > 0 && match.completed < match.total) {
+      match.vpA = vp(match.marginA, match.total);
+      match.vpB = vp(match.marginB, match.total);
+      match.provisional = true;
+    } else if (provisionalVp && match.completed < match.total) {
+      [match.vpA, match.vpB] = provisionalVp;
+      match.provisional = true;
+    } else if (!isImpKnockout(e) && match.completed === match.total && cancelled < match.total) {
+      match.vpA =
+        e.teamMethod === 'bam'
+          ? Math.round(match.bamA! * 100) / 100
+          : vp(match.marginA, match.total);
+      match.vpB =
+        e.teamMethod === 'bam'
+          ? Math.round(match.bamB! * 100) / 100
+          : vp(match.marginB, match.total);
+    }
+    matches.push(match);
+  }
+  return { matches, byes };
+}
+
+export function storedWithProjection(event: BridgeEvent, requests: string[]) {
+  let projection: Projection;
+  return { event, requests, get projection() { return projection ??= project(event); } };
 }
 
 export function project(e: ProjectionInput): Projection {
@@ -217,82 +299,22 @@ export function project(e: ProjectionInput): Projection {
   };
   for (const a of e.assignments) for (const id of [a.ns, a.ew]) byId[id].total += a.boards.length;
   if (e.kind === 'teams') {
-    projection.byes = teamByes(e).map((bye) => {
-      const tables = e.assignments.filter((a) => a.round === bye.round);
-      const awarded =
-        tables.length > 0 &&
-        tables.every((a) => a.boards.every((b) => !!e.results[resultKey(a.id, b)]));
-      if (awarded) byId[bye.participantId].score! += bye.vp;
-      return { ...bye, awarded };
-    });
-    for (const open of e.assignments.filter((a) => a.room === 'open')) {
-      const closed = e.assignments.find((a) => a.matchId === open.matchId && a.room === 'closed');
-      if (!closed) continue;
-      const match: MatchScore = {
-        id: open.matchId,
-        round: Math.max(open.round, closed.round),
-        a: open.ns,
-        b: open.ew,
-        ...(e.teamMethod === 'bam' ? { bamA: 0, bamB: 0 } : {}),
-        impsA: 0,
-        impsB: 0,
-        marginA: 0,
-        marginB: 0,
-        split: false,
-        completed: 0,
-        total: open.boards.length,
-        vpA: null as number | null,
-        vpB: null as number | null,
-      };
-      const pending = e.provisionalVp?.[match.id];
-      let cancelled = 0;
-      for (const board of open.boards) {
-        const x = e.results[resultKey(open.id, board)],
-          y = e.results[resultKey(closed.id, board)];
-        if (pending && (!x || !y)) continue;
-        if (x?.status === 'cancelled' || y?.status === 'cancelled') {
-          cancelled++;
-          match.completed++;
-          continue;
-        }
-        if (!x || !y) continue;
-        const [imp, otherImp] = teamBoardImps(x, y);
-        if (e.teamMethod === 'bam') {
-          const [a, b] = bamBoardPoints(x, y, e);
-          match.bamA! += a;
-          match.bamB! += b;
-        }
-        match.marginA += imp;
-        match.marginB += otherImp;
-        match.split ||= !!(x.split || y.split) || imp !== -otherImp;
-        match.impsA += Math.max(0, imp);
-        match.impsB += Math.max(0, otherImp);
-        match.completed++;
-      }
+    const { matches, byes } = teamMatchScores(e);
+    projection.matches = matches;
+    projection.byes = byes;
+    for (const bye of byes) if (bye.awarded) byId[bye.participantId].score! += bye.vp;
+    for (const match of matches) {
       for (const id of [match.a, match.b]) byId[id].played += match.completed;
-      const provisionalVp = pending?.vp;
-      if (provisionalVp && match.completed < match.total) {
-        [match.vpA, match.vpB] = provisionalVp;
-        match.provisional = true;
-        byId[match.a].score! += match.vpA;
-        byId[match.b].score! += match.vpB;
+      if (match.vpA === null || match.vpB === null) continue;
+      byId[match.a].score! += match.vpA;
+      byId[match.b].score! += match.vpB;
+      if (match.provisional) {
         byId[match.a].provisional = true;
         byId[match.b].provisional = true;
-      } else if (!isImpKnockout(e) && match.completed === match.total && cancelled < match.total) {
-        match.vpA =
-          e.teamMethod === 'bam'
-            ? Math.round(match.bamA! * 100) / 100
-            : vp(match.marginA, match.total);
-        match.vpB =
-          e.teamMethod === 'bam'
-            ? Math.round(match.bamB! * 100) / 100
-            : vp(match.marginB, match.total);
-        byId[match.a].score! += match.vpA;
-        byId[match.b].score! += match.vpB;
+      } else {
         byId[match.a].secondary += e.teamMethod === 'bam' ? match.vpA - match.vpB : match.marginA;
         byId[match.b].secondary += e.teamMethod === 'bam' ? match.vpB - match.vpA : match.marginB;
       }
-      projection.matches.push(match);
     }
     for (const row of standing) row.total /= 2;
   } else {

@@ -46,7 +46,7 @@ export async function insertCompetitionWithStage(
     ) THEN 0 ELSE 1 END`;
   }
   queueCompetition(queue, competition, undefined, true);
-  queueStage(queue, stage, {}, undefined, false, true);
+  queueStage(queue, stage, {});
   try {
     await commitSql(sql, batches);
   } catch (error) {

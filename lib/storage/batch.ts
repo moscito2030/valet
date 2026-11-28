@@ -22,6 +22,13 @@ export async function commitSql(sql: Sql, batches: SqlBatch[]) {
   return sql.transaction(batches);
 }
 
+// Sequence allocation must follow commit order within a stage, or a later commit
+// can change scores without advancing the maximum seen by a scoreboard reader.
+export function queueDataVersion(sql: Sql, id: string) {
+  sql`SELECT set_config('valet.data_version', nextval('bridge_data_version')::text, true) AS version
+    FROM pg_advisory_xact_lock(hashtextextended(${id}, 0))`;
+}
+
 export function isConflict(error: unknown) {
   const code = (error as { code?: string }).code;
   if (code === '22012' || code === '23505' || code === '40001' || code === '40P01') return true;

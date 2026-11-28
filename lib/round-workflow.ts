@@ -38,7 +38,7 @@ export function unsettledRoundsBefore(event: RoundEvent, round: number): number[
     .sort((a, b) => a - b);
 }
 
-export function clubRoundReady(event: RoundEvent, round: number): boolean {
+export function clubRoundReady(event: RoundEvent, round: number, accepted = (a: BridgeEvent['assignments'][number]) => clubAccepted(event, a)): boolean {
   if (
     !event.club?.enabled ||
     event.club.finalized.includes(round) ||
@@ -46,7 +46,7 @@ export function clubRoundReady(event: RoundEvent, round: number): boolean {
   )
     return false;
   const exempt = knockoutExemptAssignments(event);
-  return event.assignments.filter((a) => a.round === round).every((a) => exempt.has(a.id) || clubAssignmentFinalized(event, a) || clubAccepted(event, a));
+  return event.assignments.filter((a) => a.round === round).every((a) => exempt.has(a.id) || clubAssignmentFinalized(event, a) || accepted(a));
 }
 
 export function roundHasActivity(

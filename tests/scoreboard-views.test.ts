@@ -393,11 +393,11 @@ test('pairs board traveller keeps its directional headings and raw score', () =>
 test('publication panel keeps director-only identity and deletion controls out of staff UI', () => {
   const raw = fixture(),
     event = audienceEvent(raw, project(raw));
-  const render = (canDirect: boolean, section: 'information' | 'boards' | 'all' = 'all') =>
+  const render = (canDirect: boolean, section: 'information' | 'boards' | 'all' = 'all', overrides: Partial<Parameters<typeof PublicationPanel>[0]['event']> = {}) =>
     renderToStaticMarkup(
       createElement(PublicationPanel, {
         section,
-        event: { ...event, canDirect },
+        event: { ...event, canDirect, ...overrides },
         busy: false,
         deleteName: '',
         eventId: event.id,
@@ -410,13 +410,28 @@ test('publication panel keeps director-only identity and deletion controls out o
     );
   assert.match(render(true), /儲存賽段資訊/);
   assert.match(render(true, 'information'), /儲存賽段資訊/);
-  assert.doesNotMatch(render(true, 'information'), /依牌組公開牌型|永久刪除賽段/);
-  assert.match(render(true, 'boards'), /依牌組公開牌型/);
-  assert.match(render(true, 'boards'), /各桌成績/);
+  assert.doesNotMatch(render(true, 'information'), /儲存公開時機|永久刪除賽段/);
+  const controls = (html: string) => new JSDOM(html).window.document;
+  const team = controls(render(true, 'boards'));
+  const selects = [...team.querySelectorAll<HTMLSelectElement>('select')];
+  assert.deepEqual(selects.map(select => select.name), ['vp', 'contract', 'hands']);
+  for (const select of selects) {
+    assert.equal(select.value, 'manual');
+    assert.deepEqual([...select.options].map(option => option.text), ['手動公開', '一圈打完公開', '兩桌可比即公開']);
+  }
+  const gridLabels = (doc: Document) =>
+    [...doc.querySelectorAll('.publication-grid')].map(grid => grid.previousElementSibling?.textContent);
+  assert.deepEqual(gridLabels(team), ['VP', '合約', '牌型']);
+  const mixed = controls(render(true, 'boards', { publicTiming: { vp: 'round', contract: 'manual', hands: 'board' } }));
+  assert.deepEqual(gridLabels(mixed), ['合約']);
+  const pairs = render(true, 'boards', { kind: 'pairs' });
+  assert.match(pairs, /依牌組公開牌型/);
+  assert.match(pairs, /各桌成績/);
+  assert.equal(controls(pairs).querySelectorAll('.publication-grid').length, 1);
   assert.doesNotMatch(render(true, 'boards'), /排名已隨結算/);
   assert.match(render(true, 'boards'), /永久刪除賽段/);
   assert.doesNotMatch(render(true, 'boards'), /儲存賽段資訊|儲存給獎與賽程說明|結束賽事/);
-  assert.doesNotMatch(render(false, 'boards'), /依牌組公開牌型|永久刪除賽段/);
+  assert.doesNotMatch(render(false, 'boards'), /儲存公開時機|publication-grid|永久刪除賽段/);
   assert.doesNotMatch(render(false), /儲存賽段資訊|刪除賽段/);
   assert.doesNotMatch(render(true), /賽段狀態|完成覆核並結束賽段/);
 });

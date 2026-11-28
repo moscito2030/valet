@@ -188,7 +188,7 @@ test('agent preview and atomic replay preserve normalized board storage', async 
   const [first, second] = await Promise.all([f.call('mutations', request), f.call('mutations', request)]);
   assert.equal(first.status, 200, JSON.stringify(first.data));
   assert.equal(second.status, 200, JSON.stringify(second.data));
-  assert.deepEqual(first.data, { revision: f.event.revision + 1 });
+  assert.deepEqual(first.data, { revision: (await f.repo.getEvent(f.event.id)).event.revision });
   assert.deepEqual(second.data, first.data);
   const audits = await f.sql`SELECT document FROM bridge_access_audit`;
   assert.equal(audits.length, 1);

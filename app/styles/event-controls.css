@@ -83,11 +83,47 @@
   display: block;
   margin-bottom: 6px;
 }
-.event-heading > .button {
+.event-refresh-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
   grid-column: 2;
   grid-row: 2;
   align-self: center;
   margin-right: 12px;
+}
+
+.event-refresh-live {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.event-refresh-live::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--score-positive);
+  animation: event-refresh-live-pulse 2.8s ease-in-out infinite;
+}
+@keyframes event-refresh-live-pulse {
+  50% { opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .event-refresh-live::after {
+    animation: none;
+  }
+}
+.event-refresh-button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .event-heading .event-meta {
   grid-column: 1 / -1;

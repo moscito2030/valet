@@ -23,6 +23,7 @@ export type Participant = {
   group?: 'NS' | 'EW';
 };
 export type CompetitionInfo = {
+  disableAutoRefresh?: boolean;
   organizerName?: string;
   archived?: boolean;
   id: string;
@@ -38,6 +39,8 @@ export type Board = {
   vulnerability: Vulnerability;
   deal: Record<Seat, string[]>;
   published?: boolean;
+  publishedContract?: boolean;
+  publishedVp?: boolean;
 };
 export type Assignment = {
   id: string;
@@ -99,7 +102,11 @@ export type SwissPublication = {
   scores: { id: string; score: number; ready: boolean }[];
 };
 export type SwissConfig = { mode: 'current' | 'delayed'; publications: SwissPublication[] };
+const publicTimingSchema = z.enum(['manual', 'round', 'board']);
+type PublicTiming = z.infer<typeof publicTimingSchema>;
+
 export type BridgeEvent = {
+  publicTiming?: { vp: PublicTiming; contract: PublicTiming; hands: PublicTiming };
   stageArchived?: boolean;
   // Legacy root stages retain their IDs; independent competition records own shared metadata.
   parentEventId?: string;
@@ -557,6 +564,18 @@ export const mutationSchema = z.discriminatedUnion('action', [
       reason: z.string().trim().min(2).max(200),
       board: z.number().int().min(1),
       published: z.boolean(),
+      item: z.enum(['vp', 'contract', 'hands']).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('public-timing'),
+      revision: z.number().int().min(1),
+      requestId: z.string().uuid(),
+      reason: z.string().trim().min(2).max(200),
+      vp: publicTimingSchema,
+      contract: publicTimingSchema,
+      hands: publicTimingSchema,
     })
     .strict(),
   z
@@ -743,7 +762,7 @@ export type Projection = {
   received: number;
   expected: number;
 };
-export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards'> & {
+export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards' | 'publicTiming'> & {
   clubEnabled?: boolean;
   // Boards with a stored result, keyed by assignment. Includes unconfirmed club
   // entries. Values are counts only; contracts stay in `results`.
@@ -752,7 +771,7 @@ export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards'> & {
   // Counts only. Ranking and scores stay on the published projection.
   receivedByParticipant?: Record<string, number>;
   collectionProgress?: ReturnType<typeof import('./round-progress').roundProgress>;
-  boards: Omit<Board, 'deal'>[] | Board[];
+  boards: (Omit<Board, 'deal' | 'publishedContract' | 'publishedVp'> & { deal?: Board['deal'] })[];
   projection: Projection;
 };
 export const resultKey = (assignment: string, board: number) => `${assignment}:${board}`;

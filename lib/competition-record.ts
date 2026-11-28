@@ -9,6 +9,7 @@ export const competitionSchema = z.object({
 }).strict();
 export const competitionUpdateSchema = competitionSchema.extend({
   archived: z.boolean().optional(),
+  disableAutoRefresh: z.boolean().optional(),
   revision: z.number().int().positive(), requestId: z.string().uuid(),
 }).strict();
 export type StoredCompetition = { competition: Omit<CompetitionInfo, 'organizerName'> & { updatedAt: string; audit: Audit[] }; requests: string[] };
@@ -25,7 +26,7 @@ export function saveCompetitionRecord(data: StoredDocument[], next: StoredCompet
   const exists = data.some(d => documentKey(d) === key);
   return [...data.filter(d => documentKey(d) !== key).map(d =>
     !exists && isStage(d) && d.event.id === next.competition.id
-      ? { ...d, event: { ...d.event, revision: d.event.revision + 1 } } : d), next];
+      ? { event: { ...d.event, revision: d.event.revision + 1 }, requests: d.requests, get projection() { return d.projection; } } : d), next];
 }
 
 export function createCompetition(input: z.input<typeof competitionSchema>, id: string = randomUUID()): StoredCompetition {
@@ -60,6 +61,7 @@ export function updateCompetition(
   if (previous.requests.includes(input.requestId)) return previous;
   const next = advanceCompetition(previous, input.revision, input.archived === undefined ? '修改賽事共用資訊' : input.archived ? '封存賽事' : '解除封存賽事');
   if (input.archived !== undefined) next.competition.archived = input.archived;
+  if (input.disableAutoRefresh !== undefined) next.competition.disableAutoRefresh = input.disableAutoRefresh;
   Object.assign(next.competition, { name: input.name, venue: input.venue });
   next.requests = durableRequests
     ? [...previous.requests, input.requestId]

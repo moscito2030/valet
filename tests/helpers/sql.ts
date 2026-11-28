@@ -2,16 +2,18 @@ import { PGlite } from '@electric-sql/pglite';
 import type { SqlBatch } from '../../lib/storage/batch';
 import { discussionTableSql } from '../../lib/storage/discussions';
 import type { Sql } from '../../lib/storage/neon';
-import { normalizedSchemaStatements } from '../../lib/storage/schema';
+import { normalizedSchemaStatements, perTableSchemaStatements } from '../../lib/storage/schema';
 
-export async function createTestDb() {
+export async function createTestDb(perTable = true) {
   const db = new PGlite();
   await db.exec(
     'CREATE TABLE bridge_events (id text PRIMARY KEY, revision integer NOT NULL CHECK (revision > 0), document jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())',
   );
   await db.exec(discussionTableSql);
   for (const statement of normalizedSchemaStatements) await db.exec(statement);
+  if (perTable) for (const statement of perTableSchemaStatements) await db.exec(statement);
   await db.exec("INSERT INTO bridge_storage_switch (id, mode) VALUES (1, 'normalized')");
+  if (perTable) await db.exec("UPDATE bridge_storage_switch SET per_table_at = now() WHERE id = 1");
   const direct: Sql = async (strings, ...values) =>
     (
       await db.query(

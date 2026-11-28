@@ -2,7 +2,7 @@ import type { BridgeEvent, Projection } from './model';
 import { resultKey } from './model';
 import type { Knockout, KnockoutNode, KnockoutSource } from './knockout-schema';
 import { DomainError } from './domain-error';
-import { project } from './scoring';
+import { teamMatchScores } from './scoring';
 export const knockoutMatchId = (id: string, round: number) => `ko-${id}-r${round}`;
 export function knockoutLegs(event: Pick<BridgeEvent, 'knockout'>, node: KnockoutNode) {
   return [
@@ -121,7 +121,7 @@ export function assertKnockoutDecisions(event: BridgeEvent) {
 export function knockoutScore(
   event: Pick<BridgeEvent, 'teamMethod' | 'knockout'>,
   node: KnockoutNode,
-  projection: Projection,
+  projection: Pick<Projection, 'matches'>,
 ) {
   const matches = knockoutLegs(event, node).map((leg) =>
     projection.matches.find((m) => m.id === knockoutMatchId(node.id, leg.round)),
@@ -208,7 +208,7 @@ export function seedKnockout(
   return nodes;
 }
 export function currentKnockoutScore(event: BridgeEvent, node: KnockoutNode) {
-  return knockoutScore(event, node, project(event));
+  return knockoutScore(event, node, teamMatchScores(event));
 }
 
 /** Unused outcomes can feed any subsequent placement match, at any depth. */
