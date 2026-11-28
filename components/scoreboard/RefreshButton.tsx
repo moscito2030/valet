@@ -1,4 +1,4 @@
-import { Activity } from 'lucide-react';
+import { RefreshCw, Repeat } from 'lucide-react';
 import { useRef } from 'react';
 import { createRefreshGesture } from './refresh-gesture';
 import { refreshButtonHint, refreshButtonLabel } from './refresh-copy';
@@ -34,6 +34,7 @@ export function RefreshButton({
       onToggle: () => onToggleRef.current(),
     });
   const g = gesture.current;
+  const Icon = autoRefresh && !autoRefreshDisabled ? Repeat : RefreshCw;
   return (
     <button
       type="button"
@@ -47,7 +48,7 @@ export function RefreshButton({
       onContextMenu={(event) => event.preventDefault()}
       onClick={() => g.click()}
     >
-      <Activity size={16} />
+      <Icon size={16} aria-hidden="true" />
       {refreshButtonLabel(refreshing, autoRefresh, autoRefreshDisabled)}
     </button>
   );
