@@ -1,4 +1,4 @@
-import { RefreshCw, Repeat } from 'lucide-react';
+import { Repeat, RotateCw } from 'lucide-react';
 import { useRef } from 'react';
 import { createRefreshGesture } from './refresh-gesture';
 import { refreshButtonHint, refreshButtonLabel } from './refresh-copy';
@@ -34,7 +34,7 @@ export function RefreshButton({
       onToggle: () => onToggleRef.current(),
     });
   const g = gesture.current;
-  const Icon = autoRefresh && !autoRefreshDisabled ? Repeat : RefreshCw;
+  const Icon = autoRefresh && !autoRefreshDisabled ? Repeat : RotateCw;
   return (
     <button
       type="button"
