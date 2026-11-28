@@ -30,5 +30,5 @@ export function materializeBoardPublication<T extends LegacyEvent>(
 export function materializeStoredPublication(stored: StoredEvent): StoredEvent {
   const event = stored.event as BridgeEvent & { publishBoards?: boolean };
   if (!Object.prototype.hasOwnProperty.call(event, 'publishBoards')) return stored;
-  return { ...stored, event: materializeBoardPublication(event) };
+  return { event: materializeBoardPublication(event), requests: stored.requests, get projection() { return stored.projection; } };
 }

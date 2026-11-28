@@ -1,4 +1,4 @@
-import { captureSql, commitSql } from './batch';
+import { captureSql, commitSql, queueDataVersion } from './batch';
 import type { Sql } from './neon';
 import { resolveCompetitionOrganizer } from '../competitions';
 import { readOrganizerNames } from './organizer-names';
@@ -138,10 +138,12 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
       }
       if (!Object.keys(stagePatch).length) continue;
       stagesChanged++;
+      queueDataVersion(cap.sql, stage.id);
       cap.sql`WITH upd AS (
         UPDATE bridge_stages
-        SET revision = revision + 1, updated_at = ${at}::timestamptz,
-          settings = settings || ${JSON.stringify({ ...stagePatch, updatedAt: at, revision: stage.revision + 1 })}::jsonb
+        SET revision = current_setting('valet.data_version')::int, updated_at = ${at}::timestamptz,
+          settings = settings || ${JSON.stringify({ ...stagePatch, updatedAt: at })}::jsonb
+            || jsonb_build_object('revision', current_setting('valet.data_version')::int)
         WHERE id = ${stage.id} AND competition_id = ${id} AND revision = ${stage.revision}
           AND settings = ${JSON.stringify(stage.settings)}::jsonb
         RETURNING 1
@@ -153,7 +155,7 @@ export async function convertVenuePrefix(sql: Sql, { dryRun }: { dryRun: boolean
   if (!dryRun && cap.batches.length) {
     const guard = captureSql();
     guard.sql`WITH active AS (
-      SELECT 1 FROM bridge_storage_switch WHERE id = 1 AND mode = 'normalized' FOR SHARE
+      SELECT 1 FROM bridge_storage_switch WHERE id = 1 AND mode = 'normalized' AND per_table_at IS NOT NULL FOR SHARE
     ) SELECT 1 / (SELECT count(*)::int FROM active)`;
     await commitSql(sql, [...guard.batches, ...cap.batches]);
   }

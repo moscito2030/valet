@@ -2,7 +2,7 @@ import { migrateAccessModel } from '../access/migrate';
 import type { AccessAudit } from '../access/audit';
 import type { AccessCode } from '../access/codes';
 import type { BridgeEvent } from '../model';
-import { captureSql, commitSql } from './batch';
+import { captureSql, commitSql, queueDataVersion } from './batch';
 import type { Sql } from './neon';
 import { isUndefinedTable, requireNormalizedStorage } from './switch';
 
@@ -43,7 +43,13 @@ export async function assignAccessRecords(
     throw new Error('站台管理員密碼必須另行設定，且不能與裁判密碼相同');
   await requireNormalizedStorage(sql);
   const source = await sql`SELECT id, settings AS event FROM bridge_stages ORDER BY id`;
-  const events = source.map((row) => row.event as BridgeEvent);
+  const tokens = await sql`SELECT event_id, device_key, token_hash FROM bridge_club_tokens`;
+  const events = source.map(row => {
+    const event = row.event as BridgeEvent;
+    if (event.club) event.club.tokens = Object.fromEntries(tokens.filter(t => t.event_id === row.id)
+      .map(t => [String(t.device_key), String(t.token_hash)]));
+    return event;
+  });
   const beforeDeals = new Map(events.map((event) => [event.id, dealText(event)]));
   const migrated = migrateAccessModel(events, {
     now: input.now,
@@ -85,8 +91,9 @@ export async function assignAccessRecords(
       cap.sql`INSERT INTO bridge_access_audit (id, document)
         VALUES (${`assign-${event.id}`}, ${JSON.stringify(audit)}::jsonb)
         ON CONFLICT (id) DO NOTHING`;
+      queueDataVersion(cap.sql, event.id);
       cap.sql`UPDATE bridge_stages
-        SET settings = jsonb_set(settings, '{organizerId}', to_jsonb(${organizerId}::text))
+        SET revision = current_setting('valet.data_version')::int, settings = jsonb_set(settings, '{organizerId}', to_jsonb(${organizerId}::text))
         WHERE id = ${event.id} AND NOT (settings ? 'organizerId')`;
     }
     await commitSql(sql, cap.batches);

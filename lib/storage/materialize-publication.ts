@@ -1,6 +1,6 @@
 import { materializeBoardPublication } from '../board-publication';
 import type { Board, BridgeEvent } from '../model';
-import { captureSql, commitSql } from './batch';
+import { captureSql, commitSql, queueDataVersion } from './batch';
 import type { Sql } from './neon';
 import { requireNormalizedStorage } from './switch';
 
@@ -36,7 +36,7 @@ export async function materializePublication(
     list.push({ board_number: Number(row.board_number), document_json: String(row.document_json) });
     boardsByEvent.set(id, list);
   }
-  const stageUpdates: { id: string; settings: string }[] = [];
+  const stageUpdates: string[] = [];
   const boardUpdates: { eventId: string; boardNumber: number; documentJson: string }[] = [];
   for (const stage of stages) {
     const id = String(stage.id);
@@ -57,16 +57,16 @@ export async function materializePublication(
         documentJson: JSON.stringify(board),
       });
     });
-    if (Object.prototype.hasOwnProperty.call(settings, 'publishBoards')) {
-      const nextSettings = { ...settings };
-      delete nextSettings.publishBoards;
-      stageUpdates.push({ id, settings: JSON.stringify(nextSettings) });
-    }
+    if (Object.prototype.hasOwnProperty.call(settings, 'publishBoards')) stageUpdates.push(id);
   }
   if (!options.dryRun && (stageUpdates.length || boardUpdates.length)) {
     const cap = captureSql();
-    for (const update of stageUpdates)
-      cap.sql`UPDATE bridge_stages SET settings = ${update.settings}::jsonb WHERE id = ${update.id}`;
+    for (const id of new Set([...stageUpdates, ...boardUpdates.map(u => u.eventId)])) {
+      queueDataVersion(cap.sql, id);
+      cap.sql`UPDATE bridge_stages SET revision = current_setting('valet.data_version')::int WHERE id = ${id}`;
+    }
+    for (const id of stageUpdates)
+      cap.sql`UPDATE bridge_stages SET settings = settings - 'publishBoards' WHERE id = ${id}`;
     for (const update of boardUpdates)
       cap.sql`UPDATE bridge_boards SET document_json = ${update.documentJson}
         WHERE event_id = ${update.eventId} AND board_number = ${update.boardNumber}`;

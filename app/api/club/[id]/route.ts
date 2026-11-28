@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { mutateEvent } from '@/lib/store';
+import { isDirector } from '@/lib/auth';
+import { pollTablet, submitTablet } from '@/lib/storage/tablet';
+import { mutateEvent, normalizedSql } from '@/lib/store';
 import { getAccessibleEvent as getEvent } from '@/lib/event-access';
 import { checkOrigin, errorResponse, readJson } from '@/lib/http';
 import { DomainError } from '@/lib/domain-error';
@@ -25,7 +27,11 @@ function hash(request: Request) {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const tokenHash = hash(request);
-    const { event } = await getEvent((await params).id);
+    const id = (await params).id;
+    const sql = normalizedSql();
+    if (sql) return NextResponse.json(await pollTablet(sql, id, tokenHash, new URL(request.url).searchParams.get('v'), await isDirector()),
+      { headers: { 'Cache-Control': 'no-store' } });
+    const { event } = await getEvent(id);
     const pair = Object.entries(event.club?.tokens ?? {}).find(([, h]) => h === tokenHash)?.[0];
     if (!event.club?.enabled || !pair) throw new DomainError('連結已失效或收分模式未開啟', 403);
     return NextResponse.json(clubView(event, pair), { headers: { 'Cache-Control': 'no-store' } });
@@ -37,6 +43,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const tokenHash = hash(request);
     const body = bodySchema.parse(await readJson(request));
     const id = (await params).id;
+    const sql = normalizedSql();
+    if (sql) {
+      const { baseUpdatedAt, ...play } = body;
+      await submitTablet(sql, id, { ...play, action: 'club-play', tokenHash, revision: 0,
+        reason: body.confirm ? '搭檔確認本圈' : '搭檔輸入/更正' }, await isDirector(), baseUpdatedAt);
+      return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+    }
     // Retry only when the stage revision moved and this score cell is unchanged.
     // Settled tables, closed rounds, and a cell edited since the phone loaded it are not retryable.
     let seen: string | undefined;

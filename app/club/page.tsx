@@ -32,11 +32,14 @@ export default function ClubPage() {
   const preview = useRef(false);
   const finished = useRef(false);
   const autoFollow = useRef(createClubAutoFollow((key, value) => localStorage.setItem(key, value)));
+  const version = useRef('');
   async function read() {
     const { id, token } = context.current;
-    const response = await fetch(`/api/club/${encodeURIComponent(id)}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    const response = await fetch(`/api/club/${encodeURIComponent(id)}${version.current ? `?v=${encodeURIComponent(version.current)}` : ''}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error);
+    if (body.unchanged) return;
+    version.current = body.v ?? '';
     autoFollow.current(body as ClubView);
     finished.current = body.status === 'finished';
     setData(body);

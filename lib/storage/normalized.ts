@@ -16,10 +16,14 @@ import { materializeStoredPublication } from '../board-publication';
 import { DomainError } from '../domain-error';
 import { eventIndex, type EventIndex } from '../event-index';
 import type { BridgeEvent, Mutation, StoredEvent } from '../model';
-import { project } from '../scoring';
-import { commitDocumentMutation, isAdjustedScoreWrite, seedResultWrites } from './cell-write';
+import { storedWithProjection } from '../scoring';
+import { applyMutation } from '../mutations/apply';
+import { canonical, seedResultWrites } from './cell-write';
 import { captureSql, commitSql, isConflict } from './batch';
-import { hydrateEvent } from './hydrate-event';
+import { normalizeResults } from '../result-status';
+import { inheritCompetition } from '../competitions';
+import { audienceEvent, audienceScoring } from '../read-models/public-event';
+import { cachedProjection, scoreboardVersion } from './projection';
 import { readOrganizerNames } from './organizer-names';
 import { resolveCompetitionOrganizer } from '../competitions';
 import type { Sql } from './neon';
@@ -32,22 +36,11 @@ import {
   queueDeleteCompetition,
   queueDeleteStage,
   queueStage,
-  saveStage,
   type LoadedStage,
-  type StagePrior,
 } from './rows';
 
 function documentsOf(stages: LoadedStage[], competitions: StoredCompetition[]): StoredDocument[] {
   return [...stages.map((stage) => stage.stored), ...competitions];
-}
-
-function priorOf(stage: LoadedStage): StagePrior {
-  return {
-    eventRevision: stage.stored.event.revision,
-    writes: stage.writes,
-    revisions: stage.revisions,
-    results: stage.stored.event.results,
-  };
 }
 
 function queueSaved(
@@ -69,12 +62,7 @@ function queueSaved(
     }
     const prior = stages.find((stage) => stage.stored.event.id === document.event.id);
     if (prior?.stored === document) continue;
-    queueStage(
-      sql,
-      document,
-      prior?.writes ?? seedResultWrites(document.event),
-      prior ? priorOf(prior) : undefined,
-    );
+    queueStage(sql, document, {}, prior);
   }
 }
 
@@ -102,22 +90,30 @@ async function competitionCount(sql: Sql) {
 export function createNormalizedRepository(query: Sql) {
   const sql = () => query;
   async function family(tx: Sql, competitionId: string) {
-    const [stages, competitions] = await Promise.all([loadStages(tx), loadCompetitions(tx)]);
-    return {
-      stages: stages.filter(
-        (stage) =>
-          stageCompetitionId(stage.stored.event) === competitionId ||
-          stage.stored.event.id === competitionId,
-      ),
-      competitions: competitions.filter((item) => item.competition.id === competitionId),
-    };
+    const [stages, competitions] = await Promise.all([
+      loadStages(tx, competitionId), loadCompetitions(tx, competitionId),
+    ]);
+    return { stages, competitions };
   }
   async function listEvents() {
     return (await loadStages(sql())).map((stage) => materializeStoredPublication(stage.stored));
   }
   async function listEventIndex(): Promise<EventIndex[]> {
     const rows =
-      await sql()`SELECT id, revision, settings, projection FROM bridge_stages ORDER BY updated_at DESC, id`;
+      await sql()`SELECT s.id, greatest(s.revision,
+        (SELECT max(version) FROM bridge_assignments WHERE event_id = s.id),
+        (SELECT max(version) FROM bridge_penalties WHERE event_id = s.id)) AS revision, s.settings, s.updated_at,
+        (SELECT count(*)::int FROM bridge_results r WHERE r.event_id = s.id) AS received,
+        (SELECT count(*)::int FROM bridge_assignments a,
+           LATERAL jsonb_array_elements_text(a.document->'boards') b(board)
+         WHERE a.event_id = s.id AND (NOT EXISTS (
+           SELECT 1 FROM jsonb_each(s.settings->'knockout'->'decisions') d
+           WHERE d.value->>'method' IN ('forfeit','withdrawal')
+             AND starts_with(a.document->>'matchId', 'ko-' || d.key || '-r')
+             AND substr(a.document->>'matchId', length(d.key) + 6) ~ '^[0-9]+$'
+         ) OR EXISTS (SELECT 1 FROM bridge_results r WHERE r.event_id = s.id
+           AND r.assignment_id = a.assignment_id AND r.board = b.board::int))) AS expected
+        FROM bridge_stages s ORDER BY s.updated_at DESC, s.id`;
     const [participants, boards] = await Promise.all([
       sql()`SELECT event_id, participant_id FROM bridge_participants ORDER BY event_id, ordinal`,
       sql()`SELECT event_id, board_number FROM bridge_boards ORDER BY event_id, ordinal`,
@@ -129,6 +125,7 @@ export function createNormalizedRepository(query: Sql) {
         ...settings,
         id,
         revision: Number(row.revision),
+        updatedAt: settings.updatedAt ?? new Date(String(row.updated_at)).toISOString(),
         participants: participants
           .filter((item) => item.event_id === id)
           .map((item) => ({ id: String(item.participant_id), name: '', players: '' })),
@@ -146,30 +143,40 @@ export function createNormalizedRepository(query: Sql) {
       };
       return eventIndex({
         event,
-        projection: row.projection as StoredEvent['projection'],
-        requests: [],
+        projection: { received: Number(row.received), expected: Number(row.expected) },
       });
     });
   }
-  async function getCompetition(id: string): Promise<StoredCompetition> {
-    const saved = (await loadCompetitions(sql())).find((item) => item.competition.id === id);
+  async function getCompetition(id: string, history = true): Promise<StoredCompetition> {
+    const [saved] = await loadCompetitions(sql(), id, history);
     if (saved) return saved;
-    const stage = await loadStage(sql(), id);
-    if (!stage || stage.stored.event.parentEventId) throw new DomainError('找不到賽事', 404);
-    return findCompetition([stage.stored], id);
+    const [root] = await sql()`SELECT settings->>'name' AS name, settings->>'venue' AS venue,
+      coalesce(settings->>'updatedAt', updated_at::text) AS updated_at,
+      greatest(revision, (SELECT max(version) FROM bridge_assignments WHERE event_id = ${id}),
+        (SELECT max(version) FROM bridge_penalties WHERE event_id = ${id})) AS revision
+      FROM bridge_stages WHERE id = ${id} AND competition_id = ${id}`;
+    if (!root) throw new DomainError('找不到賽事', 404);
+    return { requests: [], competition: { id, name: String(root.name), venue: String(root.venue ?? ''),
+      hasStages: true, revision: Number(root.revision), updatedAt: new Date(String(root.updated_at)).toISOString(), audit: [] } };
   }
-  async function getEvent(id: string) {
-    const stage = await loadStage(sql(), id);
+  async function getEvent(id: string, history = true, rankings = true): Promise<StoredEvent> {
+    const stage = await loadStage(sql(), id, history);
     if (!stage) throw new DomainError('找不到賽事', 404);
     const competitionId = stageCompetitionId(stage.stored.event);
     const [root, assignments, names] = await Promise.all([
-      getCompetition(competitionId),
+      getCompetition(competitionId, history),
       sql()`SELECT settings->>'organizerId' AS organizer_id FROM bridge_stages
         WHERE competition_id = ${competitionId}`,
-      readOrganizerNames(sql()),
+      readOrganizerNames(sql(), competitionId),
     ]);
     const organizer = resolveCompetitionOrganizer(assignments.map(row => row.organizer_id), names);
-    return hydrateEvent(materializeStoredPublication(stage.stored), root.competition, organizer.name);
+    const stored = materializeStoredPublication(stage.stored);
+    const event = { ...stored.event, results: normalizeResults(stored.event.results) };
+    const projection = rankings ? await cachedProjection(query, event, 'full') : null;
+    if (rankings && !projection) return getEvent(id, history, rankings);
+    const record = projection ? { event, requests: stored.requests, projection } : storedWithProjection(event, stored.requests);
+    return inheritCompetition(record,
+      root.competition, organizer.name);
   }
   async function deleteEvent(id: string, revision: number) {
     const stage = await loadStage(sql(), id);
@@ -195,9 +202,8 @@ export function createNormalizedRepository(query: Sql) {
     if (conflict) throw new DomainError('賽段已更新，請重新載入', 409);
   }
   async function deleteCompetitions(input: CompetitionDeletion) {
-    const stages = await loadStages(sql());
-    const competitions = await loadCompetitions(sql());
-    const targets = deletionTargets(documentsOf(stages, competitions), input);
+    const families = await Promise.all(input.competitions.map(c => family(sql(), c.id)));
+    const targets = deletionTargets(families.flatMap(f => documentsOf(f.stages, f.competitions)), input);
     const conflict = await writeOnce(sql(), (cap) => {
       for (const target of targets) {
         if (target.id.startsWith('competition:'))
@@ -209,7 +215,7 @@ export function createNormalizedRepository(query: Sql) {
     return input.competitions.length;
   }
   async function insertEvent(event: BridgeEvent) {
-    const stored = { event, projection: project(event), requests: [] as string[] };
+    const stored = storedWithProjection(event, []);
     const metadata = findCompetition([stored], event.id);
     if ((await competitionCount(sql())) >= 50) throw new DomainError('最多 50 場賽事');
     await commitSql(
@@ -221,7 +227,7 @@ export function createNormalizedRepository(query: Sql) {
         return cap.batches;
       })(),
     );
-    return stored;
+    return (await loadStage(sql(), event.id))!.stored;
   }
   async function mutateEvent(id: string, command: Mutation, agent?: AgentWrite): Promise<StoredEvent> {
     if (command.action === 'competition-settings' && !agent) {
@@ -231,7 +237,7 @@ export function createNormalizedRepository(query: Sql) {
         revision: command.revision,
         requestId: command.requestId,
       });
-      return getEvent(id);
+      return getEvent(id, true, false);
     }
     for (let attempt = 0; attempt < 6; attempt++) {
       const loaded = await loadStage(sql(), id);
@@ -239,20 +245,27 @@ export function createNormalizedRepository(query: Sql) {
       const stored = materializeStoredPublication(loaded.stored);
       agent?.validate(stored);
       if (stored.requests.includes(command.requestId)) return stored;
-      const next = commitDocumentMutation(stored, command, loaded.writes, true);
+      const cap = captureSql();
+      const next = applyMutation(stored, { ...command, revision: stored.event.revision }, true);
       try {
-        if (agent || isAdjustedScoreWrite(command)) {
-          const cap = captureSql();
-          agent?.queue(cap.sql, stored, next.stored);
-          const rawEvent = loaded.stored.event;
-          const nextEvent = { ...next.stored.event };
-          if ('publishBoards' in rawEvent) Object.assign(nextEvent, { publishBoards: rawEvent.publishBoards });
-          queueStage(cap.sql, { ...next.stored, event: nextEvent }, next.writes, priorOf(loaded), true);
-          await commitSql(sql(), cap.batches);
-        } else {
-          await saveStage(sql(), next.stored, next.writes, priorOf(loaded));
+        const raw = loaded.stored.event;
+        const persisted = { ...next.event, results: { ...next.event.results } };
+        if ('publishBoards' in raw) {
+          Object.assign(persisted, { publishBoards: raw.publishBoards });
+          const materialized = new Map(stored.event.boards.map(board => [board.number, board]));
+          const original = new Map(raw.boards.map(board => [board.number, board]));
+          persisted.boards = persisted.boards.map(board =>
+            canonical(board) === canonical(materialized.get(board.number)) ? original.get(board.number)! : board);
         }
-        return next.stored;
+        for (const [key, old] of Object.entries(raw.results))
+          if (old.status === 'average' && canonical({ ...old, status: 'cancelled' }) === canonical(persisted.results[key]))
+            persisted.results[key] = old;
+        queueStage(cap.sql, storedWithProjection(persisted, next.requests), {}, loaded, command);
+        agent?.queue(cap.sql, stored, next);
+        const batches = await commitSql(sql(), cap.batches);
+        next.event.revision = Number(batches.find(rows => rows[0]?.data_version)?.[0].data_version);
+        next.event.audit.at(-1)!.revision = next.event.revision;
+        return next;
       } catch (error) {
         if (agent && (error as { code?: string }).code === '23505') throw error;
         if (!isConflict(error) || attempt === 5)
@@ -294,7 +307,7 @@ export function createNormalizedRepository(query: Sql) {
   async function insertStage(parentId: string, stage: BridgeEvent, revision: number) {
     const child = { ...stage, parentEventId: parentId, stageName: stage.name };
     delete child.competition;
-    const stored = { event: child, projection: project(child), requests: [] as string[] };
+    const stored = storedWithProjection(child, []);
     for (let attempt = 0; attempt < 6; attempt++) {
       const current = await family(sql(), parentId);
       const data = documentsOf(current.stages, current.competitions);
@@ -305,15 +318,17 @@ export function createNormalizedRepository(query: Sql) {
       const conflict = await writeOnce(sql(), (cap) => {
         const existing = current.competitions.length > 0;
         if (!existing) {
-          // Fence the legacy metadata snapshot without changing the root stage.
+          // Legacy competition metadata shares the root stage data version.
           cap`WITH root AS (
-            SELECT id FROM bridge_stages WHERE id = ${parentId} AND revision = ${revision} FOR UPDATE
+            SELECT id FROM bridge_stages WHERE id = ${parentId} AND greatest(revision,
+              (SELECT max(version) FROM bridge_assignments WHERE event_id = ${parentId}),
+              (SELECT max(version) FROM bridge_penalties WHERE event_id = ${parentId})) = ${revision} FOR UPDATE
           ) SELECT 1 / (SELECT count(*)::int FROM root)`;
         }
         queueCompetition(cap, next, existing ? revision : null);
         queueStage(cap, stored, seedResultWrites(child));
       });
-      if (!conflict) return stored;
+      if (!conflict) return (await loadStage(sql(), child.id))!.stored;
     }
     throw new DomainError('賽事或賽段已更新，或已達 32 個賽段上限，請重新載入', 409);
   }
@@ -331,4 +346,21 @@ export function createNormalizedRepository(query: Sql) {
     mutateCompetition,
     insertStage,
   } satisfies EventRepository;
+}
+
+
+export async function readScoreboard(sql: Sql, id: string, validator: string | null, director: boolean) {
+  const version = await scoreboardVersion(sql, id, director);
+  const headers = { ETag: version, 'Cache-Control': 'private, no-cache' };
+  if (validator === version) return new Response(null, { status: 304, headers });
+  const repo = createNormalizedRepository(sql);
+  for (;;) {
+    const { event, projection } = await repo.getEvent(id, false);
+    if ((event.stageArchived || event.competition?.archived) && !director) throw new DomainError('找不到賽事', 404);
+    const scoring = audienceScoring(event, projection);
+    const publicProjection = await cachedProjection(sql, scoring, 'public');
+    if (!publicProjection) continue;
+    headers.ETag = `"${event.revision}.${event.competition?.revision ?? event.revision}"`;
+    return Response.json(audienceEvent(event, projection, publicProjection, scoring), { headers });
+  }
 }

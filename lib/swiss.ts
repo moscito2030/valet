@@ -1,6 +1,6 @@
 import blossom from 'edmonds-blossom';
 import type { Assignment, BridgeEvent, SwissPublication } from './model';
-import { project } from './scoring';
+import { teamMatchScores } from './scoring';
 import { isInterleaved } from './team-movement';
 import { DomainError } from './domain-error';
 import { clubAccepted } from './club-confirmation';
@@ -85,7 +85,7 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
   if (event.assignments.some((a) => a.round > round))
     throw new DomainError('後續圈次已公布，不可重排較早圈次');
   const sourceRound = Math.max(0, round - (event.swiss.mode === 'delayed' ? 2 : 1));
-  const projection = project(event);
+  const projection = teamMatchScores(event);
   const relevant = projection.matches.filter((m) => m.round <= sourceRound);
   const byes = (projection.byes ?? []).filter((b) => b.round <= sourceRound);
   const readyMatch = (id: string) =>
@@ -196,7 +196,7 @@ export function swissPreview(event: Source, round: number, partial: boolean) {
 }
 
 export function swissBasisChanged(event: Source, publication: SwissPublication) {
-  const p = project(event);
+  const p = teamMatchScores(event);
   return (
     publication.basis.some((old) => {
       const now = p.matches.find((m) => m.id === old.id);

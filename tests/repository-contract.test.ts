@@ -121,10 +121,10 @@ for (const kind of ['local', 'normalized'] as const)
         assert.equal(after.event.revision,before.event.revision);
       });
       await t.test(
-        'score, audit and projection commit together; duplicate requests do not commit twice',
+        'score and audit commit together; replay preserves the read projection',
         async () => {
           const e = stage();
-          await repo.insertEvent(e);
+          const initial = await repo.insertEvent(e);
           const a = e.assignments[0];
           const c = command({
             action: 'results',
@@ -140,11 +140,11 @@ for (const kind of ['local', 'normalized'] as const)
                 lead: '',
               },
             ],
-          });
+          }, initial.event.revision);
           await repo.mutateEvent(e.id, c);
           await repo.mutateEvent(e.id, c);
           const saved = await repo.getEvent(e.id);
-          assert.equal(saved.event.revision, 2);
+          assert.ok(saved.event.revision > initial.event.revision);
           assert.equal(saved.event.audit.length, 2);
           assert.equal(saved.requests.filter((id) => id === c.requestId).length, 1);
           assert.equal(saved.event.results[resultKey(a.id, a.boards[0])].nsScore, 400);
@@ -153,19 +153,19 @@ for (const kind of ['local', 'normalized'] as const)
       );
       await t.test('competing writes produce one commit and one conflict', async () => {
         const e = stage();
-        await repo.insertEvent(e);
+        const initial = await repo.insertEvent(e);
         const writes = await Promise.allSettled([
-          repo.mutateEvent(e.id, command({ amount: 2 })),
-          repo.mutateEvent(e.id, command({ amount: 3 })),
+          repo.mutateEvent(e.id, command({ amount: 2 }, initial.event.revision)),
+          repo.mutateEvent(e.id, command({ amount: 3 }, initial.event.revision)),
         ]);
         assert.equal(writes.filter((r) => r.status === 'fulfilled').length, 1);
         assert.equal(writes.filter((r) => r.status === 'rejected' && conflict(r.reason)).length, 1);
-        assert.equal((await repo.getEvent(e.id)).event.revision, 2);
+        assert.ok((await repo.getEvent(e.id)).event.revision > initial.event.revision);
       });
-      await t.test('last table completion persists settlement, audit and projection together with retry safety', async () => {
+      await t.test('last table completion persists settlement and audit; replay preserves the read projection', async () => {
         const e = stage();
-        await repo.insertEvent(e);
-        let saved = await repo.mutateEvent(e.id, command({ action: 'club-config', enabled: true, mode: 'table' }));
+        const initial = await repo.insertEvent(e);
+        let saved = await repo.mutateEvent(e.id, command({ action: 'club-config', enabled: true, mode: 'table' }, initial.event.revision));
         saved = await repo.mutateEvent(e.id, command({ action: 'round-control', round: 1, phase: 'playing' }, saved.event.revision));
         const tables = saved.event.assignments.filter(a => a.round === 1);
         for (const a of tables.slice(0, -1)) {
@@ -178,7 +178,7 @@ for (const kind of ['local', 'normalized'] as const)
         await repo.mutateEvent(e.id, last);
         const retried = await repo.getEvent(e.id);
         assert.deepEqual(retried, committed);
-        assert.equal(retried.event.revision, saved.event.revision + 1);
+        assert.ok(retried.event.revision > saved.event.revision);
         assert.equal(retried.event.currentRound, 1);
         assert.equal(retried.event.roundPhase, 'break');
         assert.deepEqual(retried.event.club!.finalized, [1]);
@@ -229,15 +229,15 @@ for (const kind of ['local', 'normalized'] as const)
           await repo.insertCompetition(c);
           const e = stage();
           e.venueOverride = '704';
-          await repo.insertStage(c.competition.id, e, 1);
+          const initial = await repo.insertStage(c.competition.id, e, 1);
           assert.equal((await repo.getEvent(e.id)).event.venue, '共用場地 704');
           await repo.mutateEvent(
             e.id,
-            command({ action: 'settings', status: 'live', venueOverride: null }),
+            command({ action: 'settings', status: 'live', venueOverride: null }, initial.event.revision),
           );
           assert.equal((await repo.getEvent(e.id)).event.venue, '共用場地');
-          await assert.rejects(repo.deleteEvent(e.id, 1), conflict);
-          await repo.deleteEvent(e.id, 2);
+          await assert.rejects(repo.deleteEvent(e.id, initial.event.revision), conflict);
+          await repo.deleteEvent(e.id, (await repo.getEvent(e.id)).event.revision);
           assert.equal(
             (await repo.getCompetition(c.competition.id)).competition.name,
             '空賽事測試',
@@ -291,19 +291,19 @@ for (const kind of ['local', 'normalized'] as const)
           const update = {
             name: '獨立賽事名稱',
             venue: '新地點',
-            revision: 1,
+            revision: (await repo.getCompetition(e.id)).competition.revision,
             requestId: randomUUID(),
           };
           await repo.mutateCompetition(e.id, update);
           await repo.mutateCompetition(e.id, update);
           const saved = await repo.getEvent(e.id);
           assert.equal(saved.event.id, e.id);
-          assert.equal(saved.event.revision, 2);
+          assert.ok(saved.event.revision > update.revision);
           assert.deepEqual(saved.event.results, e.results);
           assert.deepEqual(saved.event.club, e.club);
           assert.equal(saved.event.venue, '新地點');
           assert.equal(saved.event.competition?.name, '獨立賽事名稱');
-          await assert.rejects(repo.mutateEvent(e.id, command({})), conflict);
+          await assert.rejects(repo.mutateEvent(e.id, command({ action: 'stage-archive', archived: true }, update.revision)), conflict);
         },
       );
       await t.test(

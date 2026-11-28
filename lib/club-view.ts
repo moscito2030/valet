@@ -2,17 +2,20 @@ import { nextScheduledRound } from './round-workflow';
 import { knockoutExemptAssignments } from './knockout-status';
 import { dealHcp } from './recorded-hcp';
 import { clubAccepted, clubAssignmentFinalized, clubReviewVersion, clubRoles } from './club-confirmation';
-import type { BridgeEvent } from './model';
+import type { Assignment, BridgeEvent } from './model';
 import { resultKey } from './model';
 import { deviceAssignment, tableDeviceLabel, tableDevices } from './table-device';
 import { roundLabel } from './team-movement';
 export { audienceEvent } from './read-models/public-event';
 
-export function clubView(event: BridgeEvent, pair: string) {
+export function clubView(event: BridgeEvent, pair: string, device?: {
+  assignment?: Assignment; next?: Assignment; label: string; nextLabel?: string;
+  roundLabel: string; nextRoundLabel: string; nextRound: number;
+}) {
   const round = event.currentRound ?? 0;
   const tableMode = event.club?.mode === 'table';
   const assignment = tableMode
-    ? deviceAssignment(event, pair, round)
+    ? device ? device.assignment : deviceAssignment(event, pair, round)
     : event.assignments.find((a) => a.round === round && (a.ns === pair || a.ew === pair));
   const roles = assignment ? clubRoles(event, assignment) : null;
   const accepted = !!assignment && (knockoutExemptAssignments(event).has(assignment.id) || clubAssignmentFinalized(event, assignment) || clubAccepted(event, assignment));
@@ -21,9 +24,9 @@ export function clubView(event: BridgeEvent, pair: string) {
     event.roundPhase === 'break' ||
     (round > 0 && !assignment) ||
     event.status === 'finished';
-  const nextRound = nextScheduledRound(event, round);
+  const nextRound = device?.nextRound ?? nextScheduledRound(event, round);
   const next = tableMode
-    ? deviceAssignment(event, pair, nextRound)
+    ? device ? device.next : deviceAssignment(event, pair, nextRound)
     : event.assignments.find((a) => a.round === nextRound && (a.ns === pair || a.ew === pair));
   const nextTables = event.assignments.filter((a) => a.round === nextRound);
   const scheduledPairs = new Set(nextTables.flatMap((a) => [a.ns, a.ew]));
@@ -62,7 +65,7 @@ export function clubView(event: BridgeEvent, pair: string) {
   return {
     mode: tableMode ? ('table' as const) : ('pair' as const),
     deviceLabel: tableMode
-      ? (tableDevices(event).find((d) => d.key === pair)?.label ?? '桌次收分')
+      ? device?.label ?? (tableDevices(event).find((d) => d.key === pair)?.label ?? '桌次收分')
       : null,
     tableGuide:
       !tableMode || !showGuide
@@ -73,8 +76,8 @@ export function clubView(event: BridgeEvent, pair: string) {
             ? {
                 kind: 'table' as const,
                 round: nextRound,
-                roundLabel: roundLabel(event, nextRound),
-                label: tableDeviceLabel(event, next),
+                roundLabel: device?.nextRoundLabel ?? roundLabel(event, nextRound),
+                label: device?.nextLabel ?? tableDeviceLabel(event, next),
                 ns: event.participants.find((p) => p.id === next.ns)?.name ?? next.ns,
                 ew: event.participants.find((p) => p.id === next.ew)?.name ?? next.ew,
                 boards: [...next.boards],
@@ -88,7 +91,7 @@ export function clubView(event: BridgeEvent, pair: string) {
     pair,
     pairName: event.participants.find((p) => p.id === pair)?.name ?? pair,
     round,
-    roundLabel: roundLabel(event, round),
+    roundLabel: device?.roundLabel ?? roundLabel(event, round),
     phase: event.roundPhase,
     status: event.status,
     guide,

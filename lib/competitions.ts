@@ -78,7 +78,7 @@ export type Competition = ReturnType<typeof competitionCatalog>[number];
 
 export function inheritCompetition(stored: StoredEvent, root: CompetitionSource, organizerName?: string): StoredEvent {
   const { prefix: _legacyPrefix, ...event } = stored.event as BridgeEvent & { prefix?: unknown };
-  return { ...stored, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition: competitionInfo(root, organizerName) } };
+  return { requests: stored.requests, get projection() { return stored.projection; }, event: { ...event, venue: stageVenue(root.venue, event.venueOverride), competition: competitionInfo(root, organizerName) } };
 }
 
 export function stageVenue(building?: string, room?: string): string {

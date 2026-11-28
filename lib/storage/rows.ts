@@ -1,3 +1,7 @@
+import { DomainError } from '../domain-error';
+import { clubConfirmationKey } from '../club-confirmation';
+import { interleavedSize } from '../team-movement';
+import { tableDeviceKey, tableDevices } from '../table-device';
 import { stageCompetitionId, type StoredCompetition } from '../competition-record';
 import {
   resultKey,
@@ -6,30 +10,25 @@ import {
   type Board,
   type BridgeEvent,
   type Participant,
-  type Projection,
   type Result,
+  type Mutation,
   type StoredEvent,
 } from '../model';
+import { storedWithProjection } from '../scoring';
 import { canonical, type ResultWrites } from './cell-write';
-import { captureSql, commitSql } from './batch';
+import { captureSql, commitSql, queueDataVersion } from './batch';
 import type { Sql } from './neon';
 
 const splitKeys = ['participants', 'assignments', 'boards', 'results', 'penalties', 'audit'] as const;
 
 export type LoadedStage = {
   stored: StoredEvent;
-  writes: ResultWrites;
-  revisions: Record<string, number>;
+  stageVersion: number;
+  assignmentVersions: Record<string, number>;
+  penaltyVersions: Record<string, number>;
 };
 
-export type StagePrior = {
-  eventRevision: number;
-  writes: ResultWrites;
-  revisions: Record<string, number>;
-  results: Record<string, Result>;
-};
-
-type StageRow = { id?: string; revision: unknown; settings: BridgeEvent; projection: Projection };
+type StageRow = { id?: string; revision: unknown; settings: BridgeEvent; updated_at: string };
 
 export function boardJson(board: Board) {
   return JSON.stringify(board);
@@ -39,155 +38,200 @@ export async function saveStage(
   sql: Sql,
   stored: StoredEvent,
   writes: ResultWrites,
-  prior?: StagePrior,
+  prior?: LoadedStage,
 ) {
   const cap = captureSql();
   queueStage(cap.sql, stored, writes, prior);
   await commitSql(sql, cap.batches);
 }
 
-export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: StagePrior, preserveBoards = false, insertOnly = false) {
+export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, prior?: LoadedStage, command?: Mutation) {
   const event = stored.event;
-  const { prefix: _legacyPrefix, ...settings }: Partial<BridgeEvent> & { prefix?: unknown } = event;
-  for (const key of splitKeys) delete settings[key];
-  if (insertOnly)
-    sql`INSERT INTO bridge_stages (id, revision, competition_id, settings, projection, updated_at)
-      VALUES (${event.id}, ${event.revision}, ${stageCompetitionId(event)}, ${JSON.stringify(settings)}::jsonb, ${JSON.stringify(stored.projection)}::jsonb, now())`;
-  else if (!prior)
-    sql`INSERT INTO bridge_stages (id, revision, competition_id, settings, projection, updated_at)
-      VALUES (${event.id}, ${event.revision}, ${stageCompetitionId(event)}, ${JSON.stringify(settings)}::jsonb, ${JSON.stringify(stored.projection)}::jsonb, now())
-      ON CONFLICT (id) DO UPDATE SET revision = EXCLUDED.revision, competition_id = EXCLUDED.competition_id,
-        settings = EXCLUDED.settings, projection = EXCLUDED.projection, updated_at = now()`;
-  else {
-    sql`WITH upd AS (
-      UPDATE bridge_stages SET revision = ${event.revision}, competition_id = ${stageCompetitionId(event)},
-        settings = ${JSON.stringify(settings)}::jsonb, projection = ${JSON.stringify(stored.projection)}::jsonb, updated_at = now()
-      WHERE id = ${event.id} AND revision = ${prior.eventRevision}
-      RETURNING 1
-    ) SELECT 1 / (SELECT count(*)::int FROM upd)`;
-  }
-  if (!insertOnly) sql`DELETE FROM bridge_participants WHERE event_id = ${event.id}`;
-  if (event.participants.length)
-    sql`INSERT INTO bridge_participants (event_id, participant_id, ordinal, document)
-      SELECT ${event.id}, document->>'id', ordinal, document
-      FROM jsonb_to_recordset(${JSON.stringify(event.participants.map((document, ordinal) => ({ ordinal, document })))}::jsonb)
-        AS x(ordinal int, document jsonb)`;
-  if (!insertOnly) sql`DELETE FROM bridge_assignments WHERE event_id = ${event.id}`;
-  if (event.assignments.length)
-    sql`INSERT INTO bridge_assignments (event_id, assignment_id, ordinal, document)
-      SELECT ${event.id}, document->>'id', ordinal, document
-      FROM jsonb_to_recordset(${JSON.stringify(event.assignments.map((document, ordinal) => ({ ordinal, document })))}::jsonb)
-        AS x(ordinal int, document jsonb)`;
-  if (!preserveBoards) {
-    if (!insertOnly) sql`DELETE FROM bridge_boards WHERE event_id = ${event.id}`;
-    if (event.boards.length)
-      sql`INSERT INTO bridge_boards (event_id, board_number, ordinal, document_json)
-        SELECT ${event.id}, board_number, ordinal, document_json
-        FROM jsonb_to_recordset(${JSON.stringify(event.boards.map((document, ordinal) => ({ ordinal, board_number: document.number, document_json: boardJson(document) })))}::jsonb)
-          AS x(board_number int, ordinal int, document_json text)`;
-  }
-  queueResults(sql, event, writes, prior, insertOnly);
-  if (!insertOnly) sql`DELETE FROM bridge_penalties WHERE event_id = ${event.id}`;
-  const penalties = Object.entries(event.penalties ?? {});
-  if (penalties.length)
-    sql`INSERT INTO bridge_penalties (event_id, participant_id, amount)
-      SELECT ${event.id}, participant_id, amount
-      FROM jsonb_to_recordset(${JSON.stringify(penalties.map(([participant_id, amount]) => ({ participant_id, amount })))}::jsonb)
-        AS x(participant_id text, amount jsonb)`;
-  if (!insertOnly) sql`DELETE FROM bridge_audit WHERE event_id = ${event.id}`;
-  if (event.audit.length)
-    sql`INSERT INTO bridge_audit (event_id, seq, document)
-      SELECT ${event.id}, seq, document
-      FROM jsonb_to_recordset(${JSON.stringify(event.audit.map((document, seq) => ({ seq, document })))}::jsonb)
-        AS x(seq int, document jsonb)`;
-  const requestRows = JSON.stringify(stored.requests.map((request_id, ordinal) => ({ request_id, ordinal })));
-  if (!insertOnly) sql`DELETE FROM bridge_requests WHERE event_id = ${event.id}
-    AND NOT EXISTS (SELECT 1 FROM jsonb_to_recordset(${requestRows}::jsonb) AS ids(request_id text, ordinal int) WHERE ids.request_id = bridge_requests.request_id)`;
-  if (stored.requests.length)
-    sql`INSERT INTO bridge_requests (event_id, request_id, ordinal)
-      SELECT ${event.id}, request_id, ordinal FROM jsonb_to_recordset(${requestRows}::jsonb) AS x(request_id text, ordinal int)
-      ON CONFLICT (event_id, request_id) DO UPDATE SET ordinal = EXCLUDED.ordinal`;
-}
-
-function queueResults(sql: Sql, event: BridgeEvent, writes: ResultWrites, prior?: StagePrior, insertOnly = false) {
+  const before = prior?.stored.event;
+  const settings = stageSettings(event);
+  const clientRevision = command?.revision;
+  let stageChanged = !prior;
+  queueDataVersion(sql, event.id);
   if (!prior) {
-    if (!insertOnly) sql`DELETE FROM bridge_results WHERE event_id = ${event.id}`;
-    const rows = Object.values(event.results);
-    if (rows.length)
-      sql`INSERT INTO bridge_results (event_id, assignment_id, board, revision, written_at_event_revision, document)
-        SELECT ${event.id}, assignment_id, board, 1, written_at, document
-        FROM jsonb_to_recordset(${JSON.stringify(rows.map((document) => ({
-          assignment_id: document.assignmentId,
-          board: document.board,
-          written_at: writes[resultKey(document.assignmentId, document.board)] ?? event.revision,
-          document,
-        })))}::jsonb) AS x(assignment_id text, board int, written_at int, document jsonb)`;
-    return;
-  }
-  const seen = new Set<string>();
-  for (const result of Object.values(event.results)) {
-    const key = resultKey(result.assignmentId, result.board);
-    seen.add(key);
-    const writtenAt = writes[key] ?? event.revision;
-    const previous = prior.revisions[key];
-    if (!previous) {
-      sql`INSERT INTO bridge_results (event_id, assignment_id, board, revision, written_at_event_revision, document)
-        VALUES (${event.id}, ${result.assignmentId}, ${result.board}, 1, ${writtenAt}, ${JSON.stringify(result)}::jsonb)`;
-      continue;
+    sql`INSERT INTO bridge_stages (id, revision, competition_id, settings, projection, updated_at)
+      VALUES (${event.id}, current_setting('valet.data_version')::int, ${stageCompetitionId(event)}, ${JSON.stringify(settings)}::jsonb, '{}'::jsonb, ${event.updatedAt})`;
+  } else {
+    const settingsChanged = canonical(settings) !== canonical(stageSettings(prior.stored.event));
+    const tableCommand = command && (['results', 'clear-result', 'adjusted-score', 'ruling', 'split-contract',
+      'table-lineup', 'club-play', 'club-complete-table', 'penalty'].includes(command.action) ||
+      (command.action === 'club-config' && command.assignmentId !== undefined));
+    stageChanged = !tableCommand || settingsChanged ||
+      canonical(before!.participants) !== canonical(event.participants) ||
+      canonical(before!.boards) !== canonical(event.boards) ||
+      canonical(before!.club?.tokens) !== canonical(event.club?.tokens) ||
+      canonical(before!.assignments.map(a => a.id)) !== canonical(event.assignments.map(a => a.id));
+    if (stageChanged) {
+      rejectStale(prior.stageVersion, clientRevision);
+      const maxAssignment = Math.max(0, ...Object.values(prior.assignmentVersions));
+      sql`WITH upd AS (UPDATE bridge_stages SET revision = current_setting('valet.data_version')::int,
+        competition_id = ${stageCompetitionId(event)}, updated_at = ${event.updatedAt}
+        WHERE id = ${event.id} AND revision = ${prior.stageVersion} AND
+        (SELECT coalesce(max(version),0) FROM bridge_assignments WHERE event_id = ${event.id}) = ${maxAssignment}
+        RETURNING 1) SELECT 1 / (SELECT count(*)::int FROM upd)`;
+      if (settingsChanged) sql`UPDATE bridge_stages SET settings = ${JSON.stringify(settings)}::jsonb WHERE id = ${event.id}`;
     }
-    if (
-      canonical(prior.results[key]) === canonical(result) &&
-      prior.writes[key] === writtenAt
-    )
-      continue;
-    const expected = prior.writes[key] ?? 0;
-    sql`WITH upd AS (
-      UPDATE bridge_results SET revision = revision + 1, written_at_event_revision = ${writtenAt},
-        document = ${JSON.stringify(result)}::jsonb
-      WHERE event_id = ${event.id} AND assignment_id = ${result.assignmentId} AND board = ${result.board}
-        AND written_at_event_revision = ${expected}
-      RETURNING 1
-    ) SELECT 1 / (SELECT count(*)::int FROM upd)`;
   }
-  for (const key of Object.keys(prior.revisions)) {
-    if (seen.has(key)) continue;
-    const splitAt = key.lastIndexOf(':');
-    const assignmentId = key.slice(0, splitAt);
-    const board = Number(key.slice(splitAt + 1));
-    const expected = prior.writes[key] ?? 0;
-    sql`WITH del AS (
-      DELETE FROM bridge_results WHERE event_id = ${event.id} AND assignment_id = ${assignmentId} AND board = ${board}
-        AND written_at_event_revision = ${expected}
-      RETURNING 1
-    ) SELECT 1 / (SELECT count(*)::int FROM del)`;
+  if (prior && command && !stageChanged) {
+    const tables = command.action === 'results' ? command.results.map(r => r.assignmentId)
+      : 'assignmentId' in command && command.assignmentId ? [command.assignmentId] : [];
+    for (const id of tables) rejectStale(prior.assignmentVersions[id] ?? 0, clientRevision);
+  }
+  for (const row of before?.participants ?? [])
+    if (!event.participants.some(p => p.id === row.id))
+      sql`DELETE FROM bridge_participants WHERE event_id = ${event.id} AND participant_id = ${row.id}`;
+  for (const [ordinal, row] of event.participants.entries()) {
+    if (canonical(row) === canonical(before?.participants[ordinal])) continue;
+    sql`INSERT INTO bridge_participants(event_id, participant_id, ordinal, document)
+      VALUES (${event.id}, ${row.id}, ${ordinal}, ${JSON.stringify(row)}::jsonb)
+      ON CONFLICT(event_id, participant_id) DO UPDATE SET ordinal = excluded.ordinal, document = excluded.document`;
+  }
+  for (const row of before?.assignments ?? [])
+    if (!event.assignments.some(a => a.id === row.id))
+      sql`DELETE FROM bridge_assignments WHERE event_id = ${event.id} AND assignment_id = ${row.id}`;
+  const changedCells = [...new Set([...Object.keys(before?.results ?? {}), ...Object.keys(event.results)])]
+    .filter(key => canonical(before?.results[key]) !== canonical(event.results[key]));
+  const changedResults = new Set(changedCells.map(key => (event.results[key] ?? before!.results[key]).assignmentId));
+  for (const [ordinal, row] of event.assignments.entries()) {
+    const device = tableDeviceKey(event, row);
+    const confirmation = event.club?.confirmations[clubConfirmationKey(event, row)];
+    const old = before?.assignments[ordinal];
+    const override = event.club?.inputOverrides?.[row.id];
+    if (old && before && override === before.club?.inputOverrides?.[row.id] && before.participants.length === event.participants.length && canonical(row) === canonical(old) && device === tableDeviceKey(before, old)
+      && canonical(confirmation) === canonical(before.club?.confirmations[clubConfirmationKey(before, old)])
+      && !changedResults.has(row.id)) continue;
+    if (prior && prior.assignmentVersions[row.id] !== undefined) {
+      const version = prior.assignmentVersions[row.id];
+      if (!stageChanged) rejectStale(version, clientRevision);
+      sql`SELECT 1 / count(*)::int FROM (SELECT 1 FROM bridge_assignments WHERE event_id = ${event.id}
+        AND assignment_id = ${row.id} AND version = ${version} FOR UPDATE) guard`;
+    }
+    sql`INSERT INTO bridge_assignments(event_id, assignment_id, ordinal, document, round, table_label, room, ns, ew, device_key, input_pair, participant_count, version, confirmation)
+      VALUES (${event.id}, ${row.id}, ${ordinal}, ${JSON.stringify(row)}::jsonb, ${row.round}, ${String(row.table)},
+        ${row.room}, ${row.ns}, ${row.ew}, ${device}, ${override ?? null}, ${event.participants.length}, current_setting('valet.data_version')::bigint, ${confirmation ? JSON.stringify(confirmation) : null}::jsonb)
+      ON CONFLICT(event_id, assignment_id) DO UPDATE SET ordinal = excluded.ordinal, document = excluded.document,
+        round = excluded.round, table_label = excluded.table_label, room = excluded.room, ns = excluded.ns, ew = excluded.ew,
+        device_key = excluded.device_key, input_pair = excluded.input_pair, participant_count = excluded.participant_count, version = excluded.version, confirmation = excluded.confirmation`;
+  }
+  for (const row of before?.boards ?? [])
+    if (!event.boards.some(b => b.number === row.number))
+      sql`DELETE FROM bridge_boards WHERE event_id = ${event.id} AND board_number = ${row.number}`;
+  for (const [ordinal, row] of event.boards.entries()) {
+    if (canonical(row) === canonical(before?.boards[ordinal])) continue;
+    sql`INSERT INTO bridge_boards(event_id, board_number, ordinal, document_json)
+      VALUES (${event.id}, ${row.number}, ${ordinal}, ${boardJson(row)})
+      ON CONFLICT(event_id, board_number) DO UPDATE SET ordinal = excluded.ordinal, document_json = excluded.document_json`;
+  }
+  for (const key of changedCells) {
+    const result = event.results[key];
+    if (result) {
+      sql`INSERT INTO bridge_results(event_id, assignment_id, board, revision, written_at_event_revision, document)
+        VALUES (${event.id}, ${result.assignmentId}, ${result.board}, 1,
+          coalesce(${prior ? null : writes[key] ?? null}::int, current_setting('valet.data_version')::int), ${JSON.stringify(result)}::jsonb)
+        ON CONFLICT(event_id, assignment_id, board) DO UPDATE SET revision = bridge_results.revision + 1,
+          written_at_event_revision = excluded.written_at_event_revision, document = excluded.document`;
+    } else {
+      const old = before!.results[key];
+      sql`DELETE FROM bridge_results WHERE event_id = ${event.id} AND assignment_id = ${old.assignmentId} AND board = ${old.board}`;
+    }
+  }
+  for (const key of Object.keys(before?.penalties ?? {}))
+    if (!(key in (event.penalties ?? {})))
+      sql`DELETE FROM bridge_penalties WHERE event_id = ${event.id} AND participant_id = ${key}`;
+  for (const [key, amount] of Object.entries(event.penalties ?? {})) {
+    const previous = prior?.penaltyVersions[key];
+    if (command?.action === 'penalty' && command.participantId === key) rejectStale(previous ?? 0, clientRevision);
+    if (before?.penalties?.[key] === amount) continue;
+    if (previous === undefined)
+      sql`INSERT INTO bridge_penalties(event_id, participant_id, amount, version)
+        VALUES (${event.id}, ${key}, ${JSON.stringify(amount)}::jsonb, current_setting('valet.data_version')::bigint)`;
+    else
+      sql`WITH upd AS (UPDATE bridge_penalties SET amount = ${JSON.stringify(amount)}::jsonb, version = current_setting('valet.data_version')::bigint
+        WHERE event_id = ${event.id} AND participant_id = ${key} AND version = ${previous} RETURNING 1)
+        SELECT 1 / (SELECT count(*)::int FROM upd)`;
+  }
+  for (const key of Object.keys(before?.club?.tokens ?? {}))
+    if (!(key in (event.club?.tokens ?? {})))
+      sql`DELETE FROM bridge_club_tokens WHERE event_id = ${event.id} AND device_key = ${key}`;
+  const devices = new Map(tableDevices(event).map(d => [d.key, d.label]));
+  const oldDevices = new Map(before && tableDevices(before).map(d => [d.key, d.label] as const));
+  const size = interleavedSize(event), oldSize = before && interleavedSize(before);
+  for (const [key, hash] of Object.entries(event.club?.tokens ?? {})) {
+    if (before?.club?.tokens[key] === hash && oldSize === size && oldDevices.get(key) === devices.get(key)) continue;
+    sql`INSERT INTO bridge_club_tokens(event_id, device_key, token_hash, movement_size, device_label)
+      VALUES (${event.id}, ${key}, ${hash}, ${size}, ${devices.get(key) ?? null})
+      ON CONFLICT(event_id, device_key) DO UPDATE SET token_hash = excluded.token_hash, movement_size = excluded.movement_size, device_label = excluded.device_label`;
+  }
+  if (command)
+    sql`SELECT set_config('valet.data_version', greatest(revision,
+      (SELECT max(version) FROM bridge_assignments WHERE event_id = ${event.id}),
+      (SELECT max(version) FROM bridge_penalties WHERE event_id = ${event.id}))::text, true) AS data_version
+      FROM bridge_stages WHERE id = ${event.id}`;
+  for (const audit of event.audit.slice(before?.audit.length ?? 0))
+    if (prior)
+      sql`INSERT INTO bridge_audit(event_id, seq, document) VALUES (${event.id}, nextval('bridge_data_version'),
+        jsonb_set(${JSON.stringify(audit)}::jsonb, '{revision}', to_jsonb(current_setting('valet.data_version')::bigint)))`;
+    else sql`INSERT INTO bridge_audit(event_id, seq, document) VALUES (${event.id}, nextval('bridge_data_version'), ${JSON.stringify(audit)}::jsonb)`;
+  for (const [offset, request] of stored.requests.slice(prior?.stored.requests.length ?? 0).entries()) {
+    const ordinal = (prior?.stored.requests.length ?? 0) + offset;
+    sql`INSERT INTO bridge_requests(event_id, request_id, ordinal) VALUES (${event.id}, ${request}, ${ordinal})`;
   }
 }
 
-export async function loadStage(sql: Sql, id: string): Promise<LoadedStage | null> {
-  const rows = await sql`SELECT id, revision, settings, projection FROM bridge_stages WHERE id = ${id}`;
-  if (!rows.length) return null;
-  const [loaded] = await hydrateStages(sql, rows as unknown as StageRow[]);
-  return loaded ?? null;
+function rejectStale(version: number, clientRevision?: number) {
+  if (clientRevision !== undefined && version > clientRevision)
+    throw new DomainError('賽段版本已更新，請重新載入後再提交。', 409, 'stage-revision');
 }
 
-export async function loadStages(sql: Sql): Promise<LoadedStage[]> {
-  const rows =
-    await sql`SELECT id, revision, settings, projection FROM bridge_stages ORDER BY updated_at DESC, id`;
-  return hydrateStages(sql, rows as unknown as StageRow[]);
+function stageSettings(event: BridgeEvent) {
+  const { prefix: _legacyPrefix, club, ...settings }: Partial<BridgeEvent> & { prefix?: unknown } = event;
+  for (const key of splitKeys) delete settings[key];
+  delete settings.revision;
+  delete settings.updatedAt;
+  if (!club) return settings;
+  const { confirmations: _confirmations, tokens: _tokens, inputOverrides: _overrides, ...collection } = club;
+  return { ...settings, club: collection };
 }
 
-async function hydrateStages(sql: Sql, stages: StageRow[]): Promise<LoadedStage[]> {
-  if (!stages.length) return [];
-  const ids = JSON.stringify(stages.map((stage) => String(stage.id)));
-  const [participants, assignments, boards, results, penalties, audits, requests] = await Promise.all([
-    sql`SELECT event_id, ordinal, document FROM bridge_participants WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`,
-    sql`SELECT event_id, ordinal, document FROM bridge_assignments WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`,
-    sql`SELECT event_id, ordinal, document_json FROM bridge_boards WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`,
-    sql`SELECT event_id, assignment_id, board, revision, written_at_event_revision, document FROM bridge_results WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, assignment_id, board`,
-    sql`SELECT event_id, participant_id, amount FROM bridge_penalties WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, participant_id`,
-    sql`SELECT event_id, seq, document FROM bridge_audit WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, seq`,
-    sql`SELECT event_id, request_id FROM bridge_requests WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal, request_id`,
-  ]);
+export async function loadStage(sql: Sql, id: string, history = true): Promise<LoadedStage | null> {
+  const cap = captureSql();
+  cap.sql`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`;
+  cap.sql`SELECT id, revision, settings, updated_at FROM bridge_stages WHERE id = ${id}`;
+  queueChildren(cap.sql, JSON.stringify([id]), history);
+  const [, stages, ...children] = await commitSql(sql, cap.batches);
+  return hydrateStages(stages as unknown as StageRow[], children, history)[0] ?? null;
+}
+
+export async function loadStages(sql: Sql, competitionId?: string): Promise<LoadedStage[]> {
+  const rows = competitionId === undefined
+    ? await sql`SELECT id, revision, settings, updated_at FROM bridge_stages ORDER BY updated_at DESC, id`
+    : await sql`SELECT id, revision, settings, updated_at FROM bridge_stages
+        WHERE competition_id = ${competitionId} OR id = ${competitionId} ORDER BY updated_at DESC, id`;
+  if (!rows.length) return [];
+  const cap = captureSql();
+  queueChildren(cap.sql, JSON.stringify(rows.map(row => row.id)), true);
+  return hydrateStages(rows as unknown as StageRow[], await commitSql(sql, cap.batches), true);
+}
+
+function queueChildren(sql: Sql, ids: string, history: boolean) {
+    sql`SELECT event_id, ordinal, document FROM bridge_participants WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`;
+    sql`SELECT event_id, ordinal, document, confirmation, input_pair, assignment_id, version FROM bridge_assignments WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`;
+    sql`SELECT event_id, ordinal, document_json FROM bridge_boards WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal`;
+    sql`SELECT event_id, document FROM bridge_results WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, assignment_id, board`;
+    sql`SELECT event_id, participant_id, amount, version FROM bridge_penalties WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, participant_id`;
+    if (history) sql`SELECT event_id, seq, document FROM bridge_audit WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, seq`;
+    if (history) sql`SELECT event_id, request_id FROM bridge_requests WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY event_id, ordinal, request_id`;
+    sql`SELECT event_id, device_key, token_hash FROM bridge_club_tokens WHERE event_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb))`;
+}
+
+function hydrateStages(stages: StageRow[], children: Record<string, unknown>[][], history: boolean): LoadedStage[] {
+  const [participants, assignments, boards, results, penalties] = children;
+  const audits = history ? children[5] : [], requests = history ? children[6] : [];
+  const tokens = children.at(-1)!;
   const group = <T extends { event_id: unknown }>(rows: T[]) => {
     const map = new Map<string, T[]>();
     for (const row of rows) {
@@ -206,10 +250,13 @@ async function hydrateStages(sql: Sql, stages: StageRow[]): Promise<LoadedStage[
   return stages.map((stage) => {
     const id = String(stage.id);
     const { prefix: _legacyPrefix, ...settings } = stage.settings as BridgeEvent & { prefix?: unknown };
+    const assignmentVersions = Object.fromEntries(assignments.filter(r => r.event_id === id).map(r => [String(r.assignment_id), Number(r.version)]));
+    const penaltyVersions = Object.fromEntries(penalties.filter(r => r.event_id === id).map(r => [String(r.participant_id), Number(r.version)]));
     const event: BridgeEvent = {
       ...settings,
       id: String(stage.id ?? settings.id),
-      revision: Number(stage.revision),
+      updatedAt: settings.updatedAt ?? new Date(stage.updated_at).toISOString(),
+      revision: Math.max(Number(stage.revision), ...Object.values(assignmentVersions), ...Object.values(penaltyVersions)),
       participants: (participantRows.get(id) ?? []).map((row) => (row as unknown as { document: Participant }).document),
       assignments: (assignmentRows.get(id) ?? []).map((row) => (row as unknown as { document: Assignment }).document),
       boards: (boardRows.get(id) ?? []).map((row) => JSON.parse(String((row as unknown as { document_json: string }).document_json)) as Board),
@@ -227,37 +274,43 @@ async function hydrateStages(sql: Sql, stages: StageRow[]): Promise<LoadedStage[
       ),
       audit: (auditRows.get(id) ?? []).map((row) => (row as unknown as { document: Audit }).document),
     };
-    const writes: ResultWrites = {};
-    const revisions: Record<string, number> = {};
-    for (const row of resultRows.get(id) ?? []) {
-      const typed = row as unknown as { document: Result; written_at_event_revision: unknown; revision: unknown };
-      const key = resultKey(typed.document.assignmentId, typed.document.board);
-      writes[key] = Number(typed.written_at_event_revision);
-      revisions[key] = Number(typed.revision);
+    if (event.club) {
+      const overrides = assignments.filter(row => row.event_id === id && row.input_pair);
+      const hadOverrides = event.club.inputOverrides !== undefined;
+      delete event.club.inputOverrides;
+      if (hadOverrides || overrides.length) event.club.inputOverrides = Object.fromEntries(overrides.map(r => [String(r.assignment_id), String(r.input_pair)]));
+      const confirmations: typeof event.club.confirmations = {};
+      for (const row of assignments.filter(row => row.event_id === id && row.confirmation)) {
+        confirmations[clubConfirmationKey(event, row.document as Assignment)] =
+          row.confirmation as (typeof confirmations)[string];
+      }
+      event.club = { ...event.club, confirmations,
+        tokens: Object.fromEntries(tokens.filter(row => row.event_id === id).map(row => [String(row.device_key), String(row.token_hash)])),
+      };
     }
     return {
-      stored: {
-        event,
-        projection: stage.projection,
-        requests: (requestRows.get(id) ?? []).map((row) => String((row as unknown as { request_id: string }).request_id)),
-      },
-      writes,
-      revisions,
+      stageVersion: Number(stage.revision), assignmentVersions, penaltyVersions,
+      stored: storedWithProjection(event, (requestRows.get(id) ?? []).map(row => String((row as unknown as { request_id: string }).request_id))),
     };
   });
 }
 
 export function queueDeleteStage(sql: Sql, id: string, revision?: number) {
+  sql`SELECT pg_advisory_xact_lock(hashtextextended(${id}, 0))`;
   if (revision === undefined) sql`DELETE FROM bridge_stages WHERE id = ${id}`;
   else
     sql`WITH del AS (
-      DELETE FROM bridge_stages WHERE id = ${id} AND revision = ${revision} RETURNING 1
+      DELETE FROM bridge_stages WHERE id = ${id} AND greatest(revision,
+        (SELECT max(version) FROM bridge_assignments WHERE event_id = ${id}),
+        (SELECT max(version) FROM bridge_penalties WHERE event_id = ${id})) = ${revision} RETURNING 1
     ) SELECT 1 / (SELECT count(*)::int FROM del)`;
   sql`DELETE FROM bridge_participants WHERE event_id = ${id}`;
   sql`DELETE FROM bridge_assignments WHERE event_id = ${id}`;
   sql`DELETE FROM bridge_boards WHERE event_id = ${id}`;
   sql`DELETE FROM bridge_results WHERE event_id = ${id}`;
   sql`DELETE FROM bridge_penalties WHERE event_id = ${id}`;
+  sql`DELETE FROM bridge_club_tokens WHERE event_id = ${id}`;
+  sql`DELETE FROM bridge_projection_cache WHERE event_id = ${id}`;
   sql`DELETE FROM bridge_audit WHERE event_id = ${id}`;
   sql`DELETE FROM bridge_requests WHERE event_id = ${id}`;
 }
@@ -305,13 +358,15 @@ export async function saveCompetition(sql: Sql, stored: StoredCompetition, expec
   await commitSql(sql, cap.batches);
 }
 
-export async function loadCompetitions(sql: Sql): Promise<StoredCompetition[]> {
-  const rows = await sql`SELECT id, revision, document FROM bridge_competitions ORDER BY id`;
+export async function loadCompetitions(sql: Sql, competitionId?: string, history = true): Promise<StoredCompetition[]> {
+  const rows = competitionId === undefined
+    ? await sql`SELECT id, revision, document FROM bridge_competitions ORDER BY id`
+    : await sql`SELECT id, revision, document FROM bridge_competitions WHERE id = ${competitionId}`;
   if (!rows.length) return [];
   const ids = JSON.stringify(rows.map((row) => String(row.id)));
   const [audits, requests] = await Promise.all([
-    sql`SELECT competition_id, seq, document FROM bridge_competition_audit WHERE competition_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY competition_id, seq`,
-    sql`SELECT competition_id, request_id FROM bridge_competition_requests WHERE competition_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY competition_id, ordinal, request_id`,
+    !history ? [] : sql`SELECT competition_id, seq, document FROM bridge_competition_audit WHERE competition_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY competition_id, seq`,
+    !history ? [] : sql`SELECT competition_id, request_id FROM bridge_competition_requests WHERE competition_id IN (SELECT value FROM jsonb_array_elements_text(${ids}::jsonb)) ORDER BY competition_id, ordinal, request_id`,
   ]);
   return rows.map((row) => {
     const id = String(row.id);

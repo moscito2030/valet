@@ -21,6 +21,7 @@ export function applyCollectionCommand(
     Mutation,
     { action: 'club-config' | 'club-play' | 'club-finalize' | 'club-complete-table' }
   >,
+  deviceTable?: import('../model').Assignment,
 ) {
   const { event: e, at, changes } = context;
   let detail: string | undefined;
@@ -108,7 +109,7 @@ export function applyCollectionCommand(
       throw new DomainError('目前不開放此圈輸入', 409);
     const tableMode = club.mode === 'table';
     const a = tableMode
-      ? deviceAssignment(e, pair, command.round)
+      ? deviceTable ?? deviceAssignment(e, pair, command.round)
       : e.assignments.find((a) => a.round === command.round && (a.ns === pair || a.ew === pair));
     if (!a)
       throw new DomainError(

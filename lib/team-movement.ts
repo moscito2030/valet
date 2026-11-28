@@ -102,9 +102,10 @@ export function interleavedSize(event: Pick<BridgeEvent, 'assignments'>): Interl
 export function roundLabel(
   event: Pick<BridgeEvent, 'assignments' | 'teamMovement'>,
   round: number,
+  size?: InterleavedSize,
 ) {
   if (!event.teamMovement || round < 1) return String(round);
-  const length = interleavedSize(event) - 1;
+  const length = (size ?? interleavedSize(event)) - 1;
   return Math.floor((round - 1) / length) + 1 + '-' + (((round - 1) % length) + 1);
 }
 
