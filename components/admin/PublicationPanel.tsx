@@ -4,6 +4,8 @@ import { PairScoringSettings } from '../pair-scoring-settings';
 import { TeamScoringSettings } from '../team-scoring-settings';
 import { awardPlacesFor, hasDirectionalAwards } from '@/lib/awards';
 import { boardGroups, boardRange } from '@/lib/board-groups';
+import { boardPublicationFlag, effectivePublicTiming } from '@/lib/board-publication';
+import { Fragment } from 'react';
 
 import { AdminEvent, api } from '../scoreboard-shared';
 
@@ -31,6 +33,9 @@ export function PublicationPanel({
   setDeleteName,
   setError,
 }: Props) {
+  const timing = effectivePublicTiming(event);
+  const items = [['vp', 'VP'], ['contract', '合約'], ['hands', '牌型']] as const;
+  const grids = event.kind === 'teams' ? items.filter(([item]) => timing[item] === 'manual') : [];
   return (
     <>
       {section !== 'boards' && <>
@@ -135,28 +140,29 @@ export function PublicationPanel({
       </>}
       {section !== 'information' && event.canDirect && (
         <>
-          <h4>依牌組公開牌型</h4>
-          <p>
-            每個按鈕一次公開或隱藏所列牌號的手牌與各桌成績。公開後這些牌計入排名。牌組由 PBN
-            指定，未指定時依每圈牌數自動分組。已下載的牌型無法收回。
-          </p>
+          {event.kind === 'pairs' && <>
+            <h4>依牌組公開牌型</h4>
+            <p>
+              每個按鈕一次公開或隱藏所列牌號的手牌與各桌成績。公開後這些牌計入排名。牌組由 PBN
+              指定，未指定時依每圈牌數自動分組。已下載的牌型無法收回。
+            </p>
+          </>}
           {event.kind === 'teams' && <form className="import-export-section" onSubmit={(e) => {
             e.preventDefault();
             const form = new FormData(e.currentTarget);
             void save({
               action: 'public-timing',
-              vp: form.get('vp') || undefined,
-              contract: form.get('contract') || undefined,
-              hands: form.get('hands') || undefined,
+              vp: form.get('vp'),
+              contract: form.get('contract'),
+              hands: form.get('hands'),
               reason: '設定公開時機',
             });
           }}>
             <div className="form-grid">
-              {([['vp', 'VP'], ['contract', '合約'], ['hands', '牌型']] as const).map(([item, label]) => (
+              {items.map(([item, label]) => (
                 <label className="field" key={item}>
                   {label}
-                  <select name={item} key={event.publicTiming?.[item]} defaultValue={event.publicTiming?.[item] ?? ''} disabled={busy}>
-                    <option value="">沿用現行規則</option>
+                  <select name={item} key={timing[item]} defaultValue={timing[item]} disabled={busy}>
                     <option value="manual">手動公開</option>
                     <option value="round">一圈打完公開</option>
                     <option value="board">兩桌可比即公開</option>
@@ -166,31 +172,37 @@ export function PublicationPanel({
             </div>
             <button className="button subtle" disabled={busy}>儲存公開時機</button>
           </form>}
-          <div className="publication-grid">
-            {boardGroups(event.boards, event.boardsPerRound).map((group) => {
-              const b = group[0];
-              const published = group.every((item) => item.published === true);
-              const label = boardRange(group.map((item) => item.number));
-              return (
-                <button
-                  key={b.number}
-                  disabled={busy}
-                  aria-pressed={published}
-                  className={`button ${published ? 'primary' : 'subtle'}`}
-                  onClick={() =>
-                    save({
-                      action: 'board-publication',
-                      board: b.number,
-                      published: !published,
-                      reason: `牌 ${label} ${published ? '隱藏' : '公開'}成績與牌型`,
-                    })
-                  }
-                >
-                  {label} · {published ? '已公開' : '隱藏中'}
-                </button>
-              );
-            })}
-          </div>
+          {(event.kind === 'teams' ? grids : [['hands', '']] as const).map(([item, itemLabel]) => (
+            <Fragment key={item}>
+              {itemLabel && <h4>{itemLabel}</h4>}
+              <div className="publication-grid">
+                {boardGroups(event.boards, event.boardsPerRound).map((group) => {
+                  const b = group[0];
+                  const published = group.every(board => (board[boardPublicationFlag[item]] ?? board.published) === true);
+                  const label = boardRange(group.map((item) => item.number));
+                  return (
+                    <button
+                      key={b.number}
+                      disabled={busy}
+                      aria-pressed={published}
+                      className={`button ${published ? 'primary' : 'subtle'}`}
+                      onClick={() =>
+                        save({
+                          action: 'board-publication',
+                          ...(event.kind === 'teams' ? { item } : {}),
+                          board: b.number,
+                          published: !published,
+                          reason: `牌 ${label} ${published ? '隱藏' : '公開'}${itemLabel || '成績與牌型'}`,
+                        })
+                      }
+                    >
+                      {label} · {published ? '已公開' : '隱藏中'}
+                    </button>
+                  );
+                })}
+              </div>
+            </Fragment>
+          ))}
         </>
       )}
       {section !== 'boards' && <>

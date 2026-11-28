@@ -1,4 +1,5 @@
 import { boardGroups } from '../board-groups';
+import { boardPublicationFlag } from '../board-publication';
 import { DomainError } from '../domain-error';
 import { parsePbn } from '../imports';
 import { Board, Mutation } from '../model';
@@ -13,19 +14,18 @@ export function applyDealsCommand(
   if (command.action === 'public-timing') {
     if (e.kind !== 'teams') throw new DomainError('只有隊制賽可設定公開時機');
     const { vp, contract, hands } = command;
-    e.publicTiming = vp || contract || hands ? { vp, contract, hands } : undefined;
+    e.publicTiming = { vp, contract, hands };
     return;
   }
   if (command.action === 'board-publication') {
-    // Each board already carries its own switch. Undefined stays hidden.
-    e.boards = e.boards.map((b) => ({ ...b, published: b.published === true }));
+    const flag = boardPublicationFlag[command.item ?? 'hands'];
     const b = e.boards.find((b) => b.number === command.board);
     if (!b) throw new DomainError('找不到牌號');
     const targets = boardGroups(e.boards, e.boardsPerRound).find((group) =>
       group.some((board) => board.number === b.number),
     )!;
-    detail = `${targets.map((board) => `B${board.number}`).join('、')}: ${b.published ? '公開' : '隱藏'} → ${command.published ? '公開' : '隱藏'}`;
-    for (const target of targets) target.published = command.published;
+    detail = `${targets.map((board) => `B${board.number}`).join('、')}: ${(b[flag] ?? b.published) ? '公開' : '隱藏'} → ${command.published ? '公開' : '隱藏'}`;
+    for (const target of targets) target[flag] = command.published;
   } else if (command.action === 'pbn') {
     if (!e.knockout && Object.keys(e.results).length)
       throw new DomainError('已有成績時不可更換牌型與身價。請在收分前匯入。');
@@ -46,6 +46,8 @@ export function applyDealsCommand(
         const board = boards.find((b) => b.number === old.number);
         return board ? { ...board, group: old.group ?? board.group,
           published: old.published === true,
+          publishedContract: old.publishedContract,
+          publishedVp: old.publishedVp,
           ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}) } : old;
       });
       context.detail = [`匯入未打牌號：${boards.map((b) => b.number).join('、')}；保留已收分牌局`, warnings.join('；')].filter(Boolean).join('；');
@@ -60,14 +62,19 @@ export function applyDealsCommand(
     const explicitGroups = new Set(boards.map((b) => b.group).filter(Boolean));
     let prefix = 'Auto';
     while ([...explicitGroups].some((group) => group!.startsWith(`${prefix}-`))) prefix += '_';
-    e.boards = boards.map((b) => ({
-      ...b,
-      ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}),
-      group:
-        b.group ??
-        `${prefix}-${Math.floor(ordered.findIndex((item) => item.number === b.number) / e.boardsPerRound) + 1}`,
-      published: e.boards.find((old) => old.number === b.number)?.published === true,
-    }));
+    e.boards = boards.map((b) => {
+      const old = e.boards.find((old) => old.number === b.number)!;
+      return {
+        ...b,
+        ...(e.gameMode === 'minibridge' ? { vulnerability: 'None' as const } : {}),
+        group:
+          b.group ??
+          `${prefix}-${Math.floor(ordered.findIndex((item) => item.number === b.number) / e.boardsPerRound) + 1}`,
+        published: old.published === true,
+        publishedContract: old.publishedContract,
+        publishedVp: old.publishedVp,
+      };
+    });
     for (const b of e.boards) {
       if (e.boards.some((other) => other.group === b.group && !other.published))
         b.published = false;

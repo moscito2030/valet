@@ -1,5 +1,15 @@
 import type { Board, BridgeEvent, StoredEvent } from './model';
 
+export const boardPublicationFlag = {
+  vp: 'publishedVp',
+  contract: 'publishedContract',
+  hands: 'published',
+} as const;
+
+export function effectivePublicTiming(event: Pick<BridgeEvent, 'publicTiming'>): NonNullable<BridgeEvent['publicTiming']> {
+  return { vp: 'manual', contract: 'manual', hands: 'manual', ...event.publicTiming };
+}
+
 type LegacyEvent = {
   publishBoards?: boolean;
   boards: Board[];

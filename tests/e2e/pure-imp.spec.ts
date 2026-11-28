@@ -61,7 +61,8 @@ test('director configures a pure IMP final, adds overtime, applies a deciding pe
       venue: '',
     },
   });
-  expect(response.ok(), await response.text()).toBeTruthy();
+  expect(response.status(), await response.text()).toBe(201);
+  expect(response.headers()['cache-control']).toBe('no-store');
   const { id } = await response.json();
   await openAdmin(page, id);
   await page.getByRole('button', { name: '賽程與牌局管理', exact: true }).click();

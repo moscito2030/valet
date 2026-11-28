@@ -38,6 +38,8 @@ export type Board = {
   vulnerability: Vulnerability;
   deal: Record<Seat, string[]>;
   published?: boolean;
+  publishedContract?: boolean;
+  publishedVp?: boolean;
 };
 export type Assignment = {
   id: string;
@@ -103,7 +105,7 @@ const publicTimingSchema = z.enum(['manual', 'round', 'board']);
 type PublicTiming = z.infer<typeof publicTimingSchema>;
 
 export type BridgeEvent = {
-  publicTiming?: { vp?: PublicTiming; contract?: PublicTiming; hands?: PublicTiming };
+  publicTiming?: { vp: PublicTiming; contract: PublicTiming; hands: PublicTiming };
   stageArchived?: boolean;
   // Legacy root stages retain their IDs; independent competition records own shared metadata.
   parentEventId?: string;
@@ -561,6 +563,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       reason: z.string().trim().min(2).max(200),
       board: z.number().int().min(1),
       published: z.boolean(),
+      item: z.enum(['vp', 'contract', 'hands']).optional(),
     })
     .strict(),
   z
@@ -569,9 +572,9 @@ export const mutationSchema = z.discriminatedUnion('action', [
       revision: z.number().int().min(1),
       requestId: z.string().uuid(),
       reason: z.string().trim().min(2).max(200),
-      vp: publicTimingSchema.optional(),
-      contract: publicTimingSchema.optional(),
-      hands: publicTimingSchema.optional(),
+      vp: publicTimingSchema,
+      contract: publicTimingSchema,
+      hands: publicTimingSchema,
     })
     .strict(),
   z
@@ -767,7 +770,7 @@ export type PublicEvent = Omit<BridgeEvent, 'audit' | 'club' | 'boards' | 'publi
   // Counts only. Ranking and scores stay on the published projection.
   receivedByParticipant?: Record<string, number>;
   collectionProgress?: ReturnType<typeof import('./round-progress').roundProgress>;
-  boards: Omit<Board, 'deal'>[] | Board[];
+  boards: (Omit<Board, 'deal' | 'publishedContract' | 'publishedVp'> & { deal?: Board['deal'] })[];
   projection: Projection;
 };
 export const resultKey = (assignment: string, board: number) => `${assignment}:${board}`;

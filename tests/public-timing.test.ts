@@ -17,6 +17,7 @@ import { createTestDb } from './helpers/sql';
 
 const items = ['vp', 'contract', 'hands'] as const;
 const timings = ['manual', 'round', 'board'] as const;
+const manual = { vp: 'manual', contract: 'manual', hands: 'manual' } as const;
 
 function fixture(kind: BridgeEvent['kind'] = 'teams') {
   const event = createEvent({ name: 'Public timing', kind, names: ['A', 'B', 'C', 'D'],
@@ -51,13 +52,17 @@ function visible(snapshot: ReturnType<typeof publicSnapshot>, item: typeof items
 for (const timing of timings) for (const item of items) {
   test(`${item} public timing: ${timing}`, () => {
     const event = fixture();
-    event.publicTiming = { [item]: timing };
+    event.publicTiming = { ...manual, [item]: timing };
     const [last, ...earlier] = [...event.assignments].reverse();
     const boards = timing === 'board' ? [1] : [1, 2];
     for (const row of earlier) for (const board of boards) enter(event, row, board);
     if (timing !== 'board') for (const board of boards) enter(event, last, board);
     assert.equal(visible(publicSnapshot(event), item), false);
-    if (timing === 'manual') event.boards.forEach(board => { board.published = true; });
+    if (timing === 'manual') event.boards.forEach(board => {
+      board.publishedVp = item === 'vp';
+      board.publishedContract = item === 'contract';
+      board.published = item === 'hands';
+    });
     if (timing === 'round') event.club!.finalized.push(1);
     if (timing === 'board') enter(event, last, 1);
     const snapshot = publicSnapshot(event, project(event));
@@ -65,6 +70,7 @@ for (const timing of timings) for (const item of items) {
     for (const other of items.filter(other => other !== item))
       assert.equal(visible(snapshot, other), false);
     assert.equal('publicTiming' in snapshot, false);
+    assert.ok(snapshot.boards.every(board => !('publishedContract' in board) && !('publishedVp' in board)));
     if (timing === 'board') {
       if (item === 'contract') assert.ok(Object.values(snapshot.results).every(result => result.board === 1));
       if (item === 'hands') assert.deepEqual(snapshot.boards.map(board => 'deal' in board), [true, false]);
@@ -90,13 +96,13 @@ test('board timing awards partial VP using the full match size and leaves the se
   const legacy = teamMatchScores(event).matches[0];
   assert.equal(legacy.completed, 1);
   assert.deepEqual([legacy.vpA, legacy.vpB], [null, null]);
-  const live = project({ ...event, publicTiming: { vp: 'board' } });
+  const live = project({ ...event, publicTiming: { ...manual, vp: 'board' } });
   const match = live.matches[0];
   assert.deepEqual([match.vpA, match.vpB, match.provisional],
     [vp(legacy.marginA, 2), vp(legacy.marginB, 2), true]);
   assert.ok(live.standings.every(row => row.secondary === 0 && row.provisional));
   for (const row of event.assignments) enter(event, row, 2);
-  assert.deepEqual(project({ ...event, publicTiming: { vp: 'board' } }), project(event));
+  assert.deepEqual(project({ ...event, publicTiming: { ...manual, vp: 'board' } }), project(event));
 });
 
 const progressCache = 'public, s-maxage=5, stale-while-revalidate=10';
@@ -108,7 +114,7 @@ test('plain events retain progress and versioned standings cache headers', async
   const event = fixture('pairs');
   const repo = createNormalizedRepository(db.sql);
   const { event: saved } = await repo.insertEvent(event);
-  const command = mutationSchema.parse({ action: 'public-timing', vp: 'board',
+  const command = mutationSchema.parse({ action: 'public-timing', ...manual, vp: 'board',
     revision: saved.revision, requestId: randomUUID(), reason: '設定公開時機' });
   assert.equal(canMutate('director', command), true);
   assert.equal(canMutate('admin', command), false);
@@ -142,12 +148,15 @@ test('stage timing and board-group commands publish once and invalidate the prev
   let saved = await repo.insertEvent(event);
   const progress = () => readProgress(sql, id, null, false).then(response => response.json());
   let tag = (await progress()).snapshotTag.slice(1, -1);
-  for (const [payload, shown] of [
-    [{ action: 'public-timing', vp: 'board', contract: 'board', hands: 'board' }, true],
-    [{ action: 'public-timing', vp: 'manual', contract: 'manual', hands: 'manual' }, false],
-    [{ action: 'board-publication', board: 1, published: true }, true],
-    [{ action: 'board-publication', board: 1, published: false }, false],
-    [{ action: 'public-timing' }, false],
+  for (const [payload, shown, flags] of [
+    [{ action: 'public-timing', vp: 'board', contract: 'board', hands: 'board' }, [true, true, true], [undefined, undefined, undefined]],
+    [{ action: 'public-timing', ...manual }, [false, false, false], [undefined, undefined, undefined]],
+    [{ action: 'board-publication', board: 1, item: 'vp', published: true }, [true, false, false], [undefined, true, undefined]],
+    [{ action: 'board-publication', board: 1, item: 'vp', published: false }, [false, false, false], [undefined, false, undefined]],
+    [{ action: 'board-publication', board: 1, item: 'contract', published: true }, [false, true, false], [undefined, false, true]],
+    [{ action: 'board-publication', board: 1, item: 'contract', published: false }, [false, false, false], [undefined, false, false]],
+    [{ action: 'board-publication', board: 1, item: 'hands', published: true }, [false, false, true], [true, false, false]],
+    [{ action: 'board-publication', board: 1, published: false }, [false, false, false], [false, false, false]],
   ] as const) {
     const before = publishes;
     saved = await repo.mutateEvent(id, mutationSchema.parse({ ...payload, revision: saved.event.revision,
@@ -161,10 +170,13 @@ test('stage timing and board-group commands publish once and invalidate the prev
     const fresh = await readScoreboard(sql, id, null, false, next);
     assert.equal(fresh.headers.get('cache-control'), immutable);
     const snapshot = await fresh.json();
-    assert.deepEqual(items.map(item => visible(snapshot, item)), [shown, shown, shown]);
+    assert.deepEqual(items.map(item => visible(snapshot, item)), shown);
+    const { event: reloaded } = await repo.getEvent(id, false, false);
+    for (const board of reloaded.boards)
+      assert.deepEqual([board.published, board.publishedVp, board.publishedContract], flags);
     tag = next;
   }
-  assert.equal((await repo.getEvent(id, false, false)).event.publicTiming, undefined);
+  assert.deepEqual((await repo.getEvent(id, false, false)).event.publicTiming, manual);
 });
 
 test('board timing rebuilds lazily after the floor without projecting on tablet submits', async t => {
@@ -179,7 +191,7 @@ test('board timing rebuilds lazily after the floor without projecting on tablet 
   const repo = createNormalizedRepository(sql);
   for (const timing of ['board', 'manual', undefined] as const) {
     const event = fixture(), id = event.id;
-    if (timing) event.publicTiming = { vp: timing };
+    if (timing) event.publicTiming = { ...manual, vp: timing };
     await repo.insertEvent(event);
     const progress = () => readProgress(sql, id, null, false).then(response => response.json());
     const old = (await progress()).snapshotTag;
@@ -230,7 +242,54 @@ for (const { event, expected } of golden) {
     const { enteredBoards, receivedByParticipant, collectionProgress, ...snapshot } = expected;
     const current = publicSnapshot(event);
     assert.deepEqual(JSON.parse(JSON.stringify(current)), snapshot);
-    assert.deepEqual(publicSnapshot({ ...event, publicTiming: event.kind === 'pairs'
-      ? { vp: 'board', contract: 'manual', hands: 'round' } : {} }), current);
+    assert.deepEqual(publicSnapshot({ ...event, publicTiming: { vp: 'board', contract: 'manual', hands: 'round' } }), current);
   });
 }
+
+test('unset team timing uses manual publication and legacy board flags', () => {
+  const event = fixture();
+  for (const row of event.assignments) for (const board of row.boards) enter(event, row, board);
+  // This intentionally differs from master: results stay hidden until published by the director,
+  // and the legacy round rule no longer gates manual publication.
+  assert.deepEqual(publicSnapshot(event), publicSnapshot({ ...event, publicTiming: manual }));
+  assert.deepEqual(items.map(item => visible(publicSnapshot(event), item)), [false, false, false]);
+  event.boards.forEach(board => { board.published = true; });
+  assert.deepEqual(publicSnapshot(event), publicSnapshot({ ...event, publicTiming: manual }));
+  assert.deepEqual(items.map(item => visible(publicSnapshot(event), item)), [true, true, true]);
+});
+
+test('public timing requires all three items', () => {
+  for (const item of items) {
+    const { [item]: omitted, ...remaining } = manual;
+    assert.equal(mutationSchema.safeParse({ action: 'public-timing', ...remaining,
+      revision: 1, requestId: randomUUID(), reason: '設定公開時機' }).success, false);
+  }
+});
+
+test('director corrections rebuild only for eligible team publication items', async t => {
+  const db = await createTestDb();
+  t.after(db.close);
+  const repo = createNormalizedRepository(db.sql);
+  for (const [timing, flags, finalized, rebuild] of [
+    [undefined, {}, false, false],
+    [undefined, { publishedVp: true }, false, true],
+    [undefined, { publishedContract: true }, false, true],
+    [undefined, { published: true, publishedVp: false, publishedContract: false }, false, true],
+    [{ ...manual, contract: 'round' }, {}, true, true],
+    [{ ...manual, contract: 'board' }, {}, false, false],
+  ] as const) {
+    const event = fixture();
+    if (timing) event.publicTiming = timing;
+    Object.assign(event.boards[0], flags);
+    if (finalized) event.club!.finalized.push(1);
+    const assignment = event.assignments[0];
+    for (const row of event.assignments) for (const board of row.boards) enter(event, row, board);
+    const { event: saved } = await repo.insertEvent(event);
+    const tag = async () => (await (await readProgress(db.sql, event.id, null, false)).json()).snapshotTag;
+    const before = await tag();
+    await repo.mutateEvent(event.id, mutationSchema.parse({ action: 'results', revision: saved.revision,
+      requestId: randomUUID(), reason: '更正成績',
+      results: [{ ...play(assignment).result!, tricks: 8 }] }));
+    assert.equal((await tag()) !== before, rebuild);
+  }
+});

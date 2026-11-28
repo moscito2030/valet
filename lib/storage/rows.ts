@@ -1,5 +1,5 @@
 import { knockoutExemptAssignments } from '../knockout-status';
-import { materializeBoardPublication } from '../board-publication';
+import { boardPublicationFlag, effectivePublicTiming, materializeBoardPublication } from '../board-publication';
 import { boardsStillInPlay } from '../board-in-play';
 import { audienceScoring } from '../read-models/public-event';
 import { queuePublicSnapshot } from './projection';
@@ -209,19 +209,25 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
   }
   function visibleScoresChanged() {
     if (!changedCells.length || !before) return false;
+    if (event.kind === 'teams') {
+      const changedBoards = new Set(changedCells.map(key => (event.results[key] ?? before.results[key]).board));
+      return [before, event].some(state => {
+        const timing = effectivePublicTiming(state);
+        const round = Object.values(timing).includes('round') ? boardsStillInPlay(state) : undefined;
+        return materializeBoardPublication(state).boards.some(board => changedBoards.has(board.number) &&
+          (Object.keys(boardPublicationFlag) as (keyof typeof boardPublicationFlag)[]).some(item =>
+            (timing[item] === 'round' && !round!.has(board.number)) ||
+            (timing[item] === 'manual' && (board[boardPublicationFlag[item]] ?? board.published) === true)));
+      });
+    }
     const waiting = boardsStillInPlay(event);
     const previous = event.club?.enabled ? waiting : boardsStillInPlay(before);
     const published = new Set(materializeBoardPublication(event).boards.filter(b => b.published).map(b => b.number));
-    const { vp, contract, hands } = (event.kind === 'teams' && event.publicTiming) || {};
     if (changedCells.some(key => {
       const board = (event.results[key] ?? before.results[key]).board;
-      const roundVisible = !waiting.has(board) || !previous.has(board);
-      return (published.has(board) && (vp === 'manual' || contract === 'manual')) ||
-        (roundVisible && (vp === 'round' || contract === 'round')) ||
-        (waiting.has(board) !== previous.has(board) && hands === 'round') ||
-        (published.has(board) && roundVisible && (!vp || !contract || !hands));
+      return published.has(board) && (!waiting.has(board) || !previous.has(board));
     })) return true;
-    return !vp && !event.club?.enabled && !!event.provisionalVp &&
+    return !event.club?.enabled && !!event.provisionalVp &&
       canonical(audienceScoring(materializeBoardPublication(before)).provisionalVp) !==
       canonical(audienceScoring(materializeBoardPublication(event)).provisionalVp);
   }

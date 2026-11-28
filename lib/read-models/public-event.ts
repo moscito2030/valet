@@ -1,3 +1,4 @@
+import { boardPublicationFlag, effectivePublicTiming } from '../board-publication';
 import { boardsStillInPlay } from '../board-in-play';
 import { knockoutExemptAssignments } from '../knockout-status';
 import type { BridgeEvent, Projection } from '../model';
@@ -37,34 +38,33 @@ export function audienceScoring(event: BridgeEvent, projection?: Projection) {
   return publicScoring;
 }
 
-function timedTeamSnapshot(event: BridgeEvent, timing: NonNullable<BridgeEvent['publicTiming']>) {
-  const { vp, contract, hands } = timing;
-  const waiting = [vp, contract, hands].includes('round') ? boardsStillInPlay(event) : undefined;
-  const incomparable = [vp, contract, hands].includes('board')
+function timedTeamSnapshot(event: BridgeEvent) {
+  const timing = effectivePublicTiming(event);
+  const modes = Object.values(timing);
+  const waiting = modes.includes('round') ? boardsStillInPlay(event) : undefined;
+  const incomparable = modes.includes('board')
     ? boardsStillInPlay({ ...event, club: undefined }) : undefined;
-  const published = new Set(event.boards.filter(board => board.published === true).map(board => board.number));
-  const eligible = (mode: NonNullable<typeof vp>, board: number) => {
-    if (mode === 'manual') return published.has(board);
-    if (mode === 'round') return !waiting!.has(board);
-    return !incomparable!.has(board);
-  };
   const results = Object.entries(normalizeResults(event.results));
-  const filterResults = (mode: NonNullable<typeof vp>) =>
-    Object.fromEntries(results.filter(([, result]) => eligible(mode, result.board)));
-  const legacy = !vp || !contract ? audienceScoring(event) : undefined;
+  const filterResults = (item: 'vp' | 'contract') => {
+    const eligible = new Set(event.boards.filter(board => {
+      if (timing[item] === 'manual') return (board[boardPublicationFlag[item]] ?? board.published) === true;
+      if (timing[item] === 'round') return !waiting!.has(board.number);
+      return !incomparable!.has(board.number);
+    }).map(board => board.number));
+    return Object.fromEntries(results.filter(([, result]) => eligible.has(result.board)));
+  };
   return {
-    results: contract ? filterResults(contract) : legacy!.results,
-    boards: hands
-      ? publicBoards({ ...event, boards: event.boards.map(board => ({ ...board, published: eligible(hands, board.number) })) })
-      : presentBoards(event),
-    projection: project(vp ? { ...event, results: filterResults(vp) } : legacy!),
+    results: filterResults('contract'),
+    boards: publicBoards({ ...event, boards: event.boards.map(board => ({
+      ...board,
+      published: timing.hands === 'manual' ? board.published === true
+        : !(timing.hands === 'round' ? waiting! : incomparable!).has(board.number),
+    })) }),
+    projection: project({ ...event, results: filterResults('vp') }),
   };
 }
 
 export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
-  const timing = event.publicTiming;
-  const timed = event.kind === 'teams' && timing && (timing.vp || timing.contract || timing.hands)
-    ? timedTeamSnapshot(event, timing) : undefined;
   const { club } = event;
   const data = {
     clubEnabled: !!club?.enabled,
@@ -162,7 +162,7 @@ export function publicSnapshot(event: BridgeEvent, projection?: Projection) {
     revision: event.revision,
     updatedAt: event.updatedAt,
   };
-  if (timed) return { ...data, ...timed };
+  if (event.kind === 'teams') return { ...data, ...timedTeamSnapshot(event) };
   const publicScoring = audienceScoring(event, projection);
   const { results } = publicScoring;
   const safe = { ...data, results };
