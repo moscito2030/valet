@@ -25,7 +25,7 @@ export function applyMutation(
       'round-control', 'swiss-config', 'swiss-publish', 'knockout-config',
       'knockout-publish', 'knockout-decide', 'knockout-reopen',
       'knockout-adjust', 'knockout-overtime', 'knockout-forfeit',
-      'club-play', 'club-finalize', 'club-complete-table'].includes(command.action) ||
+      'club-play', 'club-finalize', 'club-complete-table', 'running-score-refresh'].includes(command.action) ||
     (command.action === 'settings' && (command.status !== 'finished' ||
       command.teamMethod !== undefined || command.bam !== undefined ||
       command.pairMethod !== undefined || command.trim !== undefined || command.neuberg !== undefined || command.adjustedSession !== undefined))
@@ -128,6 +128,7 @@ export function applyMutation(
       'clear-results': '清除所有成績',
       'table-lineup': '桌次上場名單',
       'club-config': '裝置收分設定',
+      'running-score-refresh': '更新公開成績',
       'pair-name': '修改搭檔名稱',
       'participants-setup': '設定參賽名單',
       'club-play': '收分卡提交/確認',

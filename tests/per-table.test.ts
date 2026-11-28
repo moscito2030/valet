@@ -4,7 +4,7 @@ import test from 'node:test';
 import { Session } from 'node:inspector/promises';
 import { findCompetition } from '../lib/competition-record';
 import { project } from '../lib/scoring';
-import { audienceEvent } from '../lib/read-models/public-event';
+import { audienceEvent, audienceScoring } from '../lib/read-models/public-event';
 import { hydrateEvent } from '../lib/storage/hydrate-event';
 import { migratePerTable } from '../lib/storage/migrate-per-table';
 import { saveCompetition } from '../lib/storage/rows';
@@ -21,9 +21,9 @@ import { cachedProjection } from '../lib/storage/projection';
 import { pollTablet, submitTablet } from '../lib/storage/tablet';
 import { createTestDb } from './helpers/sql';
 
-function fixture() {
+function fixture(boardsPerRound = 1) {
   const event = createEvent({ name: 'Tablet fixture', kind: 'pairs',
-    names: ['A', 'B', 'C', 'D'], date: '2026-11-28', venue: '', rounds: 2, boardsPerRound: 1 });
+    names: ['A', 'B', 'C', 'D'], date: '2026-11-28', venue: '', rounds: 2, boardsPerRound });
   event.currentRound = 1;
   event.roundPhase = 'playing';
   event.club = { enabled: true, tokens: Object.fromEntries(event.participants.map(p => [p.id, p.id])),
@@ -35,6 +35,15 @@ const play = (a: Assignment): Extract<Mutation, { action: 'club-play' }> => ({
   action: 'club-play', revision: 0, requestId: randomUUID(), reason: '平板輸入', tokenHash: a.ns, confirm: false, round: 1,
   result: { assignmentId: a.id, board: a.boards[0], level: 1, strain: 'NT', declarer: 'N', tricks: 7, doubled: 1, lead: '' },
 });
+
+async function projectionCalls(session: Session) {
+  const { result } = await session.post('Profiler.takePreciseCoverage');
+  return result.flatMap(script => script.url.endsWith('/lib/scoring.ts') ? script.functions : [])
+    // tsx also names its short CommonJS export getter 'project'. Match the function body.
+    .filter(fn => fn.functionName === 'project' &&
+      fn.ranges[0].endOffset - fn.ranges[0].startOffset === project.toString().length)
+    .reduce((n, fn) => n + fn.ranges[0].count, 0);
+}
 
 test('per-table storage', async t => {
   const db = await createTestDb();
@@ -201,29 +210,85 @@ test('per-table storage', async t => {
     try {
       await session.post('Profiler.enable');
       await session.post('Profiler.startPreciseCoverage', { callCount: true, detailed: false });
-      const calls = async () => {
-        const { result } = await session.post('Profiler.takePreciseCoverage');
-        return result.flatMap(script => script.url.endsWith('/lib/scoring.ts') ? script.functions : [])
-          // tsx also names its short CommonJS export getter 'project'. Match the function body.
-          .filter(fn => fn.functionName === 'project' &&
-            fn.ranges[0].endOffset - fn.ranges[0].startOffset === project.toString().length)
-          .reduce((n, fn) => n + fn.ranges[0].count, 0);
-      };
       await submitTablet(sql, e.id, play(first), false);
-      assert.equal(await calls(), 0);
+      assert.equal(await projectionCalls(session), 0);
       const correction = await repo.mutateEvent(e.id, mutationSchema.parse({ action: 'results', requestId: randomUUID(),
         revision: (await repo.getEvent(e.id, false, false)).event.revision,
         results: [{ ...play(second).result, tricks: 8 }] }));
-      assert.equal(await calls(), 0);
+      assert.equal(await projectionCalls(session), 0);
       const confirm = (row: Assignment) => submitTablet(sql, e.id, { ...play(row), tokenHash: row.ew, confirm: true,
         result: undefined, reviewVersion: clubReviewVersion(correction.event, row) }, false);
       await confirm(first);
-      assert.equal(await calls(), 0);
+      assert.equal(await projectionCalls(session), 0);
       assert.equal((await readScoreboard(sql, e.id, tag, false)).status, 304);
       await confirm(second);
-      assert.equal(await calls(), 1);
+      assert.equal(await projectionCalls(session), 1);
       const settled = await readScoreboard(sql, e.id, tag, false);
       assert.equal(Object.keys((await settled.json()).results).length, 2);
+    } finally {
+      session.disconnect();
+    }
+  });
+  await t.test('running scores publish comparable results on a director refresh', async () => {
+    const e = fixture(3);
+    for (const board of e.boards) board.published = true;
+    await repo.insertEvent(e);
+    const tables = e.assignments.filter(a => a.round === 1);
+    const [first] = tables;
+    const initialTag = (await readScoreboard(sql, e.id, null, false)).headers.get('etag');
+    const partial = play(first);
+    await submitTablet(sql, e.id, { ...partial, result: { ...partial.result!, board: first.boards[2] } }, false);
+    const midRound = (await repo.getEvent(e.id, false, false)).event;
+    assert.deepEqual([midRound.club?.runningScore, audienceScoring(midRound).results], [undefined, {}]);
+    assert.equal((await readScoreboard(sql, e.id, initialTag, false)).status, 304);
+
+    const session = new Session();
+    session.connect();
+    try {
+      await session.post('Profiler.enable');
+      await session.post('Profiler.startPreciseCoverage', { callCount: true, detailed: false });
+      async function publish(input: { action: 'club-config'; enabled: boolean; runningScore: boolean } |
+        { action: 'running-score-refresh' }, tag: string | null) {
+        const { event } = await repo.getEvent(e.id, false, false);
+        batches.length = 0;
+        await repo.mutateEvent(e.id, mutationSchema.parse({
+          ...input, revision: event.revision, requestId: randomUUID(), reason: '測試更新公開成績',
+        }));
+        assert.equal(await projectionCalls(session), 1);
+        assert.equal(batches.flat().filter(q => q.includes('WITH published AS')).length, 1);
+        const response = await readScoreboard(sql, e.id, tag, false);
+        assert.equal(response.status, 200);
+        assert.notEqual(response.headers.get('etag'), tag);
+        return response;
+      }
+
+      const enabled = await publish({ action: 'club-config', enabled: true, runningScore: true }, initialTag);
+      assert.equal((await repo.getEvent(e.id, false, false)).event.club?.runningScore, true);
+      const oldTag = enabled.headers.get('etag');
+      const keys = [];
+      for (const row of tables) {
+        for (const board of row.boards.slice(0, 2)) {
+          const command = play(row);
+          await submitTablet(sql, e.id, { ...command, result: { ...command.result!, board } }, false);
+          keys.push(`${row.id}:${board}`);
+        }
+      }
+      assert.equal(await projectionCalls(session), 0);
+      assert.equal((await readScoreboard(sql, e.id, oldTag, false)).status, 304);
+
+      const refreshed = await publish({ action: 'running-score-refresh' }, oldTag);
+      const snapshot = await refreshed.json();
+      assert.deepEqual(Object.keys(snapshot.results).sort(), keys.sort());
+      assert.deepEqual(snapshot.projection.standings.map((row: { played: number }) => row.played), [2, 2, 2, 2]);
+      assert.equal(snapshot.boards[0].published, false);
+      assert.equal(snapshot.clubEnabled, true);
+      assert.equal(snapshot.club, undefined);
+      assert.equal(snapshot.runningScore, undefined);
+      const newTag = refreshed.headers.get('etag');
+      assert.equal((await readScoreboard(sql, e.id, newTag, false)).status, 304);
+
+      const disabled = await publish({ action: 'club-config', enabled: true, runningScore: false }, newTag);
+      assert.deepEqual((await disabled.json()).results, {});
     } finally {
       session.disconnect();
     }

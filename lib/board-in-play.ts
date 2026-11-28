@@ -6,7 +6,7 @@ type InPlayEvent = Pick<BridgeEvent, 'assignments' | 'results' | 'club' | 'knock
 // One definition of "this board number is still being played".
 // Phone scoring finishes a table when its round is settled, the table is published,
 // or a knockout walkover exempts it. Director scoring finishes a table when a result exists.
-export function boardsStillInPlay(event: InPlayEvent) {
+export function boardsStillInPlay(event: InPlayEvent, runningScore = false) {
   const exempt = knockoutExemptAssignments(event);
   const waiting = new Set<number>();
   if (event.club?.enabled) {
@@ -15,7 +15,8 @@ export function boardsStillInPlay(event: InPlayEvent) {
     for (const assignment of event.assignments) {
       if (finalized.has(assignment.round) || published.has(assignment.id) || exempt.has(assignment.id))
         continue;
-      for (const board of assignment.boards) waiting.add(board);
+      for (const board of assignment.boards)
+        if (!runningScore || !event.results[resultKey(assignment.id, board)]) waiting.add(board);
     }
     return waiting;
   }

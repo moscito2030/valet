@@ -25,6 +25,7 @@ const access: Record<Mutation['action'], 'staff' | 'director' | 'club'> = {
   'table-lineup': 'staff',
   'competition-settings': 'director',
   'club-config': 'club',
+  'running-score-refresh': 'club',
   'club-play': 'club',
   'club-finalize': 'club',
   'club-complete-table': 'club',

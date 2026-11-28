@@ -13,7 +13,7 @@ export function audienceScoring(event: BridgeEvent, projection?: Projection) {
   const visible = club?.enabled
     ? new Set(event.assignments.filter((a) => finalized.has(a.round) || published.has(a.id) || exempt.has(a.id)).map((a) => a.id))
     : null;
-  const waiting = boardsStillInPlay(event);
+  const waiting = boardsStillInPlay(event, club?.runningScore);
   // Hands already follow `published`. Scores, pair IMPs and standings must too:
   // finishing every table, or settling the round, does not publish a board the director left hidden.
   const publishedBoards = new Set(
@@ -24,7 +24,7 @@ export function audienceScoring(event: BridgeEvent, projection?: Projection) {
       ([, r]) =>
         publishedBoards.has(r.board) &&
         !waiting.has(r.board) &&
-        (!visible || visible.has(r.assignmentId)),
+        (!visible || club?.runningScore || visible.has(r.assignmentId)),
     ),
   );
   const allResultsVisible = Object.keys(results).length === Object.keys(event.results).length;

@@ -110,6 +110,7 @@ export type BridgeEvent = {
   competition?: CompetitionInfo;
   club?: {
     enabled: boolean;
+    runningScore?: boolean;
     mode?: 'pair' | 'table';
     tokens: Record<string, string>;
     confirmations: Record<string, { at: string; forced: boolean; reviewVersion?: string }>;
@@ -481,6 +482,7 @@ export const mutationSchema = z.discriminatedUnion('action', [
       requestId: z.string().uuid(),
       reason: z.string().min(2).max(200),
       enabled: z.boolean(),
+      runningScore: z.boolean().optional(),
       mode: z.enum(['pair', 'table']).optional(),
       deviceKey: z.string().max(300).optional(),
       inputRule: z.enum(['ns', 'ew', 'lower', 'higher']).optional(),
@@ -491,6 +493,14 @@ export const mutationSchema = z.discriminatedUnion('action', [
         .string()
         .regex(/^[a-f0-9]{64}$/)
         .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal('running-score-refresh'),
+      revision: z.number().int(),
+      requestId: z.string().uuid(),
+      reason: z.string().min(2).max(200),
     })
     .strict(),
   z

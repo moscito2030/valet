@@ -45,6 +45,7 @@ export function applyCollectionCommand(
     }
     e.club.mode = mode;
     e.club.enabled = command.enabled;
+    if (command.runningScore !== undefined) e.club.runningScore = command.runningScore;
     if (command.inputRule !== undefined || command.assignmentId !== undefined) {
       if (e.status === 'finished') throw new DomainError('請先重新開放賽事');
       const previous = new Map(e.assignments.map((a) => [a.id, clubRoles(e, a).inputPair]));

@@ -31,6 +31,8 @@ export function dispatchMutation(context: MutationContext, command: Mutation) {
     case 'adjusted-score':
     case 'ruling':
       return applyScoresCommand(context, command);
+    case 'running-score-refresh':
+      return;
     case 'club-config':
     case 'club-play':
     case 'club-complete-table':
