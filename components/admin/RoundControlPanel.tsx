@@ -12,18 +12,20 @@ type Props = {
     toggle: () => void;
     finish: () => void;
   };
+  entered?: Record<string, number>;
+  roundActive?: boolean;
   busy: boolean;
   event: AdminEvent;
   save: (payload: Record<string, unknown>) => Promise<boolean | undefined>;
 };
-export function RoundControlPanel({ busy, event, save, collection, onOpenSettings }: Props) {
-  const round = event.club?.enabled ? (event.currentRound ?? 0) : roundProgress(event).round;
-  const progress = roundProgress({ ...event, currentRound: round });
+export function RoundControlPanel({ busy, event, save, collection, onOpenSettings, entered, roundActive }: Props) {
+  const round = event.club?.enabled ? (event.currentRound ?? 0) : roundProgress(event, entered).round;
+  const progress = roundProgress({ ...event, currentRound: round }, entered);
   const settled = event.club?.enabled
     ? event.club.finalized.includes(round)
     : progress.received === progress.expected && (progress.expected > 0 || event.assignments.some((a) => a.round === round));
   const finished = event.status === 'finished';
-  const reviewing = event.status === 'review' || allRoundsComplete(event);
+  const reviewing = event.status === 'review' || allRoundsComplete(event, entered);
   const paused = event.roundPhase === 'break' && !settled;
   const next = nextScheduledRound(event, round);
   const previous = previousScheduledRound(event, round);
@@ -33,7 +35,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
   const locked = busy || !event.canDirect;
   const change = (target: number, phase: 'playing' | 'break', reason: string) =>
     save({ action: 'round-control', round: target, phase, reason });
-  const canWithdraw = round > 0 && !settled && !roundHasActivity(event, round);
+  const canWithdraw = round > 0 && !settled && !(roundActive ?? roundHasActivity(event, round));
   return (
     <section className="round-workflow" aria-label="圈次進度">
       <div className="round-workflow-heading">
@@ -145,7 +147,7 @@ export function RoundControlPanel({ busy, event, save, collection, onOpenSetting
           <button
             type="button"
             className="button subtle"
-            disabled={locked || !allRoundsComplete(event)}
+            disabled={locked || !allRoundsComplete(event, entered)}
             onClick={() => {
               if (
                 !window.confirm(

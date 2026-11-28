@@ -8,7 +8,7 @@ export function isImpKnockout(
 
 /** A walkover settles a match, but never creates scores for unplayed boards. */
 export function knockoutExemptAssignments(
-  event: Pick<BridgeEvent, 'assignments'> & Partial<Pick<BridgeEvent, 'knockout'>>,
+  event: { assignments: Pick<BridgeEvent['assignments'][number], 'id' | 'matchId'>[]; knockout?: BridgeEvent['knockout'] },
 ) {
   const ids = new Set<string>();
   for (const [nodeId, decision] of Object.entries(event.knockout?.decisions ?? {})) {

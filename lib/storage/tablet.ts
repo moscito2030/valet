@@ -204,12 +204,12 @@ export async function submitTablet(
     queueDataVersion(cap.sql, id);
     const confirmation = event.club!.confirmations[clubConfirmationKey(event, assignment!)];
     if (command.confirm)
-      cap.sql`WITH upd AS (UPDATE bridge_assignments SET confirmation = ${JSON.stringify(confirmation)}::jsonb,
+      cap.sql`WITH upd AS (UPDATE bridge_assignments SET confirmation = ${JSON.stringify(confirmation)}::jsonb, accepted = true,
         version = current_setting('valet.data_version')::bigint WHERE event_id = ${id} AND assignment_id = ${head.assignmentId}
         AND version = ${head.version} AND (SELECT revision FROM bridge_stages WHERE id = ${id}) = ${head.revision}
         RETURNING 1) SELECT 1 / (SELECT count(*)::int FROM upd)`;
     else {
-      cap.sql`WITH upd AS (UPDATE bridge_assignments SET version = current_setting('valet.data_version')::bigint
+      cap.sql`WITH upd AS (UPDATE bridge_assignments SET accepted = false, version = current_setting('valet.data_version')::bigint
         WHERE event_id = ${id} AND assignment_id = ${head.assignmentId} AND version = ${head.version}
         AND (SELECT revision FROM bridge_stages WHERE id = ${id}) = ${head.revision}
         RETURNING 1) SELECT 1 / (SELECT count(*)::int FROM upd)`;

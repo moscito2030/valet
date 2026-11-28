@@ -12,8 +12,10 @@ import { clubConfirmationKey, clubReviewVersion } from '../lib/club-confirmation
 import { clubView } from '../lib/club-view';
 import { createEvent } from '../lib/domain/event-factory';
 import { mutationSchema, type Assignment, type Mutation } from '../lib/model';
-import { createNormalizedRepository, readAdmin, readScoreboard } from '../lib/storage/normalized';
+import { createNormalizedRepository, readAdmin, readAdminAudit, readScoreboard } from '../lib/storage/normalized';
 import type { Sql } from '../lib/storage/neon';
+import { mergeEventProgress } from '../lib/round-progress';
+import { readClubStatus } from '../lib/storage/club-status';
 import { readProgress } from '../lib/storage/progress';
 import { cachedProjection } from '../lib/storage/projection';
 import { pollTablet, submitTablet } from '../lib/storage/tablet';
@@ -129,6 +131,39 @@ test('per-table storage', async t => {
     assert.equal(unchanged.headers.get('etag'), adminTag);
     assert.equal(statements.length, 1);
     assert.doesNotMatch(statements[0], /settings|document|projection/);
+    statements.length = batches.length = 0;
+    const admin = await (await readAdmin(sql, id, null, true)).json();
+    assert.ok(!('audit' in admin) && !('requests' in admin));
+    assert.doesNotMatch([...statements, ...batches.flat()].join(' '), /bridge_(competition_)?(audit|requests)/);
+    assert.deepEqual(await readAdminAudit(sql, id), [...before.audit].reverse());
+  });
+  await t.test('club status validates once and returns receipts and acceptance for current and unfinalized rounds', async () => {
+    const e = fixture();
+    const [early, current] = [e.assignments[0], e.assignments.find(a => a.round === 2)!];
+    e.assignments.push({ ...early, id: 'finalized', round: 3 }, { ...current, id: 'future', round: 5 });
+    current.round = e.currentRound = 4;
+    e.rounds = 5;
+    e.club!.finalized = [3];
+    e.results[`${early.id}:${early.boards[0]}`] = { ...play(early).result!, nsScore: 90, updatedAt: e.updatedAt };
+    e.club!.confirmations[clubConfirmationKey(e, early)] = { at: e.updatedAt, forced: false, reviewVersion: clubReviewVersion(e, early) };
+    const { event: saved } = await repo.insertEvent(e);
+    const first = await readClubStatus(sql, e.id, null);
+    const body = await first.json();
+    assert.deepEqual([body.currentRound, body.finalized, body.stageRevision], [4, [3], saved.revision]);
+    assert.deepEqual(Object.keys(body.assignments).sort(), e.assignments.filter(a => a.round <= 4 && a.round !== 3).map(a => a.id).sort());
+    assert.deepEqual(body.assignments[early.id], { version: saved.revision, boards: early.boards, confirmed: true, accepted: true });
+    assert.deepEqual(body.assignments[current.id], { version: saved.revision, boards: [], confirmed: false, accepted: false });
+    statements.length = 0;
+    const tag = first.headers.get('etag');
+    assert.equal((await readClubStatus(sql, e.id, tag)).status, 304);
+    assert.equal(statements.length, 1);
+    await repo.mutateEvent(e.id, mutationSchema.parse({ action: 'results', requestId: randomUUID(), revision: saved.revision,
+      results: [{ ...play(early).result, tricks: 8 }] }));
+    const update = await readClubStatus(sql, e.id, tag);
+    assert.equal(update.status, 200);
+    const changed = await update.json();
+    assert.equal(changed.stageRevision, body.stageRevision);
+    assert.deepEqual(changed.assignments[early.id], { version: changed.revision, boards: early.boards, confirmed: true, accepted: false });
   });
   await t.test('scoreboard reads the published snapshot and validates with one scalar query', async () => {
     statements.length = 0;
@@ -277,5 +312,5 @@ test('migration preserves fifteen board documents, scores, audit, tokens, confir
   assert.deepEqual(plain(view), plain(clubView(legacy.event, a.ns)));
   const publicView = await (await readScoreboard(sql, id, null, false)).json();
   const progress = await (await readProgress(sql, id, null, false)).json();
-  assert.deepEqual(plain({ ...publicView, ...progress, revision: legacy.event.revision }), plain(audienceEvent(legacy.event, full)));
+  assert.deepEqual(plain({ ...mergeEventProgress(publicView, progress), revision: legacy.event.revision }), plain(audienceEvent(legacy.event, full)));
 });

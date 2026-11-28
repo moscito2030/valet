@@ -1,5 +1,6 @@
-import { clubConfirmationKey } from '../club-confirmation';
+import { clubAccepted, clubConfirmationKey } from '../club-confirmation';
 import type { Assignment, Board, BridgeEvent, Participant, Result } from '../model';
+import { normalizeResults } from '../result-status';
 import { resultKey } from '../model';
 import { knockoutExemptAssignments } from '../knockout-status';
 import { publicSnapshot } from '../read-models/public-event';
@@ -65,6 +66,7 @@ export async function migratePerTable(sql: Sql, apply: boolean) {
         const r = row.document as Result;
         return [resultKey(r.assignmentId, r.board), r];
       }));
+      backfillAccepted(cap.sql, event);
       event.penalties = Object.fromEntries(penalties.map(r => [String(r.participant_id), Number(r.amount)]));
       cap.sql`UPDATE bridge_stages SET public_version = nextval('bridge_data_version') WHERE id = ${stage.id}`;
       const snapshot = publicSnapshot(materializeBoardPublication(event));
@@ -90,4 +92,11 @@ export async function migratePerTable(sql: Sql, apply: boolean) {
       ...cap.batches,
     ]);
   return report;
+}
+
+function backfillAccepted(sql: Sql, event: BridgeEvent) {
+  const review = { club: event.club, results: normalizeResults(event.results) };
+  for (const assignment of event.assignments)
+    if (event.club?.confirmations[clubConfirmationKey(event, assignment)])
+      sql`UPDATE bridge_assignments SET accepted = ${clubAccepted(review, assignment)} WHERE event_id = ${event.id} AND assignment_id = ${assignment.id}`;
 }

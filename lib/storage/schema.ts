@@ -147,7 +147,14 @@ export const normalizedSchemaStatements = [
   )`,
 ];
 
+export const clubStatusColumns = [
+  `ALTER TABLE bridge_stages ADD COLUMN IF NOT EXISTS finalized_rounds jsonb
+    GENERATED ALWAYS AS (coalesce(settings->'club'->'finalized', '[]'::jsonb)) STORED`,
+  `ALTER TABLE bridge_assignments ADD COLUMN IF NOT EXISTS accepted boolean NOT NULL DEFAULT false`,
+];
+
 export const perTableSchemaStatements = [
+  ...clubStatusColumns,
   `CREATE SEQUENCE IF NOT EXISTS bridge_data_version`,
   `ALTER TABLE bridge_stages
      ADD COLUMN IF NOT EXISTS public_version bigint,
@@ -170,8 +177,6 @@ export const perTableSchemaStatements = [
     ADD COLUMN IF NOT EXISTS input_pair text,
     ADD COLUMN IF NOT EXISTS boards jsonb GENERATED ALWAYS AS (document->'boards') STORED,
     ADD COLUMN IF NOT EXISTS match_id text GENERATED ALWAYS AS (document->>'matchId') STORED,
-    ADD COLUMN IF NOT EXISTS table_number boolean GENERATED ALWAYS AS (jsonb_typeof(document->'table') = 'number') STORED,
-    ADD COLUMN IF NOT EXISTS player_names jsonb GENERATED ALWAYS AS (document->'playerNames') STORED,
     ADD COLUMN IF NOT EXISTS exempt boolean,
     ADD COLUMN IF NOT EXISTS provisional boolean,
     ADD COLUMN IF NOT EXISTS confirmation jsonb`,

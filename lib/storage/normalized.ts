@@ -1,3 +1,4 @@
+import { missingStorage } from './switch';
 import type { z } from 'zod';
 import { deletionTargets, type CompetitionDeletion } from '../competition-deletion';
 import {
@@ -24,7 +25,7 @@ import { normalizeResults } from '../result-status';
 import { inheritCompetition } from '../competitions';
 import { competitionInfo, stageVenue } from '../competitions';
 import type { PublicEvent, CompetitionInfo } from '../model';
-import { cachedProjection, scoreboardVersion } from './projection';
+import { cachedProjection, checkStage, scoreboardVersion } from './projection';
 import { readOrganizerNames } from './organizer-names';
 import { resolveCompetitionOrganizer } from '../competitions';
 import type { Sql } from './neon';
@@ -157,7 +158,7 @@ export function createNormalizedRepository(query: Sql) {
     return { requests: [], competition: { id, name: String(root.name), venue: String(root.venue ?? ''),
       hasStages: true, revision: Number(root.revision), updatedAt: new Date(String(root.updated_at)).toISOString(), audit: [] } };
   }
-  async function getEvent(id: string, history = true, rankings = true): Promise<StoredEvent> {
+  async function getEvent(id: string, history = true, rankings = true): Promise<StoredEvent & { stageRevision?: number }> {
     const stage = await loadStage(sql(), id, history);
     if (!stage) throw new DomainError('找不到賽事', 404);
     const competitionId = stageCompetitionId(stage.stored.event);
@@ -172,8 +173,7 @@ export function createNormalizedRepository(query: Sql) {
     const event = { ...stored.event, results: normalizeResults(stored.event.results) };
     const projection = rankings ? await cachedProjection(query, event) : null;
     const record = projection ? { event, requests: stored.requests, projection } : storedWithProjection(event, stored.requests);
-    return inheritCompetition(record,
-      root.competition, organizer.name);
+    return Object.assign(inheritCompetition(record, root.competition, organizer.name), { stageRevision: stage.stageVersion });
   }
   async function deleteEvent(id: string, revision: number) {
     const stage = await loadStage(sql(), id);
@@ -367,13 +367,13 @@ export async function readScoreboard(sql: Sql, id: string, validator: string | n
   return Response.json({ ...snapshot, competition, venue: stageVenue(competition.venue, snapshot.venueOverride) }, { headers });
 }
 
-export function adminResponse(stored: StoredEvent, director: boolean, validator: string | null) {
+export function adminResponse(stored: StoredEvent & { stageRevision?: number }, director: boolean, validator: string | null) {
   const { audit, ...event } = stored.event;
   if ((event.stageArchived || event.competition?.archived) && !director) throw new DomainError('找不到賽事', 404);
   const ETag = `"${event.revision}.${event.competition?.revision ?? event.revision}"`;
   const headers = { ETag, 'Cache-Control': 'private, no-cache', Vary: 'Cookie' };
   if (ETag === validator) return new Response(null, { status: 304, headers });
-  return Response.json({ ...event, ...(director ? { audit } : {}), projection: stored.projection, canDirect: director }, { headers });
+  return Response.json({ ...event, stageRevision: stored.stageRevision ?? event.revision, projection: stored.projection, canDirect: director }, { headers });
 }
 
 export async function readAdmin(sql: Sql, id: string, validator: string | null, director: boolean) {
@@ -381,5 +381,13 @@ export async function readAdmin(sql: Sql, id: string, validator: string | null, 
   if (ETag === validator) return new Response(null, {
     status: 304, headers: { ETag, 'Cache-Control': 'private, no-cache', Vary: 'Cookie' },
   });
-  return adminResponse(await createNormalizedRepository(sql).getEvent(id), director, validator);
+  return adminResponse(await createNormalizedRepository(sql).getEvent(id, false), director, validator);
+}
+
+export async function readAdminAudit(sql: Sql, id: string) {
+  const rows = await sql`SELECT sw.mode, sw.per_table_at, s.id, a.document FROM bridge_storage_switch sw
+    LEFT JOIN bridge_stages s ON s.id = ${id}
+    LEFT JOIN bridge_audit a ON a.event_id = s.id WHERE sw.id = 1 ORDER BY a.seq DESC`.catch(missingStorage);
+  checkStage(rows[0], true);
+  return rows.flatMap(row => row.document ? [row.document] : []);
 }

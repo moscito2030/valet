@@ -16,9 +16,9 @@ test('event deep links and the lazy board view remain usable', async ({ page }) 
     received: stored.projection.received, expected: stored.projection.expected,
   }] } }));
   await page.route(`**/api/events/${event.id}`, route => route.fulfill({
-    json: publicSnapshot(event, stored.projection),
+    headers: { ETag: '"1.1"' }, json: publicSnapshot(event, stored.projection),
   }));
-  await page.route(`**/api/events/${event.id}/progress`, route => route.fulfill({ json: eventProgress(event) }));
+  await page.route(`**/api/events/${event.id}/progress`, route => route.fulfill({ json: { ...eventProgress(event), snapshotTag: '"1.1"' } }));
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`/?event=${event.id}&view=standings`);

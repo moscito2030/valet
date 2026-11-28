@@ -4,7 +4,8 @@ import { boardsStillInPlay } from '../board-in-play';
 import { audienceScoring } from '../read-models/public-event';
 import { queuePublicSnapshot } from './projection';
 import { DomainError } from '../domain-error';
-import { clubConfirmationKey } from '../club-confirmation';
+import { normalizeResults } from '../result-status';
+import { clubAccepted, clubConfirmationKey, clubRoles } from '../club-confirmation';
 import { interleavedSize } from '../team-movement';
 import { tableDeviceKey, tableDevices } from '../table-device';
 import { stageCompetitionId, type StoredCompetition } from '../competition-record';
@@ -124,6 +125,7 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
   // A round switch or a deletion changes progress even when the surviving schedules are identical.
   const progressChanged = before && (before.currentRound !== event.currentRound ||
     before.assignments.some(a => !event.assignments.some(next => next.id === a.id)));
+  let review: Pick<BridgeEvent, 'results' | 'club'> | undefined;
   for (const [ordinal, row] of event.assignments.entries()) {
     const device = tableDeviceKey(event, row);
     const confirmation = event.club?.confirmations[clubConfirmationKey(event, row)];
@@ -133,6 +135,7 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       override === before.club?.inputOverrides?.[row.id] && device === tableDeviceKey(before, old) &&
       exempt.has(row.id) === oldExempt!.has(row.id) &&
       !!event.provisionalVp?.[row.matchId] === !!before.provisionalVp?.[row.matchId] &&
+      (!confirmation || clubRoles(event, row).inputPair === clubRoles(before, old).inputPair) &&
       canonical(confirmation) === canonical(before.club?.confirmations[clubConfirmationKey(before, old)]);
     if (unchanged && !changedResults.has(row.id) && !(ordinal === 0 && progressChanged)) continue;
     if (prior && prior.assignmentVersions[row.id] !== undefined) {
@@ -141,17 +144,19 @@ export function queueStage(sql: Sql, stored: StoredEvent, writes: ResultWrites, 
       sql`SELECT 1 / count(*)::int FROM (SELECT 1 FROM bridge_assignments WHERE event_id = ${event.id}
         AND assignment_id = ${row.id} AND version = ${version} FOR UPDATE) guard`;
     }
+    if (confirmation) review ??= { club: event.club, results: normalizeResults(event.results) };
+    const accepted = !!confirmation && clubAccepted(review!, row);
     if (unchanged) {
-      sql`UPDATE bridge_assignments SET version = current_setting('valet.data_version')::bigint
+      sql`UPDATE bridge_assignments SET accepted = ${accepted}, version = current_setting('valet.data_version')::bigint
         WHERE event_id = ${event.id} AND assignment_id = ${row.id}`;
       continue;
     }
-    sql`INSERT INTO bridge_assignments(event_id, assignment_id, ordinal, document, round, table_label, room, ns, ew, device_key, input_pair, exempt, provisional, version, confirmation)
+    sql`INSERT INTO bridge_assignments(event_id, assignment_id, ordinal, document, round, table_label, room, ns, ew, device_key, input_pair, exempt, provisional, version, confirmation, accepted)
       VALUES (${event.id}, ${row.id}, ${ordinal}, ${JSON.stringify(row)}::jsonb, ${row.round}, ${String(row.table)},
-        ${row.room}, ${row.ns}, ${row.ew}, ${device}, ${override ?? null}, ${exempt.has(row.id)}, ${!!event.provisionalVp?.[row.matchId]}, current_setting('valet.data_version')::bigint, ${confirmation ? JSON.stringify(confirmation) : null}::jsonb)
+        ${row.room}, ${row.ns}, ${row.ew}, ${device}, ${override ?? null}, ${exempt.has(row.id)}, ${!!event.provisionalVp?.[row.matchId]}, current_setting('valet.data_version')::bigint, ${confirmation ? JSON.stringify(confirmation) : null}::jsonb, ${accepted})
       ON CONFLICT(event_id, assignment_id) DO UPDATE SET ordinal = excluded.ordinal, document = excluded.document,
         round = excluded.round, table_label = excluded.table_label, room = excluded.room, ns = excluded.ns, ew = excluded.ew,
-        device_key = excluded.device_key, input_pair = excluded.input_pair, exempt = excluded.exempt, provisional = excluded.provisional, version = excluded.version, confirmation = excluded.confirmation`;
+        device_key = excluded.device_key, input_pair = excluded.input_pair, exempt = excluded.exempt, provisional = excluded.provisional, version = excluded.version, confirmation = excluded.confirmation, accepted = excluded.accepted`;
   }
   for (const row of before?.boards ?? [])
     if (!event.boards.some(b => b.number === row.number))

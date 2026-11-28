@@ -1,15 +1,23 @@
 import { adjustedLabel } from '@/lib/adjusted-score';
 import { awardedResult } from '@/lib/scoring';
 import { EditorPopover } from '../editor-popover';
-import { AdminEvent, displayContract, resultText, signed } from '../scoreboard-shared';
+import { useEffect, useState } from 'react';
+import type { Audit } from '@/lib/model';
+import { api, displayContract, resultText, signed } from '../scoreboard-shared';
 
-type Props = {
-  event: AdminEvent;
-};
-export function AuditPanel({ event }: Props) {
+export function AuditPanel({ eventId }: { eventId: string }) {
+  const [audit, setAudit] = useState<Audit[]>([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const controller = new AbortController();
+    api<Audit[]>(`/api/admin/events/${eventId}/audit`, { signal: controller.signal })
+      .then(setAudit).catch(e => { if (!controller.signal.aborted) setError(e.message); });
+    return () => controller.abort();
+  }, [eventId]);
   return (
     <div className="audit-list">
-      {[...(event.audit ?? [])].reverse().map((a) => (
+      {error && <p role="alert">{error}</p>}
+      {audit.map((a) => (
         <div className="audit-item" key={a.revision}>
           <span className="audit-dot" />
           <div>

@@ -1,3 +1,4 @@
+import { mergeEventProgress, type eventProgress } from '@/lib/round-progress';
 import type { PublicEvent } from '@/lib/model';
 import { createFinishedEventCache } from '@/lib/finished-event-cache';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -8,6 +9,7 @@ const finishedCache = createFinishedEventCache(() => localStorage);
 // A single public resource owns refresh ordering and the audience polling policy.
 export function useEventResource(id: string, tab: Tab, setError: (message: string) => void, summary?: EventSummary) {
   const [event, setEvent] = useState<PublicEvent | null>(null);
+  const held = useRef<{ tag: string; event: PublicEvent } | null>(null);
   const requestGeneration = useRef(0);
   const catalog = useRef(summary);
   catalog.current = summary;
@@ -25,15 +27,21 @@ export function useEventResource(id: string, tab: Tab, setError: (message: strin
         else {
           const url = `/api/events/${encodeURIComponent(id)}`;
           const options = { signal, cache: 'no-cache' as const };
-          const [snapshot, progress] = await Promise.all([
-            api<PublicEvent>(url, options),
-            api<Pick<PublicEvent, 'enteredBoards' | 'receivedByParticipant' | 'collectionProgress'>>(`${url}/progress`, options),
-          ]);
-          data = { ...snapshot, ...progress };
+          const progress = await api<ReturnType<typeof eventProgress> & { snapshotTag: string }>(`${url}/progress`, options);
+          let tag = progress.snapshotTag;
+          let snapshot = held.current?.tag === tag && held.current.event.id === id ? held.current.event : null;
+          if (!snapshot) {
+            const response = await fetch(url, options);
+            if (!response.ok) throw Object.assign(new Error((await response.json()).error), { status: response.status });
+            snapshot = await response.json() as PublicEvent;
+            tag = response.headers.get('etag') ?? tag;
+          }
+          data = mergeEventProgress(snapshot, progress);
+          if (generation === requestGeneration.current) held.current = { tag, event: data };
         }
       }
       catch (error) {
-        if ([401, 403, 404].includes((error as { status?: number }).status ?? 0) && generation === requestGeneration.current) setEvent(null);
+        if ([401, 403, 404].includes((error as { status?: number }).status ?? 0) && generation === requestGeneration.current) { held.current = null; setEvent(null); }
         throw error;
       }
       if (generation === requestGeneration.current) {

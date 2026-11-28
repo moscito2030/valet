@@ -13,9 +13,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const sql = normalizedSql();
     if (sql) return await readProgress(sql, id, validator, await isDirector());
     const { event } = await getAccessibleEvent(id);
-    const headers = { ETag: `"${event.revision}"`, 'Cache-Control': 'private, no-cache' };
+    const publication = `${event.revision}.${event.competition?.revision ?? event.revision}`;
+    const headers = { ETag: `"${event.revision}.${publication}"`, 'Cache-Control': 'private, no-cache' };
     if (headers.ETag === validator) return new Response(null, { status: 304, headers });
-    return Response.json(eventProgress(event), { headers });
+    return Response.json({ ...eventProgress(event), snapshotTag: `"${publication}"` }, { headers });
   } catch (error) {
     return errorResponse(error);
   }
